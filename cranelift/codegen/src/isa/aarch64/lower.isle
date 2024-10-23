@@ -1480,11 +1480,11 @@
 ;;;; Rules for `ushr` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Shift for i8/i16/i32.
-(rule -1 (lower (has_type (fits_in_32 ty) (ushr x y)))
+(rule ushr_8_16_32 -1 (lower (has_type (fits_in_32 ty) (ushr x y)))
       (do_shift (ALUOp.Lsr) ty (put_in_reg_zext32 x) y))
 
 ;; Shift for i64.
-(rule (lower (has_type $I64 (ushr x y)))
+(rule ushr_64 (lower (has_type $I64 (ushr x y)))
       (do_shift (ALUOp.Lsr) $I64 (put_in_reg_zext64 x) y))
 
 ;; Shift for i128.
@@ -1537,11 +1537,11 @@
 ;;;; Rules for `sshr` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Shift for i8/i16/i32.
-(rule -4 (lower (has_type (fits_in_32 ty) (sshr x y)))
+(rule sshr_8_16_32 -4 (lower (has_type (fits_in_32 ty) (sshr x y)))
       (do_shift (ALUOp.Asr) ty (put_in_reg_sext32 x) y))
 
 ;; Shift for i64.
-(rule (lower (has_type $I64 (sshr x y)))
+(rule sshr_64 (lower (has_type $I64 (sshr x y)))
       (do_shift (ALUOp.Asr) $I64 (put_in_reg_sext64 x) y))
 
 ;; Shift for i128.

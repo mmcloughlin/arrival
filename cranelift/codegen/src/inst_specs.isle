@@ -167,6 +167,30 @@
 )
 (instantiate ishl bv_binary_8_to_64)
 
+(spec (ushr x y)
+    (provide
+        (= result
+            (bvlshr
+                x
+                (bvand y (conv_to (widthof y) (bvsub (int2bv 64 (widthof y)) #x0000000000000001)))
+            )
+        )
+    )
+)
+(instantiate ushr bv_binary_8_to_64)
+
+(spec (sshr x y)
+    (provide
+        (= result
+            (bvashr
+                x
+                (bvand y (conv_to (widthof y) (bvsub (int2bv 64 (widthof y)) #x0000000000000001)))
+            )
+        )
+    )
+)
+(instantiate sshr bv_binary_8_to_64)
+
 (spec (band x y)
     (provide (= result (bvand x y))))
 (instantiate band bv_binary_8_to_64)

@@ -3541,20 +3541,20 @@
 ;; Place a `Value` into a register, sign extending it to 64-bits
 (decl put_in_reg_sext64 (Value) Reg)
 (attr put_in_reg_sext64 (veri chain))
-(rule 1 (put_in_reg_sext64 val @ (value_type (fits_in_32 ty)))
+(rule put_in_reg_sext64_extend 1 (put_in_reg_sext64 val @ (value_type (fits_in_32 ty)))
       (extend val $true (ty_bits ty) 64))
 
 ;; 64-bit passthrough.
-(rule (put_in_reg_sext64 val @ (value_type $I64)) val)
+(rule put_in_reg_sext64_passthrough (put_in_reg_sext64 val @ (value_type $I64)) val)
 
 ;; Place a `Value` into a register, zero extending it to 64-bits
 (decl put_in_reg_zext64 (Value) Reg)
 (attr put_in_reg_zext64 (veri chain))
-(rule 1 (put_in_reg_zext64 val @ (value_type (fits_in_32 ty)))
+(rule put_in_reg_zext64_extend 1 (put_in_reg_zext64 val @ (value_type (fits_in_32 ty)))
       (extend val $false (ty_bits ty) 64))
 
 ;; 64-bit passthrough.
-(rule (put_in_reg_zext64 val @ (value_type $I64)) val)
+(rule put_in_reg_zext64_passthrough (put_in_reg_zext64 val @ (value_type $I64)) val)
 
 ;; Misc instruction helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
