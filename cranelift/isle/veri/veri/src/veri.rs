@@ -5,9 +5,11 @@ use crate::{
     trie::{binding_type, BindingType},
     types::{Compound, Const, Type, Variant, Width},
 };
-use anyhow::{bail, format_err, Context, Result};
+use anyhow::{bail, format_err, Context, Error, Result};
 use cranelift_isle::{
     ast::Ident,
+    error::{self, Errors, Span},
+    lexer::Pos,
     sema::{Sym, TermId, TypeId, VariantId},
     trie_again::{Binding, BindingId, Constraint, TupleIndex},
 };
@@ -509,7 +511,7 @@ impl From<ExprId> for Symbolic {
 }
 
 impl TryFrom<Symbolic> for ExprId {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_from(v: Symbolic) -> Result<Self, Self::Error> {
         v.as_scalar().ok_or(format_err!("should be scalar value"))
@@ -631,6 +633,7 @@ pub struct Conditions {
     pub variables: Vec<Variable>,
     pub calls: Vec<Call>,
     pub qualifiers: Vec<Qualifier>,
+    pub pos: HashMap<ExprId, Pos>,
 }
 
 impl Conditions {
@@ -831,6 +834,7 @@ struct ConditionsBuilder<'a> {
     binding_value: HashMap<BindingId, Symbolic>,
     expr_map: HashMap<Expr, ExprId>,
     conditions: Conditions,
+    position_stack: Vec<Pos>,
 }
 
 impl<'a> ConditionsBuilder<'a> {
@@ -843,6 +847,7 @@ impl<'a> ConditionsBuilder<'a> {
             binding_value: HashMap::new(),
             expr_map: HashMap::new(),
             conditions: Conditions::default(),
+            position_stack: Vec::new(),
         }
     }
 
@@ -987,9 +992,9 @@ impl<'a> ConditionsBuilder<'a> {
             .specenv
             .type_model
             .get(&ty)
-            .ok_or(format_err!("no model for type {ty_name}"))?
+            .ok_or(self.error(format!("no model for type {ty_name}")))?
             .as_primitive()
-            .ok_or(format_err!("constant must have basic type"))?;
+            .ok_or(self.error("constant must have basic type"))?;
 
         // Construct value of the determined type.
         let value = self.spec_typed_value(val, ty)?.into();
@@ -1007,10 +1012,15 @@ impl<'a> ConditionsBuilder<'a> {
 
     fn equals_const_prim(&mut self, id: BindingId, val: Sym) -> Result<ExprId> {
         // Lookup value.
-        let spec_value = self.prog.specenv.const_value.get(&val).ok_or(format_err!(
-            "value of constant {const_name} is unspecified",
-            const_name = self.prog.tyenv.syms[val.index()]
-        ))?;
+        let spec_value = self
+            .prog
+            .specenv
+            .const_value
+            .get(&val)
+            .ok_or(self.error(format!(
+                "value of constant {const_name} is unspecified",
+                const_name = self.prog.tyenv.syms[val.index()]
+            )))?;
         let value = self.spec_expr_no_vars(spec_value)?;
 
         // Destination binding equals constant value.
@@ -1098,7 +1108,7 @@ impl<'a> ConditionsBuilder<'a> {
             .specenv
             .term_spec
             .get(&term)
-            .ok_or(format_err!("no spec for term {term_name}",))?;
+            .ok_or(self.error(format!("no spec for term {term_name}",)))?;
 
         // We are provided the arguments and return value as they appear
         // syntactically in the term declaration and specification. However,
@@ -1231,9 +1241,7 @@ impl<'a> ConditionsBuilder<'a> {
         // Source binding should be an enum.
         let e = self.binding_value[&source]
             .as_enum()
-            .ok_or(format_err!(
-                "target of variant constraint should be an enum"
-            ))?
+            .ok_or(self.error("target of variant constraint should be an enum"))?
             .clone();
 
         // Lookup enum type via corresponding constriant,
@@ -1382,9 +1390,7 @@ impl<'a> ConditionsBuilder<'a> {
         // Constrained binding should be an enum.
         let e = self.binding_value[&binding_id]
             .as_enum()
-            .ok_or(format_err!(
-                "target of variant constraint should be an enum"
-            ))?
+            .ok_or(self.error("target of variant constraint should be an enum"))?
             .clone();
 
         // TODO(mbm): check the enum type is correct?
@@ -1400,7 +1406,14 @@ impl<'a> ConditionsBuilder<'a> {
     }
 
     fn spec_expr(&mut self, expr: &spec::Expr, vars: &Variables) -> Result<Symbolic> {
-        match &expr.x {
+        self.position_stack.push(expr.pos);
+        let result = self.spec_expr_kind(&expr.x, vars);
+        self.position_stack.pop();
+        result
+    }
+
+    fn spec_expr_kind(&mut self, expr: &spec::ExprKind, vars: &Variables) -> Result<Symbolic> {
+        match &expr {
             spec::ExprKind::Var(v) => {
                 let v = vars.get(&v.0)?;
                 Ok(v.clone())
@@ -1738,34 +1751,23 @@ impl<'a> ConditionsBuilder<'a> {
                     .prog
                     .tyenv
                     .get_type_by_name(name)
-                    .ok_or(format_err!("unknown enum type {name}", name = name.0))?;
+                    .ok_or(self.error(format!("unknown enum type {name}", name = name.0)))?;
 
                 // Determine type model.
-                let model = self
-                    .prog
-                    .specenv
-                    .type_model
-                    .get(&type_id)
-                    .ok_or(format_err!(
-                        "unspecified model for type {name}",
-                        name = name.0
-                    ))?;
+                let model = self.prog.specenv.type_model.get(&type_id).ok_or(
+                    self.error(format!("unspecified model for type {name}", name = name.0)),
+                )?;
 
                 // Should be an enum.
-                let e = model.as_enum().ok_or(format_err!(
-                    "{name} expected to have enum type",
-                    name = name.0
-                ))?;
+                let e = model.as_enum().ok_or(
+                    self.error(format!("{name} expected to have enum type", name = name.0)),
+                )?;
 
                 // Lookup variant.
                 let variant =
-                    e.variants
-                        .iter()
-                        .find(|v| v.name.0 == variant.0)
-                        .ok_or(format_err!(
-                            "unknown variant {variant}",
-                            variant = variant.0
-                        ))?;
+                    e.variants.iter().find(|v| v.name.0 == variant.0).ok_or(
+                        self.error(format!("unknown variant {variant}", variant = variant.0)),
+                    )?;
 
                 // Discriminant: constant value since we are constructing a known variant.
                 let discriminant = self.constant(Const::Int(variant.id.index().try_into()?));
@@ -1810,12 +1812,12 @@ impl<'a> ConditionsBuilder<'a> {
 
         let fields = v
             .as_struct()
-            .ok_or(format_err!("field access from non-struct value"))?;
+            .ok_or(self.error("field access from non-struct value"))?;
 
         let field = fields
             .iter()
             .find(|f| f.name == name.0)
-            .ok_or(format_err!("missing struct field: {}", name.0))?;
+            .ok_or(self.error(format!("missing struct field: {}", name.0)))?;
 
         Ok(field.value.clone())
     }
@@ -1823,7 +1825,7 @@ impl<'a> ConditionsBuilder<'a> {
     fn spec_discriminator(&mut self, name: &Ident, v: Symbolic) -> Result<Symbolic> {
         let e = v
             .as_enum()
-            .ok_or(format_err!("discriminator for non-enum value"))?;
+            .ok_or(self.error("discriminator for non-enum value"))?;
         let variant = e.try_variant_by_name(&name.0)?;
         let discriminator = self.discriminator(e, variant);
         Ok(discriminator.into())
@@ -1858,7 +1860,7 @@ impl<'a> ConditionsBuilder<'a> {
     fn spec_match(&mut self, on: &spec::Expr, arms: &[Arm], vars: &Variables) -> Result<Symbolic> {
         // Generate the enum value to match on.
         let on = self.spec_expr(on, vars)?;
-        let e = on.as_enum().ok_or(format_err!("match on non-enum value"))?;
+        let e = on.as_enum().ok_or(self.error("match on non-enum value"))?;
 
         // Generate cases.
         let mut cases = Vec::new();
@@ -1958,7 +1960,7 @@ impl<'a> ConditionsBuilder<'a> {
             .specenv
             .macros
             .get(&name.0)
-            .ok_or(format_err!("unknown macro {name}", name = name.0))?;
+            .ok_or(self.error(format!("unknown macro {name}", name = name.0)))?;
 
         // Build macro expansion scope.
         // QUESTION(mbm): should macros be able to access global state?
@@ -2186,7 +2188,7 @@ impl<'a> ConditionsBuilder<'a> {
             .specenv
             .type_model
             .get(&type_id)
-            .ok_or(format_err!("unspecified model for type {type_name}"))?;
+            .ok_or(self.error(format!("unspecified model for type {type_name}")))?;
         self.alloc_value(ty, name)
     }
 
@@ -2205,13 +2207,40 @@ impl<'a> ConditionsBuilder<'a> {
     }
 
     fn dedup_expr(&mut self, expr: Expr) -> ExprId {
-        if let Some(id) = self.expr_map.get(&expr) {
+        let id = if let Some(id) = self.expr_map.get(&expr) {
             *id
         } else {
             let id = ExprId(self.conditions.exprs.len());
             self.conditions.exprs.push(expr.clone());
             self.expr_map.insert(expr, id);
             id
+        };
+
+        if let Some(pos) = self.position_stack.last() {
+            self.conditions.pos.insert(id, *pos);
         }
+
+        id
+    }
+
+    fn error(&self, msg: impl Into<String>) -> Error {
+        if let Some(pos) = self.position_stack.last() {
+            self.error_at_pos(*pos, msg).into()
+        } else {
+            Error::msg(msg.into())
+        }
+    }
+
+    fn error_at_pos(&self, pos: Pos, msg: impl Into<String>) -> Errors {
+        // In order to piggy back off the existing diagnostic error reporting in
+        // ISLE, we shoehorn our error type into one of the existing error
+        // categories.
+        //
+        // TODO(mbm): cleaner positional error reporting for the verifier
+        let err = error::Error::TypeError {
+            msg: msg.into(),
+            span: Span::new_single(pos),
+        };
+        Errors::new(vec![err], self.prog.files.clone())
     }
 }
