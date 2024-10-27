@@ -30,6 +30,8 @@ jobs:
         run: cargo build --features cranelift-isle/printer --package 'cranelift-isle*'
       - name: Test
         run: cargo test --features cranelift-isle/printer --package 'cranelift-isle*'
+      - name: Format
+        run: cargo fmt --check --verbose
 
   veri:
     strategy:
