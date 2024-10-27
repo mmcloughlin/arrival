@@ -4523,11 +4523,11 @@
 
 ;; Determines the appropriate extend op given the value type and the given ArgumentExtension.
 (decl lower_extend_op (Type ArgumentExtension) ExtendOp)
-(attr lower_extend_op (tag TODO))
-(rule (lower_extend_op $I8 (ArgumentExtension.Sext)) (ExtendOp.SXTB))
-(rule (lower_extend_op $I16 (ArgumentExtension.Sext)) (ExtendOp.SXTH))
-(rule (lower_extend_op $I8 (ArgumentExtension.Uext)) (ExtendOp.UXTB))
-(rule (lower_extend_op $I16 (ArgumentExtension.Uext)) (ExtendOp.UXTH))
+(attr lower_extend_op (veri chain))
+(rule lower_extend_op_8s (lower_extend_op $I8 (ArgumentExtension.Sext)) (ExtendOp.SXTB))
+(rule lower_extend_op_16s (lower_extend_op $I16 (ArgumentExtension.Sext)) (ExtendOp.SXTH))
+(rule lower_extend_op_8u (lower_extend_op $I8 (ArgumentExtension.Uext)) (ExtendOp.UXTB))
+(rule lower_extend_op_16u (lower_extend_op $I16 (ArgumentExtension.Uext)) (ExtendOp.UXTH))
 
 ;; Integers <= 64-bits.
 (rule lower_icmp_into_reg_int_to_64
@@ -4617,10 +4617,14 @@
        (ccmp (OperandSize.Size64) lhs_hi rhs_hi
         (nzcv $false $false $false $false) (Cond.Eq) cmp_inst)))
 
-(rule (lower_icmp (IntCC.Equal) lhs rhs $I128)
+(rule lower_icmp_eq_i128
+      (lower_icmp (IntCC.Equal) lhs rhs $I128)
       (flags_and_cc (lower_icmp_i128_eq_ne lhs rhs) (IntCC.Equal)))
-(rule (lower_icmp (IntCC.NotEqual) lhs rhs $I128)
+(attr rule lower_icmp_eq_i128 (tag i128))
+(rule lower_icmp_ne_i128
+      (lower_icmp (IntCC.NotEqual) lhs rhs $I128)
       (flags_and_cc (lower_icmp_i128_eq_ne lhs rhs) (IntCC.NotEqual)))
+(attr rule lower_icmp_ne_i128 (tag i128))
 
 ;; cmp      lhs_lo, rhs_lo
 ;; cset     tmp1, unsigned_cond
