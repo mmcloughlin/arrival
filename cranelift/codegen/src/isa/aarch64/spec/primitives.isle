@@ -1,0 +1,7 @@
+;; ASLp primitive function definitions.
+
+; FPAdd: Floating point addition
+(macro (FPAdd x y fpcr)
+    ; TODO(mbm): implement full spec of FPAdd primitive
+    (fp.add x y)
+)

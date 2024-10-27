@@ -29,6 +29,10 @@ pub fn pstate_field(name: &str) -> Target {
     Target::Field(Box::new(pstate()), name.to_string())
 }
 
+pub fn fpcr() -> Target {
+    Target::Var("FPCR".to_string())
+}
+
 pub fn state() -> Scope {
     let mut scope = Scope::new();
 
@@ -57,6 +61,9 @@ pub fn state() -> Scope {
     for field in &["N", "Z", "C", "V"] {
         scope.global(pstate_field(field));
     }
+
+    // FPCR
+    scope.global(fpcr());
 
     scope
 }

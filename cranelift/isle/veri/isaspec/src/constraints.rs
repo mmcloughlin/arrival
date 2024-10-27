@@ -7,6 +7,7 @@ use std::vec;
 
 use anyhow::{bail, format_err, Result};
 use cranelift_isle::ast::{SpecExpr, SpecOp};
+use cranelift_isle::lexer::Pos;
 use cranelift_isle_veri_aslp::ast::{Block, Expr, Func, LExpr, Slice, Stmt};
 use tracing::debug;
 
@@ -563,6 +564,7 @@ impl Translator {
                 let (addr, size, access) = expect_ternary(args)?;
                 self.mem_read(addr, size, access)
             }
+            "FPAdd" => self.primitive(&func.name, args),
             unexpected => todo!("func: {unexpected}"),
         }
     }
@@ -654,6 +656,17 @@ impl Translator {
         self.assign(&set_effect.value, value)?;
 
         Ok(())
+    }
+
+    fn primitive(&mut self, name: &str, args: &[Expr]) -> Result<SpecExpr> {
+        Ok(SpecExpr::Macro {
+            name: spec_ident(name.to_string()),
+            args: args
+                .iter()
+                .map(|arg| self.expr(arg))
+                .collect::<Result<_>>()?,
+            pos: Pos::default(),
+        })
     }
 }
 

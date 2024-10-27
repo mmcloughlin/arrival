@@ -7,8 +7,8 @@ use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled, VecALUOp,
-    VecLanesOp, VecMisc2, VectorSize, NZCV,
+    vreg, writable_vreg, FPUOp2, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled,
+    VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -18,12 +18,14 @@ use cranelift_codegen::{
     },
     Reg, Writable,
 };
+use cranelift_isle::ast::SpecExpr;
 use cranelift_isle::{
     ast::{Def, SpecOp},
     printer,
 };
 use cranelift_isle_veri_aslp::client::Client;
 use cranelift_isle_veri_isaspec::memory::SetEffect;
+use cranelift_isle_veri_isaspec::spec::spec_conv_to;
 use cranelift_isle_veri_isaspec::{
     aarch64::{self, pstate_field},
     bits::{Bits, Segment},
@@ -165,6 +167,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "conds.isle".into(),
             specs: define_conds()?,
+        },
+        FileConfig {
+            name: "fpu_rrr.isle".into(),
+            specs: vec![define_fpu_rrr()],
         },
         FileConfig {
             name: "mov_to_fpu.isle".into(),
@@ -1743,6 +1749,78 @@ fn flags_mappings() -> Mappings {
     mappings
 }
 
+// MInst.FpuRRR specification configuration.
+fn define_fpu_rrr() -> SpecConfig {
+    // FPUOp2
+    let fpu_op2s = [FPUOp2::Add];
+
+    // ScalarSize
+    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+
+    // FpuRRR
+    let mut mappings = Mappings::default();
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(6), Mapping::require(spec_fp_reg("rm")));
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
+
+    SpecConfig {
+        term: "MInst.FpuRRR".to_string(),
+        args: ["fpu_op", "size", "rd", "rn", "rm"]
+            .map(String::from)
+            .to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| Arm {
+                    variant: format!("{size:?}"),
+                    args: Vec::new(),
+                    body: Cases::Match(Match {
+                        on: spec_var("fpu_op".to_string()),
+                        arms: fpu_op2s
+                            .iter()
+                            .map(|op| Arm {
+                                variant: format!("{op:?}"),
+                                args: Vec::new(),
+                                body: Cases::Instruction(InstConfig {
+                                    opcodes: Opcodes::Instruction(Inst::FpuRRR {
+                                        fpu_op: *op,
+                                        size: *size,
+                                        rd: writable_vreg(4),
+                                        rn: vreg(5),
+                                        rm: vreg(6),
+                                    }),
+                                    scope: aarch64::state(),
+                                    mappings: mappings.clone(),
+                                }),
+                            })
+                            .collect(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+// Spec expression for the lower 64 bits of a 128-bit floating-point register.
+fn spec_fp_reg(name: &str) -> SpecExpr {
+    spec_conv_to(
+        128,
+        spec_as_bit_vector_width(spec_var(name.to_string()), 64),
+    )
+}
+
 // MInst.MovToFpu specification configuration.
 fn define_mov_to_fpu() -> SpecConfig {
     // ScalarSize
@@ -1909,6 +1987,7 @@ fn define_vec_rrr() -> SpecConfig {
         }),
     }
 }
+
 // MInst.VecMisc specification configuration.
 fn define_vec_misc() -> SpecConfig {
     // VecMisc2
