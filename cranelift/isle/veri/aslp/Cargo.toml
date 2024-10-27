@@ -9,7 +9,7 @@ pest = "2.7.8"
 pest_derive = "2.7.8"
 enquote = "1.1.0"
 clap = { workspace = true }
-anyhow = { workspace = true, features = ['std'] }
+anyhow = { workspace = true, features = ['std', 'backtrace'] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 cranelift-isle-veri-test-macros = { path = "../test-macros" }
