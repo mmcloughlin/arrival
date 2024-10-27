@@ -45,6 +45,11 @@ impl std::fmt::Display for Verification {
     }
 }
 
+enum RotationDirection {
+    Left,
+    Right,
+}
+
 static UNSPECIFIED_SORT: &str = "Unspecified";
 static UNIT_SORT: &str = "Unit";
 
@@ -245,8 +250,24 @@ impl<'a> Solver<'a> {
             Expr::BVShl(x, y) => Ok(self.smt.bvshl(self.expr_atom(x), self.expr_atom(y))),
             Expr::BVLShr(x, y) => Ok(self.smt.bvlshr(self.expr_atom(x), self.expr_atom(y))),
             Expr::BVAShr(x, y) => Ok(self.smt.bvashr(self.expr_atom(x), self.expr_atom(y))),
-            Expr::BVRotl(..) => todo!("bvrotl"),
-            Expr::BVRotr(..) => todo!("bvrotr"),
+            Expr::BVRotl(x, y) => {
+                let width = self
+                    .assignment
+                    .try_bit_vector_width(x)
+                    .context("target of rotl expression should be a bit-vector of known width")?;
+                let xs = self.expr_atom(x);
+                let ys = self.expr_atom(y);
+                Ok(self.encode_rotate(RotationDirection::Left, xs, ys, width))
+            }
+            Expr::BVRotr(x, y) => {
+                let width = self
+                    .assignment
+                    .try_bit_vector_width(x)
+                    .context("target of rotr expression should be a bit-vector of known width")?;
+                let xs = self.expr_atom(x);
+                let ys = self.expr_atom(y);
+                Ok(self.encode_rotate(RotationDirection::Right, xs, ys, width))
+            }
             Expr::Conditional(c, t, e) => {
                 Ok(self
                     .smt
@@ -618,5 +639,30 @@ impl<'a> Solver<'a> {
         let sort = self.smt.bit_vec_sort(self.smt.numeral(n));
         self.smt.declare_const(&name, sort)?;
         Ok(self.smt.atom(name))
+    }
+
+    fn encode_rotate(
+        &self,
+        op: RotationDirection,
+        source: SExpr,
+        amount: SExpr,
+        width: usize,
+    ) -> SExpr {
+        // SMT bitvector rotate_left requires that the rotate amount be
+        // statically specified. Instead, to use a dynamic amount, desugar
+        // to shifts and bit arithmetic.
+        let width_as_bv = self.smt.binary(width.try_into().unwrap(), width);
+        let wrapped_amount = self.smt.bvurem(amount, width_as_bv);
+        let wrapped_delta = self.smt.bvsub(width_as_bv, wrapped_amount);
+        match op {
+            RotationDirection::Left => self.smt.bvor(
+                self.smt.bvshl(source, wrapped_amount),
+                self.smt.bvlshr(source, wrapped_delta),
+            ),
+            RotationDirection::Right => self.smt.bvor(
+                self.smt.bvshl(source, wrapped_delta),
+                self.smt.bvlshr(source, wrapped_amount),
+            ),
+        }
     }
 }
