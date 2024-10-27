@@ -706,6 +706,7 @@
 ;; Extract a `u64` from an `Imm64`.
 (decl u64_from_imm64 (u64) Imm64)
 (extern extractor infallible u64_from_imm64 u64_from_imm64)
+(spec (u64_from_imm64 arg) (provide (= arg result)))
 
 ;; Extract a `u64` from an `Imm64` which is not zero.
 (decl nonzero_u64_from_imm64 (u64) Imm64)
