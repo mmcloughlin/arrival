@@ -787,9 +787,9 @@ fn define_bit_rr() -> SpecConfig {
     // BitRR
     let bit_ops = [
         BitOp::Cls,
+        BitOp::RBit,
+        BitOp::Clz,
         // --------------
-        // BitOp::RBit,
-        // BitOp::Clz,
         // BitOp::Rev16,
         // BitOp::Rev32,
         // BitOp::Rev64,
