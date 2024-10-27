@@ -1,7 +1,165 @@
 ;; ASLp primitive function definitions.
 
-; FPAdd: Floating point addition
+; Floating point primitives for AArch64 adapted from "Arm A-profile A64
+; Instruction Set Architecture" shared pseudocode definitions.
+;
+; See: https://developer.arm.com/documentation/ddi0602/2024-09/Shared-Pseudocode/shared-functions-float
+
+; // FPDefaultNaN()
+; // ==============
+;
+; bits(N) FPDefaultNaN(FPCR_Type fpcr, integer N)
+;     assert N IN {16,32,64};
+;     constant integer E = (if N == 16 then 5 elsif N == 32 then 8 else 11);
+;     constant integer F = N - (E + 1);
+;     constant bit sign = if IsFeatureImplemented(FEAT_AFP) && !UsingAArch32() then fpcr.AH else '0';
+;
+;     constant bits(E) exp  = Ones(E);
+;     constant bits(F) frac = '1':Zeros(F-1);
+;     return sign : exp : frac;
+(macro (FPDefaultNaN w)
+    (conv_to w
+        (switch w
+            (32 #x000000007fc00000)
+            (64 #x7ff8000000000000)
+        )
+    )
+)
+
+; // FPProcessNaN()
+; // ==============
+; // Handle NaN input operands, returning the operand or default NaN value
+; // if fpcr.DN is selected. The 'fpcr' argument supplies the FPCR control bits.
+; // The 'fpexc' argument controls the generation of exceptions, regardless of
+; // whether 'fptype' is a signalling NaN or a quiet NaN.
+;
+; bits(N) FPProcessNaN(FPType fptype, bits(N) op, FPCR_Type fpcr, boolean fpexc)
+;     assert N IN {16,32,64};
+;     assert fptype IN {FPType_QNaN, FPType_SNaN};
+;     integer topfrac;
+;
+;     case N of
+;         when 16 topfrac =  9;
+;         when 32 topfrac = 22;
+;         when 64 topfrac = 51;
+;
+;     result = op;
+;     if fptype == FPType_SNaN then
+;         result<topfrac> = '1';
+;         if fpexc then FPProcessException(FPExc_InvalidOp, fpcr);
+;     if fpcr.DN == '1' then  // DefaultNaN requested
+;         result = FPDefaultNaN(fpcr, N);
+;     return result;
+(macro (FPProcessNaN x) (bvor x (fp_topfrac_bit_set! (widthof x))))
+
+; // FPProcessNaNs()
+; // ===============
+; //
+; // The boolean part of the return value says whether a NaN has been found and
+; // processed. The bits(N) part is only relevant if it has and supplies the
+; // result of the operation.
+; //
+; // The 'fpcr' argument supplies FPCR control bits and 'altfmaxfmin' controls
+; // alternative floating-point behavior for FMAX, FMIN and variants. 'fpexc'
+; // controls the generation of floating-point exceptions. Status information
+; // is updated directly in the FPSR where appropriate.
+;
+; (boolean, bits(N)) FPProcessNaNs(FPType type1, FPType type2, bits(N) op1, bits(N) op2,
+;                                  FPCR_Type fpcr, boolean fpexc)
+;     assert N IN {16,32,64};
+;     boolean done;
+;     bits(N) result;
+;     constant boolean altfp    = IsFeatureImplemented(FEAT_AFP) && !UsingAArch32() && fpcr.AH == '1';
+;     constant boolean op1_nan  = type1 IN {FPType_SNaN, FPType_QNaN};
+;     constant boolean op2_nan  = type2 IN {FPType_SNaN, FPType_QNaN};
+;     constant boolean any_snan = type1 == FPType_SNaN || type2 == FPType_SNaN;
+;     constant FPType  type_nan = if any_snan then FPType_SNaN else FPType_QNaN;
+;
+;     if altfp && op1_nan && op2_nan then
+;         // <n> register NaN selected
+;         done = TRUE;  result = FPProcessNaN(type_nan, op1, fpcr, fpexc);
+;     elsif type1 == FPType_SNaN then
+;         done = TRUE;  result = FPProcessNaN(type1, op1, fpcr, fpexc);
+;     elsif type2 == FPType_SNaN then
+;         done = TRUE;  result = FPProcessNaN(type2, op2, fpcr, fpexc);
+;     elsif type1 == FPType_QNaN then
+;         done = TRUE;  result = FPProcessNaN(type1, op1, fpcr, fpexc);
+;     elsif type2 == FPType_QNaN then
+;         done = TRUE;  result = FPProcessNaN(type2, op2, fpcr, fpexc);
+;     else
+;         done = FALSE;  result = Zeros(N);  // 'Don't care' result
+;     return (done, result);
+;
+; Note: spec included for reference, details are inlined in FPAdd.
+
+;; FPAdd: Floating point addition
 (macro (FPAdd x y fpcr)
-    ; TODO(mbm): implement full spec of FPAdd primitive
-    (fp.add x y)
+    ; // FPAdd()
+    ; // =======
+    ;
+    ; bits(N) FPAdd(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean fpexc)
+    ;
+    ;     assert N IN {16,32,64};
+    ;     rounding = FPRoundingMode(fpcr);
+    ;
+    ;     (type1,sign1,value1) = FPUnpack(op1, fpcr, fpexc);
+    ;     (type2,sign2,value2) = FPUnpack(op2, fpcr, fpexc);
+    (let
+        (
+            (sign1 (fp.isNegative x))
+            (sign2 (fp.isNegative y))
+        )
+    ;
+    ;     (done,result) = FPProcessNaNs(type1, type2, op1, op2, fpcr, fpexc);
+        (if (fp.isNaN x)
+            (FPProcessNaN! x)
+        (if (fp.isNaN y)
+            (FPProcessNaN! y)
+    ;     if !done then
+    ;         inf1  = (type1 == FPType_Infinity);  inf2  = (type2 == FPType_Infinity);
+    ;         zero1 = (type1 == FPType_Zero);      zero2 = (type2 == FPType_Zero);
+            (let
+                (
+                    (inf1 (fp.isInfinite x))
+                    (inf2 (fp.isInfinite y))
+                    (zero1 (fp.isZero x))
+                    (zero2 (fp.isZero y))
+                )
+    ;         if inf1 && inf2 && sign1 == NOT(sign2) then
+    ;             result = FPDefaultNaN(fpcr, N);
+    ;             if fpexc then FPProcessException(FPExc_InvalidOp, fpcr);
+                (if (and inf1 inf2 (= sign1 (not sign2)))
+                    (FPDefaultNaN! (widthof x))
+    ;         elsif (inf1 && sign1 == '0') || (inf2 && sign2 == '0') then
+    ;             result = FPInfinity('0', N);
+                (if (or (and inf1 (not sign1)) (and inf2 (not sign2)))
+                    (fp.+oo (widthof x))
+    ;         elsif (inf1 && sign1 == '1') || (inf2 && sign2 == '1') then
+    ;             result = FPInfinity('1', N);
+                (if (or (and inf1 sign1) (and inf2 sign2))
+                    (fp.-oo (widthof x))
+    ;         elsif zero1 && zero2 && sign1 == sign2 then
+    ;             result = FPZero(sign1, N);
+                (if (and zero1 zero2 (= sign1 sign2))
+                    (fp_signed_zero! sign1 (widthof x))
+    ;         else
+    ;             result_value = value1 + value2;
+    ;             if result_value == 0.0 then  // Sign of exact zero result depends on rounding mode
+    ;                 result_sign = if rounding == FPRounding_NEGINF then '1' else '0';
+    ;                 result = FPZero(result_sign, N);
+    ;             else
+    ;                 result = FPRound(result_value, fpcr, rounding, fpexc, N);
+                    (let ((result (fp.add x y)))
+                        (if (fp.isZero result)
+                            (fp.+zero (widthof result))
+                            result
+                        )
+                    )
+    ;
+    ;         if fpexc then FPProcessDenorms(type1, type2, N, fpcr);
+    ;     return result;
+                ))))
+            )
+        ))
+    )
 )

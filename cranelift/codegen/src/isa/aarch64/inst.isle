@@ -1505,6 +1505,17 @@
 
 ;; Helper for calculating the `ScalarSize` corresponding to a type
 (decl scalar_size (Type) ScalarSize)
+(spec (scalar_size ty)
+      (provide (= result
+            (switch ty
+                  (8   (ScalarSize.Size8))
+                  (16  (ScalarSize.Size16))
+                  (32  (ScalarSize.Size32))
+                  (64  (ScalarSize.Size64))
+                  (128 (ScalarSize.Size128))
+            )
+      ))
+)
 
 (rule (scalar_size $I8) (ScalarSize.Size8))
 (rule (scalar_size $I16) (ScalarSize.Size16))

@@ -89,6 +89,8 @@
 
 ;;;; CLIF Instruction Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Integer Instructions
+
 (spec (iadd x y)
     (provide (= result (bvadd x y))))
 (instantiate iadd
@@ -332,4 +334,88 @@
     ((args (named IntCC) (bv 16) (bv 16)) (ret (bv 8)))
     ((args (named IntCC) (bv 32) (bv 32)) (ret (bv 8)))
     ((args (named IntCC) (bv 64) (bv 64)) (ret (bv 8)))
+)
+
+;; Floating Point Instructions
+
+; NaN Propagation: see WebAssembly Specification 2.0, section 4.3.3
+
+; Evaluates the positive WebAssembly canonical NaN of the given width.
+(macro (nan_canon w)
+    (conv_to w
+        (switch w
+            (32 #x000000007fc00000)
+            (64 #x7ff8000000000000)
+        )
+    )
+)
+
+; NaN propagation with zero inputs.
+;
+; The CLIF semantics (inherited from WebAssembly) only requires a NaN payload
+; with the top bit set. Our specification is a refinement, selecting the
+; positive canonical NaN.
+(macro (nans0 w) (nan_canon! w))
+
+; NaN propagation with one input.
+;
+; The CLIF semantics (inherited from WebAssembly) requires that a canonical NaN
+; input is preserved, while any other NaN is mapped to any arithmetic NaN (which
+; has the top fraction bit set).  Our chosen refinement is to return the NaN
+; input with the top fraction bit or-ed in: this both preserves the canonical
+; NaN and turns any other NaN into an arithmetic NaN.
+(macro (nans1 x) (if (fp.isNaN x) (bvor x (fp_topfrac_bit_set! (widthof x))) (nans0! (widthof x))))
+
+; NaN propagation with two inputs.
+;
+; The CLIF semantics (inherited from WebAssembly) requires that if both inpits
+; are canonical then the output must be. Otherwise the output must be an
+; arithmetic NaN. Our chosen refinement is to apply single-input NaN propagation
+; to the first input if it's a NaN, otherwise to the second input if it's a NaN,
+; and fallback to returning the canonical NaN.
+(macro (nans2 x y) (if (fp.isNaN x) (nans1! x) (if (fp.isNaN y) (nans1! y) (nans0! (widthof x)))))
+
+; fadd: floating-point addition.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fadd x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if both z1 and z2 are infinities of opposite signs, then return an element of nans{}.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_opposite_sign! x y))
+                (nans0! (widthof x))
+            ; Else if both z1 and z2 are infinities of equal sign, then return that infinity.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_equal_sign! x y))
+                x
+            ; Else if either z1 or z2 is an infinity, then return that infinity.
+            (if (fp.isInfinite x)
+                x
+            (if (fp.isInfinite y)
+                y
+            ; Else if both z1 and z2 are zeroes of opposite sign, then return positive zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_opposite_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else if both z1 and z2 are zeroes of equal sign, then return that zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_equal_sign! x y))
+                x
+            ; Else if either z1 or z2 is a zero, then return the other operand.
+            (if (fp.isZero x)
+                y
+            (if (fp.isZero y)
+                x
+            ; Else if both z1 and z2 are values with the same magnitude but opposite signs, then return positive zero.
+            (if (and (= (fp_magnitude! x) (fp_magnitude! y)) (fp_opposite_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else return the result of adding z1 and z2, rounded to the nearest representable value.
+                (fp.add x y)
+            ))))))))))
+        )
+    )
+)
+(instantiate fadd
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
 )

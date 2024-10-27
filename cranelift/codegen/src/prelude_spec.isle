@@ -1,10 +1,18 @@
-;; Common spec macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Common spec macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Bit-vector helpers
 
 ; n-bit bitvector with value zero.
 (macro (bvzero n) (zero_ext n #b0))
 
 ; n-bit bitvector with value one.
 (macro (bvone n) (zero_ext n #b1))
+
+; bit-vector shift left by an integer amount.
+(macro (bvshl_int x s) (bvshl x (int2bv (widthof x) s)))
+
+; bit-vector logical right shift by an integer amount.
+(macro (bvlshr_int x s) (bvlshr x (int2bv (widthof x) s)))
 
 ; n-bit bitvector with low m bits set.
 (macro (low_bits_mask n m) (bvsub (bvshl (bvone! n) (int2bv n m)) (bvone! n)))
@@ -14,3 +22,23 @@
 
 ; bitvector zero test
 (macro (bv_is_zero x) (= x (bvzero! (widthof x))))
+
+;; Floating-point helpers
+
+; Whether two floating-point values have the same sign.
+(macro (fp_equal_sign x y) (= (fp.isPositive x) (fp.isPositive y)))
+
+; Whether two floating-point values have the opposite signs.
+(macro (fp_opposite_sign x y) (not (fp_equal_sign! x y)))
+
+; Build a floating-point zero with the given sign and width.
+(macro (fp_signed_zero negative w) (if negative (fp.-zero w) (fp.+zero w)))
+
+; Magnitude of a floating-point value. (Clear the top sign bit.)
+(macro (fp_magnitude x) (bvlshr_int! (bvshl_int! x 1) 1))
+
+; Bit position of the top fraction bit in a floating-point value.
+(macro (fp_topfrac_bit w) (switch w (32 22) (64 51)))
+
+; Bit-vector with the top fraction bit set.
+(macro (fp_topfrac_bit_set w) (bvshl_int! (bvone! w) (fp_topfrac_bit! w)))

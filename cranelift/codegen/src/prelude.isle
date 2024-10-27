@@ -402,7 +402,9 @@
 
 (extern const $F16 Type)
 (extern const $F32 Type)
+(model F32 (const 32))
 (extern const $F64 Type)
+(model F64 (const 64))
 (extern const $F128 Type)
 
 (extern const $I8X8 Type)
@@ -640,6 +642,9 @@
 ;; An extractor that only matches scalar floating-point types--F32 or F64.
 (decl ty_scalar_float (Type) Type)
 (extern extractor ty_scalar_float ty_scalar_float)
+(spec (ty_scalar_float arg)
+      (provide (= result arg))
+      (match (or (= result 32) (= result 64))))
 
 ;; An extractor that matches scalar floating-point types or vector types.
 (decl ty_float_or_vec (Type) Type)

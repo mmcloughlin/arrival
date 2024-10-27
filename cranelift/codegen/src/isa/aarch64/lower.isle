@@ -427,7 +427,7 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (fadd rn rm)))
       (vec_rrr (VecALUOp.Fadd) rn rm (vector_size ty)))
 
-(rule (lower (has_type (ty_scalar_float ty) (fadd rn rm)))
+(rule fadd (lower (has_type (ty_scalar_float ty) (fadd rn rm)))
       (fpu_rrr (FPUOp2.Add) rn rm (scalar_size ty)))
 
 ;;;; Rules for `fsub` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

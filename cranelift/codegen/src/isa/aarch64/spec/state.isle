@@ -33,3 +33,12 @@
         )
     )
 )
+
+; Floating point control register.
+(state fpcr
+    ; FPCR is a 64-bit register.
+    (type (bv 64))
+
+    ; Unconstrained. We currently do not model the FPCR configuration bits.
+    (default true)
+)
