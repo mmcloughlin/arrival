@@ -377,13 +377,23 @@ impl<'a> SystemBuilder<'a> {
             | Expr::BVLShr(y, z)
             | Expr::BVAShr(y, z)
             | Expr::BVRotl(y, z)
-            | Expr::BVRotr(y, z) => {
+            | Expr::BVRotr(y, z)
+            // QUESTION(mbm): should we assert in type inference that FP ops are 32 or 64-bit?
+            | Expr::FPAdd(y, z) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
                 self.bit_vector(*z);
 
                 self.same_type(x, *y);
                 self.same_type(x, *z);
+            }
+            Expr::FPIsZero(y)
+            | Expr::FPIsInfinite(y)
+            | Expr::FPIsNaN(y)
+            | Expr::FPIsNegative(y)
+            | Expr::FPIsPositive(y) => {
+                self.boolean(x);
+                self.bit_vector(*y);
             }
             Expr::Conditional(c, t, e) => {
                 self.boolean(*c);
@@ -423,6 +433,15 @@ impl<'a> SystemBuilder<'a> {
                 self.integer(x);
                 self.bit_vector(*y);
                 self.width_of(*y, x);
+            }
+            Expr::FPPositiveInfinity(w)
+            | Expr::FPNegativeInfinity(w)
+            | Expr::FPPositiveZero(w)
+            | Expr::FPNegativeZero(w)
+            | Expr::FPNaN(w) => {
+                self.bit_vector(x);
+                self.integer(*w);
+                self.width_of(x, *w);
             }
         }
     }
@@ -873,7 +892,7 @@ impl Solver {
         // If we do, merge this type value with the existing one.
         let existing = &self.assignment.expr_type_value[&x];
         let merged = TypeValue::merge(existing, &tv).ok_or_else(|| {
-            log::debug!("inapplicable set type value: {existing:?} = {tv:?}");
+            log::debug!("inapplicable set type value: {existing:?} = {tv:?}",);
             Status::Inapplicable
         })?;
         if merged != *existing {

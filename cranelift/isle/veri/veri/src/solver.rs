@@ -48,11 +48,13 @@ impl std::fmt::Display for Verification {
 static UNSPECIFIED_SORT: &str = "Unspecified";
 static UNIT_SORT: &str = "Unit";
 
+static ROUNDING_MODE: &str = "roundNearestTiesToEven";
+
 pub struct Solver<'a> {
     smt: Context,
     conditions: &'a Conditions,
     assignment: &'a Assignment,
-    fresh_idx: usize,
+    tmp_idx: usize,
 }
 
 impl<'a> Solver<'a> {
@@ -65,7 +67,7 @@ impl<'a> Solver<'a> {
             smt,
             conditions,
             assignment,
-            fresh_idx: 0,
+            tmp_idx: 0,
         };
         solver.prelude()?;
         Ok(solver)
@@ -260,6 +262,17 @@ impl<'a> Solver<'a> {
                 .smt
                 .list(vec![self.smt.atom("bv2nat"), self.expr_atom(x)])),
             Expr::WidthOf(x) => self.width_of(x),
+            Expr::FPPositiveInfinity(x) => Ok(self.fp_value("+oo", x)?),
+            Expr::FPNegativeInfinity(x) => Ok(self.fp_value("-oo", x)?),
+            Expr::FPPositiveZero(x) => Ok(self.fp_value("+zero", x)?),
+            Expr::FPNegativeZero(x) => Ok(self.fp_value("-zero", x)?),
+            Expr::FPNaN(x) => Ok(self.fp_value("NaN", x)?),
+            Expr::FPAdd(x, y) => Ok(self.fp_rounding_binary("fp.add", x, y)?),
+            Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
+            Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),
+            Expr::FPIsNaN(x) => Ok(self.fp_unary_predicate("fp.isNaN", x)?),
+            Expr::FPIsNegative(x) => Ok(self.fp_unary_predicate("fp.isNegative", x)?),
+            Expr::FPIsPositive(x) => Ok(self.fp_unary_predicate("fp.isPositive", x)?),
         }
     }
 
@@ -339,7 +352,7 @@ impl<'a> Solver<'a> {
         // Handle depending on source and destination widths.
         match dst.cmp(&src) {
             Ordering::Greater => {
-                let padding = self.fresh_bits(dst - src)?;
+                let padding = self.declare_bit_vec("conv_to_padding", dst - src)?;
                 Ok(self.smt.concat(padding, self.expr_atom(x)))
             }
             Ordering::Less => {
@@ -435,6 +448,89 @@ impl<'a> Solver<'a> {
         ])
     }
 
+    /// Floating point special values.
+    fn fp_value(&mut self, op: &str, w: ExprId) -> Result<SExpr> {
+        let width = self
+            .assignment
+            .try_int_value(w)
+            .context("floating point constant width should have known integer value")?
+            .try_into()?;
+        let (eb, sb) = Self::fp_exponent_significand_bits(width)?;
+        let result_fp = self.smt.list(vec![
+            self.smt.atoms().und,
+            self.smt.atom(op),
+            self.smt.numeral(eb),
+            self.smt.numeral(sb),
+        ]);
+
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec(op, width)?;
+        let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, result_fp))?;
+
+        Ok(result)
+    }
+
+    /// Floating point binary operand with rounding.
+    fn fp_rounding_binary(&mut self, op: &str, x: ExprId, y: ExprId) -> Result<SExpr> {
+        // Convert to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(x)
+            .context("floating point expression must be a bit-vector of known width")?;
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+        let y = self.to_fp(self.expr_atom(y), width)?;
+
+        // Binary expression.
+        let result_fp = self
+            .smt
+            .list(vec![self.smt.atom(op), self.smt.atom(ROUNDING_MODE), x, y]);
+
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec(op, width)?;
+        let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, result_fp))?;
+
+        Ok(result)
+    }
+
+    /// Floating point unary predicate.
+    fn fp_unary_predicate(&mut self, op: &str, x: ExprId) -> Result<SExpr> {
+        // Convert operand to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(x)
+            .context("floating point expression must be a bit-vector of known width")?;
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+
+        // Emit expression.
+        Ok(self.smt.list(vec![self.smt.atom(op), x]))
+    }
+
+    /// Represent an expression in SMT-LIB floating-point type.
+    fn to_fp(&self, x: SExpr, width: usize) -> Result<SExpr> {
+        let (eb, sb) = Self::fp_exponent_significand_bits(width)?;
+        Ok(self.smt.list(vec![
+            self.smt.list(vec![
+                self.smt.atoms().und,
+                self.smt.atom("to_fp"),
+                self.smt.numeral(eb),
+                self.smt.numeral(sb),
+            ]),
+            x,
+        ]))
+    }
+
+    fn fp_exponent_significand_bits(width: usize) -> Result<(usize, usize)> {
+        Ok(match width {
+            32 => (8, 24),
+            64 => (11, 53),
+            _ => bail!("unsupported floating-point width"),
+        })
+    }
+
     /// Parse a constant SMT expression.
     fn const_from_sexpr(&self, sexpr: SExpr) -> Result<Const> {
         match self.smt.get(sexpr) {
@@ -516,9 +612,9 @@ impl<'a> Solver<'a> {
         }
     }
 
-    fn fresh_bits(&mut self, n: usize) -> Result<SExpr> {
-        let name = format!("fresh{}", self.fresh_idx);
-        self.fresh_idx += 1;
+    fn declare_bit_vec(&mut self, name: &str, n: usize) -> Result<SExpr> {
+        let name = format!("${name}{}", self.tmp_idx);
+        self.tmp_idx += 1;
         let sort = self.smt.bit_vec_sort(self.smt.numeral(n));
         self.smt.declare_const(&name, sort)?;
         Ok(self.smt.atom(name))

@@ -119,6 +119,19 @@ pub enum ExprKind {
     Int2BV(Expr, Expr),
     BV2Nat(Expr),
 
+    // Floating point.
+    FPPositiveInfinity(Expr),
+    FPNegativeInfinity(Expr),
+    FPPositiveZero(Expr),
+    FPNegativeZero(Expr),
+    FPNaN(Expr),
+    FPAdd(Expr, Expr),
+    FPIsZero(Expr),
+    FPIsInfinite(Expr),
+    FPIsNaN(Expr),
+    FPIsNegative(Expr),
+    FPIsPositive(Expr),
+
     // Conditional if-then-else
     Conditional(Expr, Expr, Expr),
     // Switch
@@ -268,6 +281,8 @@ impl ExprKind {
                 SpecOp::BVSaddo => binary_expr!(ExprKind::BVSaddo, args, pos),
                 SpecOp::Rotr => binary_expr!(ExprKind::BVRotr, args, pos),
                 SpecOp::Rotl => binary_expr!(ExprKind::BVRotl, args, pos),
+
+                // Conversions
                 SpecOp::ZeroExt => binary_expr!(ExprKind::BVZeroExt, args, pos),
                 SpecOp::SignExt => binary_expr!(ExprKind::BVSignExt, args, pos),
                 SpecOp::ConvTo => binary_expr!(ExprKind::BVConvTo, args, pos),
@@ -288,6 +303,21 @@ impl ExprKind {
                 SpecOp::Int2BV => binary_expr!(ExprKind::Int2BV, args, pos),
                 SpecOp::BV2Nat => unary_expr!(ExprKind::BV2Nat, args, pos),
                 SpecOp::WidthOf => unary_expr!(ExprKind::WidthOf, args, pos),
+
+                // Floating point (IEEE)
+                SpecOp::FPPositiveInfinity => unary_expr!(ExprKind::FPPositiveInfinity, args, pos),
+                SpecOp::FPNegativeInfinity => unary_expr!(ExprKind::FPNegativeInfinity, args, pos),
+                SpecOp::FPPositiveZero => unary_expr!(ExprKind::FPPositiveZero, args, pos),
+                SpecOp::FPNegativeZero => unary_expr!(ExprKind::FPNegativeZero, args, pos),
+                SpecOp::FPNaN => unary_expr!(ExprKind::FPNaN, args, pos),
+                SpecOp::FPAdd => binary_expr!(ExprKind::FPAdd, args, pos),
+                SpecOp::FPIsZero => unary_expr!(ExprKind::FPIsZero, args, pos),
+                SpecOp::FPIsInfinite => unary_expr!(ExprKind::FPIsInfinite, args, pos),
+                SpecOp::FPIsNaN => unary_expr!(ExprKind::FPIsNaN, args, pos),
+                SpecOp::FPIsNegative => unary_expr!(ExprKind::FPIsNegative, args, pos),
+                SpecOp::FPIsPositive => unary_expr!(ExprKind::FPIsPositive, args, pos),
+
+                // Conditionals
                 SpecOp::If => ternary_expr!(ExprKind::Conditional, args, pos),
                 SpecOp::Switch => {
                     assert!(

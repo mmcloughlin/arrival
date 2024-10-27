@@ -297,6 +297,19 @@ pub enum SpecOp {
     SignExt,
     Concat,
 
+    // Floating point (IEEE 754-2008)
+    FPPositiveInfinity,
+    FPNegativeInfinity,
+    FPPositiveZero,
+    FPNegativeZero,
+    FPNaN,
+    FPAdd,
+    FPIsZero,
+    FPIsInfinite,
+    FPIsNaN,
+    FPIsNegative,
+    FPIsPositive,
+
     // Custom encodings
     Popcnt,
     Clz,

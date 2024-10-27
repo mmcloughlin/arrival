@@ -98,6 +98,19 @@ pub enum Expr {
 
     // Bitwidth.
     WidthOf(ExprId),
+
+    // Floating point.
+    FPPositiveInfinity(ExprId),
+    FPNegativeInfinity(ExprId),
+    FPPositiveZero(ExprId),
+    FPNegativeZero(ExprId),
+    FPNaN(ExprId),
+    FPAdd(ExprId, ExprId),
+    FPIsZero(ExprId),
+    FPIsInfinite(ExprId),
+    FPIsNaN(ExprId),
+    FPIsNegative(ExprId),
+    FPIsPositive(ExprId),
 }
 
 impl Expr {
@@ -115,7 +128,17 @@ impl Expr {
             | Expr::BVExtract(_, _, x)
             | Expr::BV2Nat(x)
             | Expr::Cls(x)
-            | Expr::WidthOf(x) => vec![*x],
+            | Expr::WidthOf(x)
+            | Expr::FPPositiveInfinity(x)
+            | Expr::FPNegativeInfinity(x)
+            | Expr::FPPositiveZero(x)
+            | Expr::FPNegativeZero(x)
+            | Expr::FPNaN(x)
+            | Expr::FPIsZero(x)
+            | Expr::FPIsInfinite(x)
+            | Expr::FPIsNaN(x)
+            | Expr::FPIsNegative(x)
+            | Expr::FPIsPositive(x) => vec![*x],
 
             // Binary
             Expr::And(x, y)
@@ -152,7 +175,8 @@ impl Expr {
             | Expr::BVSignExt(x, y)
             | Expr::BVConvTo(x, y)
             | Expr::Int2BV(x, y)
-            | Expr::BVConcat(x, y) => vec![*x, *y],
+            | Expr::BVConcat(x, y)
+            | Expr::FPAdd(x, y) => vec![*x, *y],
 
             // Ternary
             Expr::Conditional(c, t, e) => vec![*c, *t, *e],
@@ -210,6 +234,17 @@ impl std::fmt::Display for Expr {
             Expr::Int2BV(w, x) => write!(f, "int2bv({}, {})", w.index(), x.index()),
             Expr::BV2Nat(x) => write!(f, "bv2nat({})", x.index()),
             Expr::WidthOf(x) => write!(f, "width_of({})", x.index()),
+            Expr::FPPositiveInfinity(x) => write!(f, "fp.+oo({})", x.index()),
+            Expr::FPNegativeInfinity(x) => write!(f, "fp.-oo({})", x.index()),
+            Expr::FPPositiveZero(x) => write!(f, "fp.+zero({})", x.index()),
+            Expr::FPNegativeZero(x) => write!(f, "fp.-zero({})", x.index()),
+            Expr::FPNaN(x) => write!(f, "fp.NaN({})", x.index()),
+            Expr::FPAdd(x, y) => write!(f, "fp.add({}, {})", x.index(), y.index()),
+            Expr::FPIsZero(x) => write!(f, "fp.isZero({})", x.index()),
+            Expr::FPIsInfinite(x) => write!(f, "fp.isInfinite({})", x.index()),
+            Expr::FPIsNaN(x) => write!(f, "fp.isNaN({})", x.index()),
+            Expr::FPIsNegative(x) => write!(f, "fp.isNegative({})", x.index()),
+            Expr::FPIsPositive(x) => write!(f, "fp.isPositive({})", x.index()),
         }
     }
 }
@@ -1413,7 +1448,22 @@ impl<'a> ConditionsBuilder<'a> {
     }
 
     fn spec_expr_kind(&mut self, expr: &spec::ExprKind, vars: &Variables) -> Result<Symbolic> {
-        match &expr {
+        macro_rules! unary_expr {
+            ($expr:path, $x:ident) => {{
+                let $x = self.spec_expr($x, vars)?.try_into()?;
+                Ok(self.scalar($expr($x)))
+            }};
+        }
+
+        macro_rules! binary_expr {
+            ($expr:path, $x:ident, $y:ident) => {{
+                let $x = self.spec_expr($x, vars)?.try_into()?;
+                let $y = self.spec_expr($y, vars)?.try_into()?;
+                Ok(self.scalar($expr($x, $y)))
+            }};
+        }
+
+        match expr {
             spec::ExprKind::Var(v) => {
                 let v = vars.get(&v.0)?;
                 Ok(v.clone())
@@ -1716,6 +1766,18 @@ impl<'a> ConditionsBuilder<'a> {
                 });
                 Ok(x)
             }
+
+            spec::ExprKind::FPPositiveInfinity(x) => unary_expr!(Expr::FPPositiveInfinity, x),
+            spec::ExprKind::FPNegativeInfinity(x) => unary_expr!(Expr::FPNegativeInfinity, x),
+            spec::ExprKind::FPPositiveZero(x) => unary_expr!(Expr::FPPositiveZero, x),
+            spec::ExprKind::FPNegativeZero(x) => unary_expr!(Expr::FPNegativeZero, x),
+            spec::ExprKind::FPNaN(x) => unary_expr!(Expr::FPNaN, x),
+            spec::ExprKind::FPAdd(x, y) => binary_expr!(Expr::FPAdd, x, y),
+            spec::ExprKind::FPIsZero(x) => unary_expr!(Expr::FPIsZero, x),
+            spec::ExprKind::FPIsInfinite(x) => unary_expr!(Expr::FPIsInfinite, x),
+            spec::ExprKind::FPIsNaN(x) => unary_expr!(Expr::FPIsNaN, x),
+            spec::ExprKind::FPIsNegative(x) => unary_expr!(Expr::FPIsNegative, x),
+            spec::ExprKind::FPIsPositive(x) => unary_expr!(Expr::FPIsPositive, x),
         }
     }
 

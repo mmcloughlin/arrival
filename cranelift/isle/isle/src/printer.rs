@@ -350,6 +350,17 @@ impl Printable for SpecOp {
             SpecOp::Rev => "rev",
             SpecOp::Cls => "cls",
             SpecOp::Clz => "clz",
+            SpecOp::FPPositiveInfinity => "fp.+oo",
+            SpecOp::FPNegativeInfinity => "fp.-oo",
+            SpecOp::FPPositiveZero => "fp.+zero",
+            SpecOp::FPNegativeZero => "fp.-zero",
+            SpecOp::FPNaN => "fp.NaN",
+            SpecOp::FPAdd => "fp.add",
+            SpecOp::FPIsZero => "fp.isZero",
+            SpecOp::FPIsInfinite => "fp.isInfinite",
+            SpecOp::FPIsNaN => "fp.isNaN",
+            SpecOp::FPIsNegative => "fp.isNegative",
+            SpecOp::FPIsPositive => "fp.isPositive",
         })
     }
 }

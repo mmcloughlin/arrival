@@ -656,6 +656,17 @@ impl<'a> Parser<'a> {
             "rev" => Ok(SpecOp::Rev),
             "cls" => Ok(SpecOp::Cls),
             "clz" => Ok(SpecOp::Clz),
+            "fp.+oo" => Ok(SpecOp::FPPositiveInfinity),
+            "fp.-oo" => Ok(SpecOp::FPNegativeInfinity),
+            "fp.+zero" => Ok(SpecOp::FPPositiveZero),
+            "fp.-zero" => Ok(SpecOp::FPNegativeZero),
+            "fp.NaN" => Ok(SpecOp::FPNaN),
+            "fp.add" => Ok(SpecOp::FPAdd),
+            "fp.isZero" => Ok(SpecOp::FPIsZero),
+            "fp.isInfinite" => Ok(SpecOp::FPIsInfinite),
+            "fp.isNaN" => Ok(SpecOp::FPIsNaN),
+            "fp.isNegative" => Ok(SpecOp::FPIsNegative),
+            "fp.isPositive" => Ok(SpecOp::FPIsPositive),
             x => Err(self.error(pos, format!("Not a valid spec operator: {x}"))),
         }
     }
