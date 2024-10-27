@@ -603,15 +603,13 @@ impl<'a> Expander<'a> {
             let mut apply = Application::new(expansion.clone());
             apply.rule(rule_set, rule, parameters, chain_binding_id);
 
-            // If the rule is annotated to indicate that priority is
-            // significant, then negate any overlapping higher priority rules.
-            let priority_significant = self.prog.specenv.priority.contains(&rule.id);
-            if priority_significant {
-                if let Some(overlaps) = self.prog.overlaps.get(&rule.id) {
-                    for other in rule_set.rules.iter().rev() {
-                        if overlaps.contains(&other.id) {
-                            apply.negation(rule_set, other);
-                        }
+            // Apply negations of higher-priority overlapping rules that are
+            // tagged to indicate priority is significant.
+            if let Some(overlaps) = self.prog.overlaps.get(&rule.id) {
+                for other in rule_set.rules.iter().rev() {
+                    let priority_significant = self.prog.specenv.priority.contains(&other.id);
+                    if priority_significant && overlaps.contains(&other.id) {
+                        apply.negation(rule_set, other);
                     }
                 }
             }

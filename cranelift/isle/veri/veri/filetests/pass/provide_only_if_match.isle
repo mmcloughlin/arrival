@@ -35,4 +35,4 @@
 ; Accounting for priority should negate the matches of odd73, but not the
 ; provides.
 (rule test_tails (test v) (Coin.Tails))
-(attr rule test_tails (veri priority))
+(attr rule test_odd73_heads (veri priority))

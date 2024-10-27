@@ -120,12 +120,19 @@ pub enum AttrKind {
     /// verified.
     Chain,
 
-    /// In verification, declare that the correctness of the rule is dependent
-    /// upon priorities.
+    /// In verification, declare that the correctness of lower priority rules
+    /// depends on this rule not matching.
     ///
-    /// The effect of this attribute on a rule is that during rule expansion,
-    /// the negations of higher-priority rules are added to the verification
-    /// conditions.
+    /// During rule expansion, any higher-priority overlapping rules that have
+    /// the priority tag will have their match conditions negated and added to
+    /// the verification conditions.
+    ///
+    /// Note that care must be taken when using this tag: if the specification
+    /// for the match conditions of the higher priority rule are an
+    /// over-approximation of reality, then the assumptions made by lower
+    /// priority rules will be an under-approximation. In an extreme case this
+    /// may cause the verifier to determine the lower priority rule never
+    /// applies. In a more subtle case, it could cause bugs to be missed.
     Priority,
 
     /// Tag allows for categorizing terms and rules.

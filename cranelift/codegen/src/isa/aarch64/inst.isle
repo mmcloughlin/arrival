@@ -4541,29 +4541,28 @@
       (if (signed_cond_code cond))
       (let ((rn Reg (put_in_reg_sext32 rn)))
       (flags_and_cc (cmp_extend (operand_size ty) rn rm (lower_extend_op ty (ArgumentExtension.Sext))) cond)))
+(attr rule lower_icmp_16_signed (veri priority))
 
 (rule lower_icmp_16_imm12
       -1 (lower_icmp cond rn (imm12_from_value rm) (fits_in_16 ty))
       (let ((rn Reg (put_in_reg_zext32 rn)))
       (flags_and_cc (cmp_imm (operand_size ty) rn rm) cond)))
-(attr rule lower_icmp_16_imm12 (veri priority)) ; depends on signed rule not matching
 
 (rule lower_icmp_16_extend
       -2 (lower_icmp cond rn rm (fits_in_16 ty))
       (let ((rn Reg (put_in_reg_zext32 rn)))
       (flags_and_cc (cmp_extend (operand_size ty) rn rm (lower_extend_op ty (ArgumentExtension.Uext))) cond)))
+(attr rule lower_icmp_16_extend (veri priority))
 
 (rule lower_icmp_const
       -3 (lower_icmp cond rn (u64_from_iconst c) ty)
       (if (ty_int_ref_scalar_64 ty))
       (lower_icmp_const cond rn c ty))
-(attr rule lower_icmp_const (veri priority)) ; depends on fits_in_16 cases not matching
 
 (rule lower_icmp_base
       -4 (lower_icmp cond rn rm ty)
       (if (ty_int_ref_scalar_64 ty))
       (flags_and_cc (cmp (operand_size ty) rn rm) cond))
-(attr rule lower_icmp_base (veri priority)) ; depends on fits_in_16 cases not matching
 
 ;; We get better encodings when testing against an immediate that's even instead
 ;; of odd, so rewrite comparisons to use even immediates:

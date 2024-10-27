@@ -1129,11 +1129,12 @@
             (y Reg (put_in_reg y)))
        (with_flags_reg (cmp (operand_size ty) x y)
                        (csel cc x y))))
-(attr rule cmp_and_choose_64 (veri priority))
+(attr rule cmp_and_choose_8_16 (veri priority))
 
 ;; `i16` and `i8` min/max require sign extension as
 ;; the comparison operates on (at least) 32 bits.
-(rule 1 (cmp_and_choose (fits_in_16 ty) cc signed x y)
+(rule cmp_and_choose_8_16
+      1 (cmp_and_choose (fits_in_16 ty) cc signed x y)
       (let ((x Reg (extend (put_in_reg x) signed (ty_bits ty) 32))
             (y Reg (extend (put_in_reg y) signed (ty_bits ty) 32)))
       (with_flags_reg (cmp (operand_size ty) x y)
@@ -1821,9 +1822,11 @@
 
 (rule cls_8 (lower (has_type $I8 (cls x)))
       (sub_imm $I32 (a64_cls $I32 (put_in_reg_sext32 x)) (u8_into_imm12 24)))
+(attr rule cls_8 (veri priority))
 
 (rule cls_16 (lower (has_type $I16 (cls x)))
       (sub_imm $I32 (a64_cls $I32 (put_in_reg_sext32 x)) (u8_into_imm12 16)))
+(attr rule cls_16 (veri priority))
 
 ;; cls lo_cls, lo
 ;; cls hi_cls, hi
@@ -1848,7 +1851,6 @@
                            (csel (Cond.Eq) lo_sign_bits (zero_reg)))))
         (value_regs (add $I64 maybe_lo hi_cls) (imm $I64 (ImmExtend.Zero) 0))))
 
-(attr rule cls_32_64 (veri priority))
 (rule cls_32_64 -1 (lower (has_type ty (cls x)))
       (a64_cls ty x))
 
