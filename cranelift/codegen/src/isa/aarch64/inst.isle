@@ -2113,11 +2113,19 @@
 )
 
 (decl pure partial imm_logic_from_u64 (Type u64) ImmLogic)
-(attr imm_logic_from_u64 (tag TODO))
 (extern constructor imm_logic_from_u64 imm_logic_from_u64)
+; REVIEW(mbm): actually specify the requirements of logical immediates?
+(spec (imm_logic_from_u64 ty n)
+      (provide (= result n))
+      (match (or (= ty 32) (= ty 64)))
+)
 
 (decl pure partial imm_size_from_type (Type) u16)
 (extern constructor imm_size_from_type imm_size_from_type)
+(spec (imm_size_from_type ty)
+      (match (or (= ty 32) (= ty 64)))
+      (provide (= result (int2bv 16 ty)))
+)
 
 (decl pure partial imm_logic_from_imm64 (Type Imm64) ImmLogic)
 (extern constructor imm_logic_from_imm64 imm_logic_from_imm64)
@@ -3549,7 +3557,8 @@
 
 ;; Weird logical-instruction immediate in ORI using zero register; to simplify,
 ;; we only match when we are zero-extending the value.
-(rule 1 (imm (integral_ty ty) (ImmExtend.Zero) k)
+(rule imm_zero_extend_imm_logic
+      1 (imm (integral_ty ty) (ImmExtend.Zero) k)
       (if-let n (imm_logic_from_u64 ty k))
       (if-let m (imm_size_from_type ty))
       (add_range_fact
