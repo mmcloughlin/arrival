@@ -3566,11 +3566,18 @@
        m k k))
 
 (decl load_constant64_full (Type ImmExtend u64) Reg)
-(attr load_constant64_full (tag TODO))
 (extern constructor load_constant64_full load_constant64_full)
+(spec (load_constant64_full ty extend value)
+      (provide
+            (= result (match extend
+                  ((Sign) (sign_ext 64 (conv_to ty value)))
+                  ((Zero) (zero_ext 64 (conv_to ty value)))
+            ))
+      )
+)
 
 ;; Fallback for integral 64-bit constants
-(rule (imm (integral_ty ty) extend n)
+(rule imm_load_constant64_full (imm (integral_ty ty) extend n)
       (load_constant64_full ty extend n))
 
 ;; Sign extension helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
