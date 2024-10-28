@@ -357,7 +357,7 @@ impl<'a> SystemBuilder<'a> {
 
                 self.same_type(x, *y);
             }
-            Expr::Cls(y) => {
+            Expr::Cls(y) | Expr::Clz(y) | Expr::Rev(y) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
 
@@ -378,7 +378,6 @@ impl<'a> SystemBuilder<'a> {
             | Expr::BVAShr(y, z)
             | Expr::BVRotl(y, z)
             | Expr::BVRotr(y, z)
-            // QUESTION(mbm): should we assert in type inference that FP ops are 32 or 64-bit?
             | Expr::FPAdd(y, z) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
@@ -387,6 +386,7 @@ impl<'a> SystemBuilder<'a> {
                 self.same_type(x, *y);
                 self.same_type(x, *z);
             }
+            // QUESTION(mbm): should we assert in type inference that FP ops are 32 or 64-bit?
             Expr::FPIsZero(y)
             | Expr::FPIsInfinite(y)
             | Expr::FPIsNaN(y)
