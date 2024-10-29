@@ -593,6 +593,69 @@
 )
 
 
+; fmin: floating-point minimum.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fmin x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if either z1 or z2 is a negative infinity, then return negative infinity.
+            (if (or (and (fp.isInfinite x) (fp.isNegative x)) (and (fp.isInfinite y) (fp.isNegative y)))
+                (fp.-oo (widthof x))
+            ; Else if either z1 or z2 is a positive infinity, then return the other value.
+            (if (and (fp.isInfinite x) (fp.isPositive x))
+                y
+            (if (and (fp.isInfinite y) (fp.isPositive y))
+                x
+            ; Else if both z1 and z2 are zeroes of opposite signs, then return negative zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_opposite_sign! x y))
+                (fp.-zero (widthof x))
+            ; Else return the smaller value of z1 and z2.
+                (fp.min x y)
+            )))))
+        )
+    )
+)
+(instantiate fmin
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
+
+; fmax: floating-point minimum.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fmax x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if either z1 or z2 is a positive infinity, then return positive infinity.
+            (if (or (and (fp.isInfinite x) (fp.isPositive x)) (and (fp.isInfinite y) (fp.isPositive y)))
+                (fp.+oo (widthof x))
+            ; Else if either z1 or z2 is a negative infinity, then return the other value.
+            (if (and (fp.isInfinite x) (fp.isNegative x))
+                y
+            (if (and (fp.isInfinite y) (fp.isNegative y))
+                x
+            ; Else if both z1 and z2 are zeroes of opposite signs, then return positive zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_opposite_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else return the smaller value of z1 and z2.
+                (fp.max x y)
+            )))))
+        )
+    )
+)
+(instantiate fmax
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
+
+
 ; fneg: floating-point negation.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).

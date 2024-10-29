@@ -339,6 +339,8 @@ impl<'a> Solver<'a> {
             Expr::FPSub(x, y) => Ok(self.fp_rounding_binary("fp.sub", x, y)?),
             Expr::FPMul(x, y) => Ok(self.fp_rounding_binary("fp.mul", x, y)?),
             Expr::FPDiv(x, y) => Ok(self.fp_rounding_binary("fp.div", x, y)?),
+            Expr::FPMin(x, y) => Ok(self.fp_binary("fp.min", x, y)?),
+            Expr::FPMax(x, y) => Ok(self.fp_binary("fp.max", x, y)?),
             Expr::FPNeg(x) => Ok(self.fp_unary("fp.neg", x)?),
             Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
             Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),
@@ -555,6 +557,28 @@ impl<'a> Solver<'a> {
 
         // Unary expression.
         let result_fp = self.smt.list(vec![self.smt.atom(op), x]);
+
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec(op, width)?;
+        let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, result_fp))?;
+
+        Ok(result)
+    }
+
+    /// Floating point binary operand without rounding.
+    fn fp_binary(&mut self, op: &str, x: ExprId, y: ExprId) -> Result<SExpr> {
+        // Convert to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(x)
+            .context("floating point expression must be a bit-vector of known width")?;
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+        let y = self.to_fp(self.expr_atom(y), width)?;
+
+        // Binary expression.
+        let result_fp = self.smt.list(vec![self.smt.atom(op), x, y]);
 
         // Return bit-vector that's equal to the expression as a floating point.
         let result = self.declare_bit_vec(op, width)?;

@@ -359,6 +359,8 @@ impl Printable for SpecOp {
             SpecOp::FPSub => "fp.sub",
             SpecOp::FPMul => "fp.mul",
             SpecOp::FPDiv => "fp.div",
+            SpecOp::FPMin => "fp.min",
+            SpecOp::FPMax => "fp.max",
             SpecOp::FPNeg => "fp.neg",
             SpecOp::FPIsZero => "fp.isZero",
             SpecOp::FPIsInfinite => "fp.isInfinite",

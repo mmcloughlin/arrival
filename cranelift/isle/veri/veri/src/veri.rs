@@ -112,6 +112,8 @@ pub enum Expr {
     FPSub(ExprId, ExprId),
     FPMul(ExprId, ExprId),
     FPDiv(ExprId, ExprId),
+    FPMin(ExprId, ExprId),
+    FPMax(ExprId, ExprId),
     FPNeg(ExprId),
     FPIsZero(ExprId),
     FPIsInfinite(ExprId),
@@ -190,7 +192,9 @@ impl Expr {
             | Expr::FPAdd(x, y)
             | Expr::FPSub(x, y)
             | Expr::FPMul(x, y)
-            | Expr::FPDiv(x, y) => vec![*x, *y],
+            | Expr::FPDiv(x, y)
+            | Expr::FPMin(x, y)
+            | Expr::FPMax(x, y) => vec![*x, *y],
 
             // Ternary
             Expr::Conditional(c, t, e) => vec![*c, *t, *e],
@@ -260,6 +264,8 @@ impl std::fmt::Display for Expr {
             Expr::FPSub(x, y) => write!(f, "fp.sub({}, {})", x.index(), y.index()),
             Expr::FPMul(x, y) => write!(f, "fp.mul({}, {})", x.index(), y.index()),
             Expr::FPDiv(x, y) => write!(f, "fp.div({}, {})", x.index(), y.index()),
+            Expr::FPMin(x, y) => write!(f, "fp.min({}, {})", x.index(), y.index()),
+            Expr::FPMax(x, y) => write!(f, "fp.max({}, {})", x.index(), y.index()),
             Expr::FPNeg(x) => write!(f, "fp.neg({})", x.index()),
             Expr::FPIsZero(x) => write!(f, "fp.isZero({})", x.index()),
             Expr::FPIsInfinite(x) => write!(f, "fp.isInfinite({})", x.index()),
@@ -1816,6 +1822,8 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPSub(x, y) => binary_expr!(Expr::FPSub, x, y),
             spec::ExprKind::FPMul(x, y) => binary_expr!(Expr::FPMul, x, y),
             spec::ExprKind::FPDiv(x, y) => binary_expr!(Expr::FPDiv, x, y),
+            spec::ExprKind::FPMin(x, y) => binary_expr!(Expr::FPMin, x, y),
+            spec::ExprKind::FPMax(x, y) => binary_expr!(Expr::FPMax, x, y),
             spec::ExprKind::FPNeg(x) => unary_expr!(Expr::FPNeg, x),
             spec::ExprKind::FPIsZero(x) => unary_expr!(Expr::FPIsZero, x),
             spec::ExprKind::FPIsInfinite(x) => unary_expr!(Expr::FPIsInfinite, x),

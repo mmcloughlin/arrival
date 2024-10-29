@@ -381,7 +381,9 @@ impl<'a> SystemBuilder<'a> {
             | Expr::FPAdd(y, z)
             | Expr::FPSub(y, z)
             | Expr::FPMul(y, z)
-            | Expr::FPDiv(y, z) => {
+            | Expr::FPDiv(y, z)
+            | Expr::FPMin(y, z)
+            | Expr::FPMax(y, z) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
                 self.bit_vector(*z);
