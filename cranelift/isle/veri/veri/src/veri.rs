@@ -1472,6 +1472,22 @@ impl<'a> ConditionsBuilder<'a> {
             }};
         }
 
+        macro_rules! variadic_expr {
+            ($expr:path, $xs:ident) => {{
+                let exprs: Vec<ExprId> = $xs
+                    .iter()
+                    .map(|x| self.spec_expr(x, vars)?.try_into())
+                    .collect::<Result<Vec<_>>>()?;
+                Ok(Symbolic::Scalar(
+                    exprs
+                        .into_iter()
+                        .rev()
+                        .reduce(|acc, e| self.dedup_expr($expr(e, acc)))
+                        .ok_or(self.error("empty variadic expression"))?,
+                ))
+            }};
+        }
+
         match expr {
             spec::ExprKind::Var(v) => {
                 let v = vars.get(&v.0)?;
@@ -1498,17 +1514,9 @@ impl<'a> ConditionsBuilder<'a> {
                 Ok(self.scalar(Expr::Not(x)))
             }
 
-            spec::ExprKind::And(x, y) => {
-                let x = self.spec_expr(x, vars)?.try_into()?;
-                let y = self.spec_expr(y, vars)?.try_into()?;
-                Ok(self.scalar(Expr::And(x, y)))
-            }
+            spec::ExprKind::And(xs) => variadic_expr!(Expr::And, xs),
 
-            spec::ExprKind::Or(x, y) => {
-                let x = self.spec_expr(x, vars)?.try_into()?;
-                let y = self.spec_expr(y, vars)?.try_into()?;
-                Ok(self.scalar(Expr::Or(x, y)))
-            }
+            spec::ExprKind::Or(xs) => variadic_expr!(Expr::Or, xs),
 
             spec::ExprKind::Imp(x, y) => {
                 let x = self.spec_expr(x, vars)?.try_into()?;
@@ -1760,11 +1768,7 @@ impl<'a> ConditionsBuilder<'a> {
                 Ok(self.scalar(Expr::BVExtract(*h, *l, x)))
             }
 
-            spec::ExprKind::BVConcat(x, y) => {
-                let x = self.spec_expr(x, vars)?.try_into()?;
-                let y = self.spec_expr(y, vars)?.try_into()?;
-                Ok(self.scalar(Expr::BVConcat(x, y)))
-            }
+            spec::ExprKind::BVConcat(xs) => variadic_expr!(Expr::BVConcat, xs),
 
             spec::ExprKind::Int2BV(w, x) => {
                 let w = self.spec_expr(w, vars)?.try_into()?;

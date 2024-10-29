@@ -56,8 +56,8 @@ pub enum ExprKind {
     // Boolean operations
     // QUESTION(mbm): would it be preferable to use the Binary(Opcode, ExprBox, ExprBox) form instead?
     Not(Expr),
-    And(Expr, Expr),
-    Or(Expr, Expr),
+    And(Vec<Expr>),
+    Or(Vec<Expr>),
     Imp(Expr, Expr),
     Eq(Expr, Expr),
     Lt(Expr, Expr),
@@ -113,7 +113,7 @@ pub enum ExprKind {
     BVExtract(usize, usize, Expr),
 
     // Concatenate bitvectors.
-    BVConcat(Expr, Expr),
+    BVConcat(Vec<Expr>),
 
     // Convert between integers and bitvector.
     Int2BV(Expr, Expr),
@@ -189,7 +189,7 @@ macro_rules! ternary_expr {
     }};
 }
 
-macro_rules! variadic_binary_expr {
+macro_rules! variadic_expr {
     ($expr:path, $args:ident, $pos:ident) => {{
         // TODO(mbm): return error instead of assert
         assert!(
@@ -197,12 +197,7 @@ macro_rules! variadic_binary_expr {
             "Unexpected number of args for variadic binary operator {:?}",
             $pos
         );
-        $args
-            .iter()
-            .map(ExprKind::from_ast)
-            .rev()
-            .reduce(|acc, e| $expr(Positioned::new(*$pos, e), Positioned::new(*$pos, acc)))
-            .unwrap()
+        $expr(exprs_from_ast($args))
     }};
 }
 
@@ -247,8 +242,8 @@ impl ExprKind {
                 SpecOp::Popcnt => unary_expr!(ExprKind::Popcnt, args, pos),
 
                 // Variadic binops
-                SpecOp::And => variadic_binary_expr!(ExprKind::And, args, pos),
-                SpecOp::Or => variadic_binary_expr!(ExprKind::Or, args, pos),
+                SpecOp::And => variadic_expr!(ExprKind::And, args, pos),
+                SpecOp::Or => variadic_expr!(ExprKind::Or, args, pos),
 
                 // Binary
                 SpecOp::Eq => binary_expr!(ExprKind::Eq, args, pos),
@@ -286,7 +281,7 @@ impl ExprKind {
                 SpecOp::ZeroExt => binary_expr!(ExprKind::BVZeroExt, args, pos),
                 SpecOp::SignExt => binary_expr!(ExprKind::BVSignExt, args, pos),
                 SpecOp::ConvTo => binary_expr!(ExprKind::BVConvTo, args, pos),
-                SpecOp::Concat => variadic_binary_expr!(ExprKind::BVConcat, args, pos),
+                SpecOp::Concat => variadic_expr!(ExprKind::BVConcat, args, pos),
                 SpecOp::Extract => {
                     // TODO(mbm): return error instead of assert
                     assert_eq!(
