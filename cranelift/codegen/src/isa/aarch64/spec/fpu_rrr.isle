@@ -18,6 +18,17 @@
                                         (extract 63 0 (conv_to 128 (as rn (bv 64))))
                                         (extract 63 0 (conv_to 128 (as rm (bv 64))))
                                         fpcr))
+                                (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))
+                    ((Sub)
+                        (with
+                            (t3)
+                            (and
+                                (=
+                                    t3
+                                    (FPSub!
+                                        (extract 63 0 (conv_to 128 (as rn (bv 64))))
+                                        (extract 63 0 (conv_to 128 (as rm (bv 64))))
+                                        fpcr))
                                 (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))))
             ((Size32)
                 (match
@@ -32,5 +43,20 @@
                                         (extract 31 0 (conv_to 128 (as rn (bv 64))))
                                         (extract 31 0 (conv_to 128 (as rm (bv 64))))
                                         fpcr))
+                                (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))
+                    ((Sub)
+                        (with
+                            (t3)
+                            (and
+                                (=
+                                    t3
+                                    (FPSub!
+                                        (extract 31 0 (conv_to 128 (as rn (bv 64))))
+                                        (extract 31 0 (conv_to 128 (as rm (bv 64))))
+                                        fpcr))
                                 (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))))))
-    (require (match size ((Size64) (match fpu_op ((Add) true))) ((Size32) (match fpu_op ((Add) true))))))
+    (require
+        (match
+            size
+            ((Size64) (match fpu_op ((Add) true) ((Sub) true)))
+            ((Size32) (match fpu_op ((Add) true) ((Sub) true))))))

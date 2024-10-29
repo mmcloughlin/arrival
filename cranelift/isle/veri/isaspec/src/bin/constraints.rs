@@ -275,7 +275,7 @@ fn define_insts() -> Vec<Inst> {
     }
 
     // FpuRRR
-    let fpu_op2s = [FPUOp2::Add];
+    let fpu_op2s = [FPUOp2::Add, FPUOp2::Sub];
     for fpu_op2 in fpu_op2s {
         insts.push(Inst::FpuRRR {
             fpu_op: fpu_op2,

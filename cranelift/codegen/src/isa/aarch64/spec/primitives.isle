@@ -163,3 +163,75 @@
         ))
     )
 )
+
+;; FPSub: Floating point subtraction
+(macro (FPSub x y fpcr)
+    ; // FPSub()
+    ; // =======
+    ;
+    ; bits(N) FPSub(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean fpexc)
+    ;
+    ;     assert N IN {16,32,64};
+    ;     rounding = FPRoundingMode(fpcr);
+    ;
+    ;     (type1,sign1,value1) = FPUnpack(op1, fpcr, fpexc);
+    ;     (type2,sign2,value2) = FPUnpack(op2, fpcr, fpexc);
+    (let
+        (
+            (sign1 (fp.isNegative x))
+            (sign2 (fp.isNegative y))
+        )
+    ;
+    ;     (done,result) = FPProcessNaNs(type1, type2, op1, op2, fpcr, fpexc);
+        (if (fp.isNaN x)
+            (FPProcessNaN! x)
+        (if (fp.isNaN y)
+            (FPProcessNaN! y)
+    ;     if !done then
+    ;         inf1  = (type1 == FPType_Infinity);  inf2  = (type2 == FPType_Infinity);
+    ;         zero1 = (type1 == FPType_Zero);      zero2 = (type2 == FPType_Zero);
+            (let
+                (
+                    (inf1 (fp.isInfinite x))
+                    (inf2 (fp.isInfinite y))
+                    (zero1 (fp.isZero x))
+                    (zero2 (fp.isZero y))
+                )
+    ;         if inf1 && inf2 && sign1 == sign2 then
+    ;             result = FPDefaultNaN(fpcr, N);
+    ;             if fpexc then FPProcessException(FPExc_InvalidOp, fpcr);
+                (if (and inf1 inf2 (= sign1 sign2))
+                    (FPDefaultNaN! (widthof x))
+    ;         elsif (inf1 && sign1 == '0') || (inf2 && sign2 == '1') then
+    ;             result = FPInfinity('0', N);
+                (if (or (and inf1 (not sign1)) (and inf2 sign2))
+                    (fp.+oo (widthof x))
+    ;         elsif (inf1 && sign1 == '1') || (inf2 && sign2 == '0') then
+    ;             result = FPInfinity('1', N);
+                (if (or (and inf1 sign1) (and inf2 (not sign2)))
+                    (fp.-oo (widthof x))
+    ;         elsif zero1 && zero2 && sign1 == NOT(sign2) then
+    ;             result = FPZero(sign1, N);
+                (if (and zero1 zero2 (= sign1 (not sign2)))
+                    (fp_signed_zero! sign1 (widthof x))
+    ;         else
+    ;             result_value = value1 - value2;
+    ;             if result_value == 0.0 then  // Sign of exact zero result depends on rounding mode
+    ;                 result_sign = if rounding == FPRounding_NEGINF then '1' else '0';
+    ;                 result = FPZero(result_sign, N);
+    ;             else
+    ;                 result = FPRound(result_value, fpcr, rounding, fpexc, N);
+                    (let ((result (fp.sub x y)))
+                        (if (fp.isZero result)
+                            (fp.+zero (widthof result))
+                            result
+                        )
+                    )
+    ;
+    ;         if fpexc then FPProcessDenorms(type1, type2, N, fpcr);
+    ;     return result;
+                ))))
+            )
+        ))
+    )
+)

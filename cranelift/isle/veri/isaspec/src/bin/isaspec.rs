@@ -1752,7 +1752,7 @@ fn flags_mappings() -> Mappings {
 // MInst.FpuRRR specification configuration.
 fn define_fpu_rrr() -> SpecConfig {
     // FPUOp2
-    let fpu_op2s = [FPUOp2::Add];
+    let fpu_op2s = [FPUOp2::Add, FPUOp2::Sub];
 
     // ScalarSize
     let sizes = [ScalarSize::Size32, ScalarSize::Size64];
