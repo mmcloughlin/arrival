@@ -337,6 +337,7 @@ impl<'a> Solver<'a> {
             Expr::FPNaN(x) => Ok(self.fp_value("NaN", x)?),
             Expr::FPAdd(x, y) => Ok(self.fp_rounding_binary("fp.add", x, y)?),
             Expr::FPSub(x, y) => Ok(self.fp_rounding_binary("fp.sub", x, y)?),
+            Expr::FPDiv(x, y) => Ok(self.fp_rounding_binary("fp.div", x, y)?),
             Expr::FPNeg(x) => Ok(self.fp_unary("fp.neg", x)?),
             Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
             Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),

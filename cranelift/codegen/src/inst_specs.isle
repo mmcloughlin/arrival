@@ -488,6 +488,57 @@
 )
 
 
+; fdiv: floating-point division.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fdiv x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if both z1 and z2 are infinities, then return an element of nans{}.
+            (if (and (fp.isInfinite x) (fp.isInfinite y))
+                (nans0! (widthof x))
+            ; Else if both z1 and z2 are zeroes, then return an element of nans{z1,z2}.
+            (if (and (fp.isZero x) (fp.isZero y))
+                (nans2! x y)
+            ; Else if z1 is an infinity and z2 a value with equal sign, then return positive infinity.
+            (if (and (fp.isInfinite x) (fp_equal_sign! x y))
+                (fp.+oo (widthof x))
+            ; Else if z1 is an infinity and z2 a value with opposite sign, then return negative infinity.
+            (if (and (fp.isInfinite x) (fp_opposite_sign! x y))
+                (fp.-oo (widthof x))
+            ; Else if z2 is an infinity and z1 a value with equal sign, then return positive zero.
+            (if (and (fp.isInfinite y) (fp_equal_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else if z2 is an infinity and z1 a value with opposite sign, then return negative zero.
+            (if (and (fp.isInfinite y) (fp_opposite_sign! x y))
+                (fp.-zero (widthof x))
+            ; Else if z1 is a zero and z2 a value with equal sign, then return positive zero.
+            (if (and (fp.isZero x) (fp_equal_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else if z1 is a zero and z2 a value with opposite sign, then return negative zero.
+            (if (and (fp.isZero x) (fp_opposite_sign! x y))
+                (fp.-zero (widthof x))
+            ; Else if z2 is a zero and z1 a value with equal sign, then return positive infinity.
+            (if (and (fp.isZero y) (fp_equal_sign! x y))
+                (fp.+oo (widthof x))
+            ; Else if z2 is a zero and z1 a value with opposite sign, then return negative infinity.
+            (if (and (fp.isZero y) (fp_opposite_sign! x y))
+                (fp.-oo (widthof x))
+            ; Else return the result of dividing z1 by z2, rounded to the nearest representable value.
+                (fp.div x y)
+            )))))))))))
+        )
+    )
+)
+(instantiate fdiv
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
+
+
 ; fneg: floating-point negation.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).

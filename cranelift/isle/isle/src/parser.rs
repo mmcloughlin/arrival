@@ -663,6 +663,7 @@ impl<'a> Parser<'a> {
             "fp.NaN" => Ok(SpecOp::FPNaN),
             "fp.add" => Ok(SpecOp::FPAdd),
             "fp.sub" => Ok(SpecOp::FPSub),
+            "fp.div" => Ok(SpecOp::FPDiv),
             "fp.neg" => Ok(SpecOp::FPNeg),
             "fp.isZero" => Ok(SpecOp::FPIsZero),
             "fp.isInfinite" => Ok(SpecOp::FPIsInfinite),
