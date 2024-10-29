@@ -1179,7 +1179,7 @@
 
 ;; General rule for extending input to an output which fits in a single
 ;; register.
-(rule -2 (lower (has_type (fits_in_64 out) (uextend x @ (value_type in))))
+(rule uextend -2 (lower (has_type (fits_in_64 out) (uextend x @ (value_type in))))
       (extend x $false (ty_bits in) (ty_bits out)))
 
 ;; Extraction of a vector lane automatically extends as necessary, so we can
@@ -1223,7 +1223,7 @@
 
 ;; General rule for extending input to an output which fits in a single
 ;; register.
-(rule -4 (lower (has_type (fits_in_64 out) (sextend x @ (value_type in))))
+(rule sextend -4 (lower (has_type (fits_in_64 out) (sextend x @ (value_type in))))
       (extend x $true (ty_bits in) (ty_bits out)))
 
 ;; Extraction of a vector lane automatically extends as necessary, so we can

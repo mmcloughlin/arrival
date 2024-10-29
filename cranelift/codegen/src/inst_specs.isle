@@ -296,7 +296,7 @@
     ((args (bv 16)) (ret (bv 64)))
     ((args (bv 32)) (ret (bv 32)))
     ((args (bv 32)) (ret (bv 64)))
-    ((args (bv 64)) (ret (bv 64)))
+    ;; Note: (bv 64) -> (bv 64) not accepted in clif
 )
 
 (spec (uextend x)
