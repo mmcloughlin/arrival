@@ -11,6 +11,7 @@ use crate::{
 
 use crate::encoded::cls::*;
 use crate::encoded::clz::*;
+use crate::encoded::popcnt::*;
 use crate::encoded::rev::*;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -263,6 +264,18 @@ impl<'a> Solver<'a> {
                     32 => Ok(rev32(&mut self.smt, xe, id)),
                     64 => Ok(rev64(&mut self.smt, xe, id)),
                     _ => unimplemented!("unexpected CLS width"),
+                }
+            }
+            Expr::Popcnt(x) => {
+                let width = self
+                    .assignment
+                    .try_bit_vector_width(x)
+                    .context("popcnt semantics require known width")?;
+                let xe = self.expr_atom(x);
+                let id = x.index();
+                match width {
+                    8 | 16 | 32 | 64 => Ok(popcnt(&mut self.smt, width, xe, id)),
+                    _ => unimplemented!("unexpected Popcnt width"),
                 }
             }
 

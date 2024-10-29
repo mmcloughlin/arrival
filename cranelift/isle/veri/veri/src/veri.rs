@@ -62,6 +62,7 @@ pub enum Expr {
     Cls(ExprId),
     Clz(ExprId),
     Rev(ExprId),
+    Popcnt(ExprId),
 
     // Binary.
     BVAdd(ExprId, ExprId),
@@ -132,6 +133,7 @@ impl Expr {
             | Expr::Cls(x)
             | Expr::Clz(x)
             | Expr::Rev(x)
+            | Expr::Popcnt(x)
             | Expr::WidthOf(x)
             | Expr::FPPositiveInfinity(x)
             | Expr::FPNegativeInfinity(x)
@@ -214,6 +216,7 @@ impl std::fmt::Display for Expr {
             Expr::Cls(x) => write!(f, "cls({})", x.index()),
             Expr::Clz(x) => write!(f, "clz({})", x.index()),
             Expr::Rev(x) => write!(f, "rev({})", x.index()),
+            Expr::Popcnt(x) => write!(f, "popcnt({})", x.index()),
             Expr::BVAdd(x, y) => write!(f, "bvadd({}, {})", x.index(), y.index()),
             Expr::BVSub(x, y) => write!(f, "bvsub({}, {})", x.index(), y.index()),
             Expr::BVMul(x, y) => write!(f, "bvmul({}, {})", x.index(), y.index()),
@@ -1620,6 +1623,11 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::Rev(x) => {
                 let x = self.spec_expr(x, vars)?.try_into()?;
                 Ok(self.scalar(Expr::Rev(x)))
+            }
+
+            spec::ExprKind::Popcnt(x) => {
+                let x = self.spec_expr(x, vars)?.try_into()?;
+                Ok(self.scalar(Expr::Popcnt(x)))
             }
 
             spec::ExprKind::BVAdd(x, y) => {

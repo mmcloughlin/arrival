@@ -84,6 +84,7 @@ pub enum ExprKind {
     Cls(Expr),
     Clz(Expr),
     Rev(Expr),
+    Popcnt(Expr),
 
     // Binary operators
     BVAdd(Expr, Expr),
@@ -243,7 +244,7 @@ impl ExprKind {
                 SpecOp::Cls => unary_expr!(ExprKind::Cls, args, pos),
                 SpecOp::Rev => unary_expr!(ExprKind::Rev, args, pos),
                 SpecOp::Clz => unary_expr!(ExprKind::Clz, args, pos),
-                SpecOp::Popcnt => todo!(),
+                SpecOp::Popcnt => unary_expr!(ExprKind::Popcnt, args, pos),
 
                 // Variadic binops
                 SpecOp::And => variadic_binary_expr!(ExprKind::And, args, pos),
