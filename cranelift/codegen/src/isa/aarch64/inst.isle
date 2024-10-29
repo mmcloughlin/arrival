@@ -2869,13 +2869,16 @@
 
 ;; Helper for emitting `MInst.MovToFpu` instructions.
 (decl mov_to_fpu (Reg ScalarSize) Reg)
+(attr mov_to_fpu (veri chain))
 (rule (mov_to_fpu x size)
       (let ((dst WritableReg (temp_writable_reg $I8X16))
             (_ Unit (emit (MInst.MovToFpu dst x size))))
         dst))
 (rule 1 (mov_to_fpu x (ScalarSize.Size16))
         (if-let $false (use_fp16))
-        (mov_to_fpu x (ScalarSize.Size32)))
+        (let ((dst WritableReg (temp_writable_reg $I8X16))
+             (_ Unit (emit (MInst.MovToFpu dst x (ScalarSize.Size32)))))
+         dst))
 
 ;; Helper for emitting `MInst.FpuMoveFPImm` instructions.
 (decl fpu_move_fp_imm (ASIMDFPModImm ScalarSize) Reg)
