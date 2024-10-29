@@ -42,3 +42,9 @@
 
 ; Bit-vector with the top fraction bit set.
 (macro (fp_topfrac_bit_set w) (bvshl_int! (bvone! w) (fp_topfrac_bit! w)))
+
+; Bit position of the sign bit in a floating-point value.
+(macro (fp_sign_bit w) (switch w (32 31) (64 63)))
+
+; Bit-vector with the sign bit set.
+(macro (fp_sign_bit_set w) (bvshl_int! (bvone! w) (fp_sign_bit! w)))

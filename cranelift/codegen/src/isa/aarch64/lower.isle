@@ -483,7 +483,7 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (fneg x)))
       (vec_misc (VecMisc2.Fneg) x (vector_size ty)))
 
-(rule (lower (has_type (ty_scalar_float ty) (fneg x)))
+(rule fneg (lower (has_type (ty_scalar_float ty) (fneg x)))
       (fpu_rr (FPUOp1.Neg) x (scalar_size ty)))
 
 ;;;; Rules for `fabs` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -7,8 +7,8 @@ use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, FPUOp2, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled,
-    VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
+    vreg, writable_vreg, FPUOp1, FPUOp2, MoveWideConst, MoveWideOp, SImm9, ScalarSize,
+    UImm12Scaled, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -167,6 +167,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "conds.isle".into(),
             specs: define_conds()?,
+        },
+        FileConfig {
+            name: "fpu_rr.isle".into(),
+            specs: vec![define_fpu_rr()],
         },
         FileConfig {
             name: "fpu_rrr.isle".into(),
@@ -1800,6 +1804,61 @@ fn define_fpu_rrr() -> SpecConfig {
                                         rd: writable_vreg(4),
                                         rn: vreg(5),
                                         rm: vreg(6),
+                                    }),
+                                    scope: aarch64::state(),
+                                    mappings: mappings.clone(),
+                                }),
+                            })
+                            .collect(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+// MInst.FpuRR specification configuration.
+fn define_fpu_rr() -> SpecConfig {
+    // FPUOp1
+    let fpu_op1s = [FPUOp1::Neg];
+
+    // ScalarSize
+    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+
+    // FpuRR
+    let mut mappings = Mappings::default();
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+
+    SpecConfig {
+        term: "MInst.FpuRR".to_string(),
+        args: ["fpu_op", "size", "rd", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| Arm {
+                    variant: format!("{size:?}"),
+                    args: Vec::new(),
+                    body: Cases::Match(Match {
+                        on: spec_var("fpu_op".to_string()),
+                        arms: fpu_op1s
+                            .iter()
+                            .map(|op| Arm {
+                                variant: format!("{op:?}"),
+                                args: Vec::new(),
+                                body: Cases::Instruction(InstConfig {
+                                    opcodes: Opcodes::Instruction(Inst::FpuRR {
+                                        fpu_op: *op,
+                                        size: *size,
+                                        rd: writable_vreg(4),
+                                        rn: vreg(5),
                                     }),
                                     scope: aarch64::state(),
                                     mappings: mappings.clone(),

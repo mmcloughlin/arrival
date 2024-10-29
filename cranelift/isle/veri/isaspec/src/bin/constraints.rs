@@ -4,9 +4,9 @@ use anyhow::Result;
 use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I64;
 use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, writable_xreg, xreg, ALUOp, ALUOp3, BitOp, Cond, FPUOp2, Imm12, ImmLogic,
-    ImmShift, Inst, MoveWideConst, MoveWideOp, OperandSize, ScalarSize, ShiftOp, ShiftOpAndAmt,
-    ShiftOpShiftImm, VecALUOp, VecMisc2, VectorSize, NZCV,
+    vreg, writable_vreg, writable_xreg, xreg, ALUOp, ALUOp3, BitOp, Cond, FPUOp1, FPUOp2, Imm12,
+    ImmLogic, ImmShift, Inst, MoveWideConst, MoveWideOp, OperandSize, ScalarSize, ShiftOp,
+    ShiftOpAndAmt, ShiftOpShiftImm, VecALUOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_isle::printer;
 use cranelift_isle_veri_aslp::ast::Block;
@@ -271,6 +271,17 @@ fn define_insts() -> Vec<Inst> {
             rm: xreg(2),
             nzcv: NZCV::new(true, false, true, false),
             cond,
+        });
+    }
+
+    // FpuRR
+    let fpu_op1s = [FPUOp1::Neg];
+    for fpu_op1 in fpu_op1s {
+        insts.push(Inst::FpuRR {
+            fpu_op: fpu_op1,
+            size: ScalarSize::Size64,
+            rd: writable_vreg(1),
+            rn: vreg(2),
         });
     }
 
