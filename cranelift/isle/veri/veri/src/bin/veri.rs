@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::{format_err, Result};
 use clap::{Parser, ValueEnum};
 use cranelift_codegen_meta::{generate_isle, isle::get_isle_compilations};
-use cranelift_isle_veri::runner::{Runner, SolverBackend};
+use cranelift_isle_veri::runner::{Filter, Runner, SolverBackend};
 
 #[derive(Parser)]
 struct Opts {
@@ -19,13 +19,9 @@ struct Opts {
     #[arg(long, required = true)]
     work_dir: std::path::PathBuf,
 
-    /// Filter to expansions involving this rule.
-    #[arg(long)]
-    rule: Option<String>,
-
-    /// Skip expansions containing terms with this tag.
-    #[arg(long = "skip-tag", value_name = "TAG")]
-    skip_tags: Vec<String>,
+    /// Filter expansions.
+    #[arg(long = "filter", value_name = "FILTER")]
+    filters: Vec<Filter>,
 
     /// Solver backend to use.
     #[arg(long = "solver", default_value = "cvc5")]
@@ -89,15 +85,12 @@ fn main() -> Result<()> {
     let mut runner = Runner::from_files(&inputs)?;
 
     // Configure runner.
-    runner.include_first_rule_named();
-
-    if let Some(id) = opts.rule {
-        runner.target_rule(&id)?;
+    if !opts.filters.is_empty() {
+        runner.filters(&opts.filters);
+    } else {
+        runner.include_first_rule_named();
     }
-
-    for skip_tag in opts.skip_tags {
-        runner.skip_tag(skip_tag);
-    }
+    runner.skip_tag("TODO");
 
     runner.set_solver_backend(opts.solver_backend.into());
     runner.set_timeout(Duration::from_secs(opts.timeout));

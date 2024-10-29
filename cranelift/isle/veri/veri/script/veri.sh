@@ -42,9 +42,6 @@ cargo run --bin veri --profile "${profile}" -- \
     --codegen-crate-dir ../../../codegen/ \
     --work-dir "${tmp_dir}" \
     --name "${arch}" \
-    --timeout 10 \
     --log-dir "${output_dir}/log" \
-    --skip-tag TODO \
-    --skip-tag vector \
     "$@" \
     | tee "${output_dir}/${arch}.veri"

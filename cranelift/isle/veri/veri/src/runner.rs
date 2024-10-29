@@ -1,16 +1,13 @@
 use std::{
-    cmp::max,
     collections::HashMap,
     fs::File,
     path::{Path, PathBuf},
+    str::FromStr,
     time::Duration,
 };
 
-use anyhow::{bail, format_err, Result};
-use cranelift_isle::{
-    sema::{RuleId, TermId},
-    trie_again::RuleSet,
-};
+use anyhow::{bail, format_err, Error, Result};
+use cranelift_isle::{sema::TermId, trie_again::RuleSet};
 
 use crate::{
     debug::print_expansion,
@@ -53,26 +50,61 @@ impl SolverBackend {
     }
 }
 
+#[derive(Debug, Clone)]
 enum ExpansionPredicate {
     FirstRuleNamed,
-    SkipTag(String),
-    ContainsRule(RuleId),
+    Tagged(String),
+    ContainsRule(String),
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum ShouldVerify {
-    Unspecified,
-    Yes,
-    No,
-}
+impl FromStr for ExpansionPredicate {
+    type Err = Error;
 
-impl From<bool> for ShouldVerify {
-    fn from(b: bool) -> Self {
-        if b {
-            ShouldVerify::Yes
+    fn from_str(s: &str) -> Result<Self> {
+        Ok(if s == "first-rule-named" {
+            ExpansionPredicate::FirstRuleNamed
+        } else if let Some(tag) = s.strip_prefix("tag:") {
+            ExpansionPredicate::Tagged(tag.to_string())
+        } else if let Some(rule) = s.strip_prefix("rule:") {
+            ExpansionPredicate::ContainsRule(rule.to_string())
         } else {
-            ShouldVerify::No
-        }
+            bail!("invalid expansion predicate")
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Filter {
+    include: bool,
+    predicate: ExpansionPredicate,
+}
+
+impl Filter {
+    fn new(include: bool, predicate: ExpansionPredicate) -> Self {
+        Self { include, predicate }
+    }
+
+    fn include(predicate: ExpansionPredicate) -> Self {
+        Self::new(true, predicate)
+    }
+
+    fn exclude(predicate: ExpansionPredicate) -> Self {
+        Self::new(false, predicate)
+    }
+}
+
+impl FromStr for Filter {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let (include, p) = if let Some(p) = s.strip_prefix("include:") {
+            (true, p)
+        } else if let Some(p) = s.strip_prefix("exclude:") {
+            (false, p)
+        } else {
+            (true, s)
+        };
+        Ok(Filter::new(include, p.parse()?))
     }
 }
 
@@ -83,7 +115,7 @@ pub struct Runner {
     term_rule_sets: HashMap<TermId, RuleSet>,
 
     root_term: String,
-    expansion_predicates: Vec<ExpansionPredicate>,
+    filters: Vec<Filter>,
     solver_backend: SolverBackend,
     timeout: Duration,
     log_dir: PathBuf,
@@ -100,7 +132,7 @@ impl Runner {
             prog,
             term_rule_sets,
             root_term: "lower".to_string(),
-            expansion_predicates: Vec::new(),
+            filters: Vec::new(),
             solver_backend: SolverBackend::CVC5,
             timeout: Duration::from_secs(5),
             log_dir: PathBuf::from(LOG_DIR),
@@ -113,23 +145,29 @@ impl Runner {
         self.root_term = term.to_string();
     }
 
-    pub fn include_first_rule_named(&mut self) {
-        self.expansion_predicates
-            .push(ExpansionPredicate::FirstRuleNamed);
+    pub fn filter(&mut self, filter: Filter) {
+        self.filters.push(filter);
     }
 
-    pub fn skip_tag(&mut self, tag: String) {
-        self.expansion_predicates
-            .push(ExpansionPredicate::SkipTag(tag));
+    pub fn filters(&mut self, filters: &[Filter]) {
+        self.filters.extend(filters.iter().cloned());
+    }
+
+    pub fn include_first_rule_named(&mut self) {
+        self.filters
+            .push(Filter::include(ExpansionPredicate::FirstRuleNamed));
+    }
+
+    pub fn skip_tag(&mut self, tag: &str) {
+        self.filters
+            .push(Filter::exclude(ExpansionPredicate::Tagged(tag.to_string())));
     }
 
     pub fn target_rule(&mut self, id: &str) -> Result<()> {
-        let rule = self
-            .prog
-            .get_rule_by_identifier(id)
-            .ok_or(format_err!("unknown rule {id}"))?;
-        self.expansion_predicates
-            .push(ExpansionPredicate::ContainsRule(rule.id));
+        self.filters
+            .push(Filter::include(ExpansionPredicate::ContainsRule(
+                id.to_string(),
+            )));
         Ok(())
     }
 
@@ -172,7 +210,7 @@ impl Runner {
         let expansions = expander.expansions();
         log::info!("expansions: {n}", n = expansions.len());
         for (i, expansion) in expansions.iter().enumerate() {
-            if self.should_verify(expansion)? != ShouldVerify::Yes {
+            if !self.should_verify(expansion)? {
                 continue;
             }
 
@@ -189,41 +227,48 @@ impl Runner {
         Ok(())
     }
 
-    fn should_verify(&self, expansion: &Expansion) -> Result<ShouldVerify> {
-        self.expansion_predicates
-            .iter()
-            .try_fold(ShouldVerify::Unspecified, |acc, p| {
-                Ok(max(acc, self.predicate(p, expansion)?))
-            })
+    fn should_verify(&self, expansion: &Expansion) -> Result<bool> {
+        let mut verdict = None;
+        for filter in self.filters.iter() {
+            verdict = self.eval_filter(filter, expansion)?.or(verdict);
+        }
+        Ok(verdict.unwrap_or(false))
     }
 
-    fn predicate(
+    fn eval_filter(&self, filter: &Filter, expansion: &Expansion) -> Result<Option<bool>> {
+        Ok(if self.eval_predicate(&filter.predicate, expansion)? {
+            Some(filter.include)
+        } else {
+            None
+        })
+    }
+
+    fn eval_predicate(
         &self,
         predicate: &ExpansionPredicate,
         expansion: &Expansion,
-    ) -> Result<ShouldVerify> {
-        match predicate {
+    ) -> Result<bool> {
+        Ok(match predicate {
             ExpansionPredicate::FirstRuleNamed => {
                 let rule_id = expansion
                     .rules
                     .first()
                     .ok_or(format_err!("expansion should have at least one rule"))?;
                 let rule = self.prog.rule(*rule_id);
-                Ok(rule.name.is_some().into())
+                rule.name.is_some()
             }
-            ExpansionPredicate::SkipTag(tag) => {
+            ExpansionPredicate::Tagged(tag) => {
                 let tags = expansion.tags(&self.prog);
-                Ok(if tags.contains(tag) {
-                    log::debug!("skip expansion with tag: {}", tag);
-                    ShouldVerify::No
-                } else {
-                    ShouldVerify::Unspecified
-                })
+                tags.contains(tag)
             }
-            ExpansionPredicate::ContainsRule(rule_id) => {
-                Ok(expansion.rules.contains(rule_id).into())
+            ExpansionPredicate::ContainsRule(identifier) => {
+                let rule = self
+                    .prog
+                    .get_rule_by_identifier(&identifier)
+                    .ok_or(format_err!("unknown rule '{identifier}'"))?;
+                expansion.rules.contains(&rule.id)
             }
-        }
+        })
     }
 
     fn verify_expansion(&self, expansion: &Expansion, log_dir: std::path::PathBuf) -> Result<()> {

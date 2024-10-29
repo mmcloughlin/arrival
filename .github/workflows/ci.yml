@@ -62,7 +62,7 @@ jobs:
         working-directory: main
       - name: Verify
         working-directory: main/cranelift/isle/veri/veri
-        run: ./script/veri.sh -a ${{ matrix.arch }} -p release -t "${RUNNER_TEMP}" -o "${{ runner.workspace }}/output"
+        run: ./script/verify/ci.sh -a ${{ matrix.arch }} -p release -t "${RUNNER_TEMP}" -o "${{ runner.workspace }}/output"
       - uses: actions/upload-artifact@v4
         if: github.event_name == 'push'
         with:
