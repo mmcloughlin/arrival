@@ -380,6 +380,7 @@ impl<'a> SystemBuilder<'a> {
             | Expr::BVRotr(y, z)
             | Expr::FPAdd(y, z)
             | Expr::FPSub(y, z)
+            | Expr::FPMul(y, z)
             | Expr::FPDiv(y, z) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);

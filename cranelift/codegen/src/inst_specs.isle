@@ -487,6 +487,52 @@
     ((args (bv 64) (bv 64)) (ret (bv 64)))
 )
 
+; fmul: floating-point multiplication.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fmul x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if one of z1 and z2 is a zero and the other an infinity, then return an element of nans{}.
+            (if (and (fp.isZero x) (fp.isInfinite y))
+                (nans0! (widthof x))
+            (if (and (fp.isInfinite x) (fp.isZero y))
+                (nans0! (widthof x))
+            ; Else if both z1 and z2 are infinities of equal sign, then return an element of nans{}.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_equal_sign! x y))
+                (fp.+oo (widthof x))
+            ; Else if both z1 and z2 are infinities of opposite signs, then return z1.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_opposite_sign! x y))
+                (fp.-oo (widthof x))
+            ; Else if either z1 or z2 is an infinity and the other a value with equal sign, then return positive infinity.
+            (if (and (fp.isInfinite x) (fp_equal_sign! x y))
+                (fp.+oo (widthof x))
+            (if (and (fp.isInfinite y) (fp_equal_sign! x y))
+                (fp.+oo (widthof x))
+            ; Else if either z1 or z2 is an infinity and the other a value with opposite sign, then return negative infinity.
+            (if (and (fp.isInfinite x) (fp_opposite_sign! x y))
+                (fp.-oo (widthof x))
+            (if (and (fp.isInfinite y) (fp_opposite_sign! x y))
+                (fp.-oo (widthof x))
+            ; Else if both z1 and z2 are zeroes of equal sign, then return positive zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_equal_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else if both z1 and z2 are zeroes of opposite sign, then return negative zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_opposite_sign! x y))
+                (fp.-zero (widthof x))
+            ; Else return the result of multiplying z1 and z2, rounded to the nearest representable value.
+                (fp.mul x y)
+            )))))))))))
+        )
+    )
+)
+(instantiate fmul
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
 
 ; fdiv: floating-point division.
 ;

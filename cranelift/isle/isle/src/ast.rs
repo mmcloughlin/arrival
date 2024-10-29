@@ -312,6 +312,7 @@ pub enum SpecOp {
     FPNaN,
     FPAdd,
     FPSub,
+    FPMul,
     FPDiv,
     FPNeg,
     FPIsZero,

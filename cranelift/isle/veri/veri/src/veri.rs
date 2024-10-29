@@ -110,6 +110,7 @@ pub enum Expr {
     FPNaN(ExprId),
     FPAdd(ExprId, ExprId),
     FPSub(ExprId, ExprId),
+    FPMul(ExprId, ExprId),
     FPDiv(ExprId, ExprId),
     FPNeg(ExprId),
     FPIsZero(ExprId),
@@ -188,6 +189,7 @@ impl Expr {
             | Expr::BVConcat(x, y)
             | Expr::FPAdd(x, y)
             | Expr::FPSub(x, y)
+            | Expr::FPMul(x, y)
             | Expr::FPDiv(x, y) => vec![*x, *y],
 
             // Ternary
@@ -256,6 +258,7 @@ impl std::fmt::Display for Expr {
             Expr::FPNaN(x) => write!(f, "fp.NaN({})", x.index()),
             Expr::FPAdd(x, y) => write!(f, "fp.add({}, {})", x.index(), y.index()),
             Expr::FPSub(x, y) => write!(f, "fp.sub({}, {})", x.index(), y.index()),
+            Expr::FPMul(x, y) => write!(f, "fp.mul({}, {})", x.index(), y.index()),
             Expr::FPDiv(x, y) => write!(f, "fp.div({}, {})", x.index(), y.index()),
             Expr::FPNeg(x) => write!(f, "fp.neg({})", x.index()),
             Expr::FPIsZero(x) => write!(f, "fp.isZero({})", x.index()),
@@ -1811,6 +1814,7 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPNaN(x) => unary_expr!(Expr::FPNaN, x),
             spec::ExprKind::FPAdd(x, y) => binary_expr!(Expr::FPAdd, x, y),
             spec::ExprKind::FPSub(x, y) => binary_expr!(Expr::FPSub, x, y),
+            spec::ExprKind::FPMul(x, y) => binary_expr!(Expr::FPMul, x, y),
             spec::ExprKind::FPDiv(x, y) => binary_expr!(Expr::FPDiv, x, y),
             spec::ExprKind::FPNeg(x) => unary_expr!(Expr::FPNeg, x),
             spec::ExprKind::FPIsZero(x) => unary_expr!(Expr::FPIsZero, x),
