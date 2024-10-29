@@ -435,3 +435,70 @@
     ((args (bv 32) (bv 32)) (ret (bv 32)))
     ((args (bv 64) (bv 64)) (ret (bv 64)))
 )
+
+; fsub: floating-point subtraction.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fsub x y)
+    (provide
+        (= result
+            ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
+            (if (or (fp.isNaN x) (fp.isNaN y))
+                (nans2! x y)
+            ; Else if both z1 and z2 are infinities of equal sign, then return an element of nans{}.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_equal_sign! x y))
+                (nans0! (widthof x))
+            ; Else if both z1 and z2 are infinities of opposite signs, then return z1.
+            (if (and (fp.isInfinite x) (fp.isInfinite y) (fp_opposite_sign! x y))
+                x
+            ; Else if z1 is an infinity, then return that infinity.
+            (if (fp.isInfinite x)
+                x
+            ; Else if z2 is an infinity, then return that infinity negated.
+            (if (fp.isInfinite y)
+                (fp.neg y)
+            ; Else if both z1 and z2 are zeroes of equal sign, then return positive zero.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_equal_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else if both z1 and z2 are zeroes of opposite sign, then return z1.
+            (if (and (fp.isZero x) (fp.isZero y) (fp_opposite_sign! x y))
+                x
+            ; Else if z2 is a zero, then return z1.
+            (if (fp.isZero y)
+                x
+            ; Else if z1 is a zero, then return z2 negated.
+            (if (fp.isZero x)
+                (fp.neg y)
+            ; Else if both z1 and z2 are the same value, then return positive zero.
+            (if (and (= (fp_magnitude! x) (fp_magnitude! y)) (fp_equal_sign! x y))
+                (fp.+zero (widthof x))
+            ; Else return the result of subtracting z2 from z1, rounded to the nearest representable value.
+                (fp.sub x y)
+            ))))))))))
+        )
+    )
+)
+(instantiate fsub
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
+
+
+; fneg: floating-point negation.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fneg x)
+    (provide
+        (= result
+            ; If z is a NaN, then return z with negated sign.
+            ; Else if z is an infinity, then return that infinity negated.
+            ; Else if z is a zero, then return that zero negated.
+            ; Else return z negated.
+                (fp.neg x)
+        )
+    )
+)
+(instantiate fneg
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)

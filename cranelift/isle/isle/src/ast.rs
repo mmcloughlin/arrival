@@ -311,6 +311,8 @@ pub enum SpecOp {
     FPNegativeZero,
     FPNaN,
     FPAdd,
+    FPSub,
+    FPNeg,
     FPIsZero,
     FPIsInfinite,
     FPIsNaN,

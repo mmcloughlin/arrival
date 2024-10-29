@@ -356,6 +356,8 @@ impl Printable for SpecOp {
             SpecOp::FPNegativeZero => "fp.-zero",
             SpecOp::FPNaN => "fp.NaN",
             SpecOp::FPAdd => "fp.add",
+            SpecOp::FPSub => "fp.sub",
+            SpecOp::FPNeg => "fp.neg",
             SpecOp::FPIsZero => "fp.isZero",
             SpecOp::FPIsInfinite => "fp.isInfinite",
             SpecOp::FPIsNaN => "fp.isNaN",

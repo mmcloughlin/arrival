@@ -378,13 +378,20 @@ impl<'a> SystemBuilder<'a> {
             | Expr::BVAShr(y, z)
             | Expr::BVRotl(y, z)
             | Expr::BVRotr(y, z)
-            | Expr::FPAdd(y, z) => {
+            | Expr::FPAdd(y, z)
+            | Expr::FPSub(y, z) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
                 self.bit_vector(*z);
 
                 self.same_type(x, *y);
                 self.same_type(x, *z);
+            }
+            Expr::FPNeg(y) => {
+                self.bit_vector(x);
+                self.bit_vector(*y);
+
+                self.same_type(x, *y);
             }
             // QUESTION(mbm): should we assert in type inference that FP ops are 32 or 64-bit?
             Expr::FPIsZero(y)

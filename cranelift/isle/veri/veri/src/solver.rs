@@ -336,6 +336,8 @@ impl<'a> Solver<'a> {
             Expr::FPNegativeZero(x) => Ok(self.fp_value("-zero", x)?),
             Expr::FPNaN(x) => Ok(self.fp_value("NaN", x)?),
             Expr::FPAdd(x, y) => Ok(self.fp_rounding_binary("fp.add", x, y)?),
+            Expr::FPSub(x, y) => Ok(self.fp_rounding_binary("fp.sub", x, y)?),
+            Expr::FPNeg(x) => Ok(self.fp_unary("fp.neg", x)?),
             Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
             Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),
             Expr::FPIsNaN(x) => Ok(self.fp_unary_predicate("fp.isNaN", x)?),
@@ -530,6 +532,27 @@ impl<'a> Solver<'a> {
             self.smt.numeral(eb),
             self.smt.numeral(sb),
         ]);
+
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec(op, width)?;
+        let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, result_fp))?;
+
+        Ok(result)
+    }
+
+    /// Floating point unary operand without rounding.
+    fn fp_unary(&mut self, op: &str, x: ExprId) -> Result<SExpr> {
+        // Convert to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(x)
+            .context("floating point expression must be a bit-vector of known width")?;
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+
+        // Unary expression.
+        let result_fp = self.smt.list(vec![self.smt.atom(op), x]);
 
         // Return bit-vector that's equal to the expression as a floating point.
         let result = self.declare_bit_vec(op, width)?;
