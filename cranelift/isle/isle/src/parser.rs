@@ -585,11 +585,15 @@ impl<'a> Parser<'a> {
                 } else if let Some((name, variant)) = sym.split_once('.') {
                     let name = self.str_to_ident(pos, &name)?;
                     let variant = self.str_to_ident(pos, &variant)?;
+                    let mut args: Vec<SpecExpr> = vec![];
+                    while !self.is_rparen() {
+                        args.push(self.parse_spec_expr()?);
+                    }
                     self.expect_rparen()?;
                     Ok(SpecExpr::Enum {
                         name,
                         variant,
-                        args: Vec::new(),
+                        args,
                         pos,
                     })
                 } else {
