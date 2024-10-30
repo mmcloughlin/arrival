@@ -8,7 +8,7 @@ use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
     vreg, writable_vreg, FPUOp1, FPUOp2, MoveWideConst, MoveWideOp, SImm9, ScalarSize,
-    UImm12Scaled, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
+    UImm12Scaled, UImm5, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -1510,7 +1510,10 @@ fn define_conds() -> Result<Vec<SpecConfig>> {
     // CCmp
     let ccmp = define_ccmp()?;
 
-    Ok(vec![csel, csneg, cset, csetm, ccmp])
+    // CCmpImm
+    let ccmp_imm = define_ccmp_imm()?;
+
+    Ok(vec![csel, csneg, cset, csetm, ccmp, ccmp_imm])
 }
 
 fn define_csel<F>(term: &str, inst: F) -> SpecConfig
@@ -1700,6 +1703,127 @@ fn ccmp_template(size: OperandSize, rn: Reg, rm: Reg, cond: Cond) -> Result<Bits
             size,
             rn,
             rm,
+            nzcv,
+            cond,
+        })
+    })?;
+
+    Ok(template)
+}
+
+fn define_ccmp_imm() -> Result<SpecConfig> {
+    // OperandSize
+    let sizes = [OperandSize::Size32, OperandSize::Size64];
+
+    // Execution scope: define opcode template fields.
+    let mut scope = aarch64::state();
+    let imm_var = Target::Var("imm".to_string());
+    scope.global(imm_var.clone());
+    for flag in &["n", "z", "c", "v"] {
+        scope.global(Target::Var(flag.to_string()));
+    }
+
+    // Flags and register mappings.
+    let mut mappings = flags_mappings();
+    mappings.reads.insert(
+        aarch64::gpreg(5),
+        Mapping::require(spec_var("rn".to_string())),
+    );
+    mappings
+        .reads
+        .insert(imm_var, Mapping::require(spec_var("imm".to_string())));
+    for flag in &["n", "z", "c", "v"] {
+        mappings.reads.insert(
+            Target::Var(flag.to_string()),
+            MappingBuilder::var("nzcv")
+                .field(&flag.to_uppercase())
+                .build(),
+        );
+    }
+
+    Ok(SpecConfig {
+        term: "MInst.CCmpImm".to_string(),
+        args: ["size", "rn", "imm", "nzcv", "cond"]
+            .map(String::from)
+            .to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| {
+                    Ok(Arm {
+                        variant: format!("{size:?}"),
+                        args: Vec::new(),
+                        body: Cases::Match(Match {
+                            on: spec_var("cond".to_string()),
+                            arms: conds()
+                                .iter()
+                                .rev()
+                                .map(|cond| {
+                                    let template = ccmp_imm_template(*size, xreg(5), *cond)?;
+                                    Ok(Arm {
+                                        variant: format!("{cond:?}"),
+                                        args: Vec::new(),
+                                        body: Cases::Instruction(InstConfig {
+                                            opcodes: Opcodes::Template(template),
+                                            scope: scope.clone(),
+                                            mappings: mappings.clone(),
+                                        }),
+                                    })
+                                })
+                                .collect::<Result<_>>()?,
+                        }),
+                    })
+                })
+                .collect::<Result<_>>()?,
+        }),
+    })
+}
+
+fn ccmp_imm_template(size: OperandSize, rn: Reg, cond: Cond) -> Result<Bits> {
+    // Assemble a base instruction with a placeholder for the immediate and NZCV fields.
+    let imm_placeholder = UImm5::maybe_from_u8(0).unwrap();
+    let nzcv_placeholder = NZCV::new(false, false, false, false);
+    let base = Inst::CCmpImm {
+        size,
+        rn,
+        imm: imm_placeholder,
+        nzcv: nzcv_placeholder,
+        cond,
+    };
+    let opcode = aarch64::opcode(&base);
+    let bits = Bits::from_u32(opcode);
+
+    // Splice in symbolic immediate fields.
+    let nzcv = Bits {
+        segments: vec![
+            Segment::Symbolic("v".to_string(), 1),
+            Segment::Symbolic("c".to_string(), 1),
+            Segment::Symbolic("z".to_string(), 1),
+            Segment::Symbolic("n".to_string(), 1),
+        ],
+    };
+    let template = Bits::splice(&bits, &nzcv, 0)?;
+    let imm = Bits {
+        segments: vec![Segment::Symbolic("imm".to_string(), 5)],
+    };
+    let template = Bits::splice(&template, &imm, 16)?;
+
+    // Verify template against the assembler.
+    verify_opcode_template(&template, |assignment: &HashMap<String, u32>| {
+        let imm = UImm5::maybe_from_u8(assignment["imm"].try_into()?).unwrap();
+        let nzcv = NZCV::new(
+            assignment["n"] != 0,
+            assignment["z"] != 0,
+            assignment["c"] != 0,
+            assignment["v"] != 0,
+        );
+        Ok(Inst::CCmpImm {
+            size,
+            rn,
+            imm,
             nzcv,
             cond,
         })
