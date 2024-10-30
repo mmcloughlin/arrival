@@ -235,3 +235,61 @@
         ))
     )
 )
+
+;; FPMul: Floating point addition
+(macro (FPMul x y fpcr)
+    ; // FPMul()
+    ; // =======
+    ;
+    ; bits(N) FPMul(bits(N) op1, bits(N) op2, FPCR_Type fpcr)
+    ;
+    ;     assert N IN {16,32,64};
+    ;
+    ;     (type1,sign1,value1) = FPUnpack(op1, fpcr);
+    ;     (type2,sign2,value2) = FPUnpack(op2, fpcr);
+    (let
+        (
+            (sign1 (fp.isNegative x))
+            (sign2 (fp.isNegative y))
+            (N (widthof x))
+        )
+    ;
+    ;     (done,result) = FPProcessNaNs(type1, type2, op1, op2, fpcr, fpexc);
+        (if (fp.isNaN x)
+            (FPProcessNaN! x)
+        (if (fp.isNaN y)
+            (FPProcessNaN! y)
+    ;     if !done then
+    ;         inf1  = (type1 == FPType_Infinity);  inf2  = (type2 == FPType_Infinity);
+    ;         zero1 = (type1 == FPType_Zero);      zero2 = (type2 == FPType_Zero);
+            (let
+                (
+                    (inf1 (fp.isInfinite x))
+                    (inf2 (fp.isInfinite y))
+                    (zero1 (fp.isZero x))
+                    (zero2 (fp.isZero y))
+                )
+    ;         if (inf1 && zero2) || (zero1 && inf2) then
+    ;             result = FPDefaultNaN(fpcr, N);
+    ;             FPProcessException(FPExc_InvalidOp, fpcr);
+                (if (or (and inf1 zero2) (and zero1 inf2))
+                    (FPDefaultNaN! N)
+    ;         elsif inf1 || inf2 then
+    ;             result = FPInfinity(sign1 EOR sign2, N);
+                (if (or inf1 inf2)
+                    (fp_signed_inf! (xor! sign1 sign2) N)
+    ;          elsif zero1 || zero2 then
+    ;             result = FPZero(sign1 EOR sign2, N);
+                (if (or zero1 zero2)
+                    (fp_signed_zero! (xor! sign1 sign2) N)
+    ;       else 
+    ;             result = FPRound(value1*value2, fpcr, N);
+                (fp.mul x y)
+    ;
+    ;         FPProcessDenorms(type1, type2, N, fpcr);
+    ;     return result;
+                )))
+            )
+        ))
+    )
+)

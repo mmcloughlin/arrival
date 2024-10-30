@@ -1,5 +1,10 @@
 ;;;; Common spec macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Boolean helpers
+
+; Exclusive or
+(macro (xor a b) (and (or a b) (not (and a b))))
+
 ;; Bit-vector helpers
 
 ; n-bit bitvector with value zero.
@@ -33,6 +38,9 @@
 
 ; Build a floating-point zero with the given sign and width.
 (macro (fp_signed_zero negative w) (if negative (fp.-zero w) (fp.+zero w)))
+
+; Build a floating-point infinity with the given sign and width.
+(macro (fp_signed_inf negative w) (if negative (fp.-oo w) (fp.+oo w)))
 
 ; Magnitude of a floating-point value. (Clear the top sign bit.)
 (macro (fp_magnitude x) (bvlshr_int! (bvshl_int! x 1) 1))
