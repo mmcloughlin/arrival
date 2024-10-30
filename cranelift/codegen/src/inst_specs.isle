@@ -656,6 +656,36 @@
 )
 
 
+; fabs: floating-point absolute value.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fabs x)
+    (provide
+        (= result
+            ; If z is a NaN, then return z with positive sign.
+            (if (fp.isNaN x) 
+                (bvand x (bvnot (fp_sign_bit_set! (widthof x))))
+            ; Else if z is an infinity, then return positive infinity.
+            (if (fp.isInfinite x)
+                (fp.+oo (widthof x))
+            ; Else if z is a zero, then return positive zero.
+            (if (fp.isZero x)
+                (fp.+zero (widthof x))
+            ; Else if z is a positive value, then return z.
+            (if (fp.isPositive x)
+                x
+            ; Else return z negated.
+                (fp.neg x)
+            ))))
+        )
+    )
+)
+(instantiate fabs
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
+
+
 ; fneg: floating-point negation.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
