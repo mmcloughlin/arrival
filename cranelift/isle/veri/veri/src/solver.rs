@@ -342,6 +342,7 @@ impl<'a> Solver<'a> {
             Expr::FPMin(x, y) => Ok(self.fp_binary("fp.min", x, y)?),
             Expr::FPMax(x, y) => Ok(self.fp_binary("fp.max", x, y)?),
             Expr::FPNeg(x) => Ok(self.fp_unary("fp.neg", x)?),
+            Expr::FPSqrt(x) => Ok(self.fp_unary("fp.sqrt", x)?),
             Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
             Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),
             Expr::FPIsNaN(x) => Ok(self.fp_unary_predicate("fp.isNaN", x)?),

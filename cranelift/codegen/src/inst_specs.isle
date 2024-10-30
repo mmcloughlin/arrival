@@ -678,7 +678,7 @@
     (provide
         (= result
             ; If z is a NaN, then return z with positive sign.
-            (if (fp.isNaN x) 
+            (if (fp.isNaN x)
                 (bvand x (bvnot (fp_sign_bit_set! (widthof x))))
             ; Else if z is an infinity, then return positive infinity.
             (if (fp.isInfinite x)
@@ -718,6 +718,39 @@
     )
 )
 (instantiate fneg
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
+
+
+; sqrt: floating-point square root.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (sqrt x)
+    (provide
+        (= result
+            ; If z is a NaN, then return an element of nans{z}.
+            (if (fp.isNaN x)
+                (nans1! x)
+            ; Else if z is negative infinity, then return an element of nans{}.
+            (if (and (fp.isInfinite x) (fp.isNegative x))
+                (nans0! (widthof x))
+            ; Else if z is positive infinity, then return positive infinity.
+            (if (and (fp.isInfinite x) (fp.isPositive x))
+                (fp.+oo (widthof x))
+            ; Else if z is a zero, then return that zero.
+            (if (fp.isZero x)
+                x
+            ; Else if z has a negative sign, then return an element of nans{}.
+            (if (fp.isNegative x)
+                (nans0! (widthof x))
+            ; Else return the square root of z.
+                (fp.sqrt x)
+            )))))
+        )
+    )
+)
+(instantiate sqrt
     ((args (bv 32)) (ret (bv 32)))
     ((args (bv 64)) (ret (bv 64)))
 )

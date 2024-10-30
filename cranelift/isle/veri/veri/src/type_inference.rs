@@ -391,7 +391,7 @@ impl<'a> SystemBuilder<'a> {
                 self.same_type(x, *y);
                 self.same_type(x, *z);
             }
-            Expr::FPNeg(y) => {
+            Expr::FPNeg(y) | Expr::FPSqrt(y) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
 

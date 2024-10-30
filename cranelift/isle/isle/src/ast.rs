@@ -317,6 +317,7 @@ pub enum SpecOp {
     FPMin,
     FPMax,
     FPNeg,
+    FPSqrt,
     FPIsZero,
     FPIsInfinite,
     FPIsNaN,
