@@ -397,10 +397,10 @@
 
 ; NaN negation.
 ;
-; The CLIF semantics (inherited from WebAssembly) requires that negating a NaN 
+; The CLIF semantics (inherited from WebAssembly) requires that negating a NaN
 ; flips the sign bit (rather than returning a nondeterministic NaN).
-(macro (nan_neg x) 
-    (conv_to (widthof x) 
+(macro (nan_neg x)
+    (conv_to (widthof x)
         (bvxor x (fp_sign_bit_set! (widthof x)))))
 
 ; fadd: floating-point addition.
@@ -663,7 +663,7 @@
     (provide
         (= result
             ; If z is a NaN, then return z with negated sign.
-            (if (fp.isNaN x) 
+            (if (fp.isNaN x)
                 (nan_neg! x)
             ; Else if z is an infinity, then return that infinity negated.
             ; Else if z is a zero, then return that zero negated.
