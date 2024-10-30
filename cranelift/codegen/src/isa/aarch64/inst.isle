@@ -1078,7 +1078,7 @@
             )
             (=>
                   (and (= alu_op (ALUOp.Orr)) (= size (OperandSize.Size32)))
-                        (= rd (conv_to 64 (bvor (extract 31 0 rn) (extract 31 0 imml))))
+                        (= rd (zero_ext 64 (bvor (extract 31 0 rn) (extract 31 0 imml))))
             )
 
             (=>
@@ -1230,6 +1230,18 @@
       )
 )
 
+(spec (MInst.TrapIf kind trap_code)
+      (modifies exec_trap)
+      (provide
+            (= exec_trap (match kind
+                        ((Zero r) (bv_is_zero! r))
+                        ((NotZero r) (not (bv_is_zero! r)))
+                        ; TODO: (Cond cc)
+                  )
+            )
+      )
+)
+
 ;; Registers.
 (model Reg (type (bv)))
 
@@ -1347,11 +1359,21 @@
 (type BoxCallInfo (primitive BoxCallInfo))
 (type BoxCallIndInfo (primitive BoxCallIndInfo))
 (type BoxReturnCallInfo (primitive BoxReturnCallInfo))
-(type CondBrKind (primitive CondBrKind))
 (type BranchTarget (primitive BranchTarget))
 (type BoxJTSequenceInfo (primitive BoxJTSequenceInfo))
 (type CodeOffset (primitive CodeOffset))
 (type VecMachLabel extern (enum))
+
+(type CondBrKind extern
+  (enum
+    (Zero (r Reg))
+    (NotZero (r Reg))
+    (Cond (cc Cond))
+))
+
+; Expect that branched on registers will be general-purpose registers.
+(instantiate CondBrKind.Zero ((args (bv 64)) (ret (named CondBrKind))))
+(instantiate CondBrKind.NotZero ((args (bv 64)) (ret (named CondBrKind))))
 
 (type ExtendOp extern
   (enum
@@ -2414,6 +2436,7 @@
 
 (decl cond_br_zero (Reg) CondBrKind)
 (extern constructor cond_br_zero cond_br_zero)
+(spec (cond_br_zero r) (provide (= result (CondBrKind.Zero r))))
 
 (decl cond_br_not_zero (Reg) CondBrKind)
 (extern constructor cond_br_not_zero cond_br_not_zero)

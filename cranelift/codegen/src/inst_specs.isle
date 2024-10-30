@@ -61,6 +61,12 @@
     )
 )
 
+; Whether a trap is expected according to CLIF semantics.
+(state clif_trap
+    (type Bool)
+    (default (not clif_trap))
+)
+
 ;;;; Common Term Forms ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (form
@@ -150,6 +156,15 @@
     )
 )
 (instantiate umulhi bv_binary_8_to_64)
+
+(spec (udiv x y)
+    (modifies clif_trap)
+    (provide
+        (= result (bvudiv x y))
+        (= clif_trap (bv_is_zero! y))
+    )
+)
+(instantiate udiv bv_binary_8_to_64)
 
 (spec (iconst arg)
     (provide (= arg (zero_ext 64 result))))

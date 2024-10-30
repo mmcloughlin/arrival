@@ -7,8 +7,17 @@
 (spec (lower arg)
       (match true)
       (provide
-            ; Computation results match.
-            (= result arg)
+            ; On successful execution, computation results match.
+            (if (not clif_trap)
+                  ; Results agree.
+                  (= result arg)
+                  ; If we expect a CLIF trap, it should happen in execution
+                  ; also.
+                  exec_trap
+            )
+
+            ; Should trap on both sides, or neither.
+            (= clif_trap exec_trap)
 
             ; Load effects
 
@@ -1030,17 +1039,20 @@
 ;;
 ;; Note that aarch64's `udiv` doesn't trap so to respect the semantics of
 ;; CLIF's `udiv` the check for zero needs to be manually performed.
-(rule (lower (has_type (fits_in_64 ty) (udiv x y)))
+(rule udiv (lower (has_type (fits_in_64 ty) (udiv x y)))
       (a64_udiv $I64 (put_in_reg_zext64 x) (put_nonzero_in_reg_zext64 y)))
 
 ;; Helper for placing a `Value` into a `Reg` and validating that it's nonzero.
 (decl put_nonzero_in_reg_zext64 (Value) Reg)
-(rule -1 (put_nonzero_in_reg_zext64 val)
+(attr put_nonzero_in_reg_zext64 (veri chain))
+(rule put_nonzero_in_reg_zext64_validate
+      -1 (put_nonzero_in_reg_zext64 val)
       (trap_if_zero_divisor (put_in_reg_zext64 val)))
 
 ;; Special case where if a `Value` is known to be nonzero we can trivially
 ;; move it into a register.
-(rule (put_nonzero_in_reg_zext64 (and (value_type ty)
+(rule put_nonzero_in_reg_zext64_const
+      (put_nonzero_in_reg_zext64 (and (value_type ty)
                                       (iconst (nonzero_u64_from_imm64 n))))
       (imm ty (ImmExtend.Zero) n))
 

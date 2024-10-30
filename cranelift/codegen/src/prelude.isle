@@ -717,6 +717,10 @@
 ;; Extract a `u64` from an `Imm64` which is not zero.
 (decl nonzero_u64_from_imm64 (u64) Imm64)
 (extern extractor nonzero_u64_from_imm64 nonzero_u64_from_imm64)
+(spec (nonzero_u64_from_imm64 n)
+      (provide (= n result))
+      (match (not (bv_is_zero! result)))
+)
 
 ;; If the given `Imm64` is a power-of-two, extract its log2 value.
 (decl imm64_power_of_two (u64) Imm64)
@@ -821,6 +825,7 @@
 
 (decl pure trap_code_division_by_zero () TrapCode)
 (extern constructor trap_code_division_by_zero trap_code_division_by_zero)
+(spec (trap_code_division_by_zero) (provide (= result (TrapCode.IntegerDivisionByZero))))
 
 (decl pure trap_code_integer_overflow () TrapCode)
 (extern constructor trap_code_integer_overflow trap_code_integer_overflow)
