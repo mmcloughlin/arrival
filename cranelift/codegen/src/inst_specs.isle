@@ -166,6 +166,22 @@
 )
 (instantiate udiv bv_binary_8_to_64)
 
+(spec (urem x y)
+    (modifies clif_trap)
+    (provide
+        ; If i2 is 0, then the result is undefined.
+        (if (bv_is_zero! y)
+            clif_trap
+        ; Else, return the remainder of dividing i1 by i2.
+            (and
+                (not clif_trap)
+                (= result (bvurem x y))
+            )
+        )
+    )
+)
+(instantiate urem bv_binary_8_to_64)
+
 (spec (iconst arg)
     (provide (= arg (zero_ext 64 result))))
 (instantiate iconst

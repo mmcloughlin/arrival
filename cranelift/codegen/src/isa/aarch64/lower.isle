@@ -1113,7 +1113,7 @@
 ;;   div rd, x, y       ; rd = x / y
 ;;   msub rd, rd, y, x  ; rd = x - rd * y
 
-(rule (lower (has_type (fits_in_64 ty) (urem x y)))
+(rule urem (lower (has_type (fits_in_64 ty) (urem x y)))
       (let ((x64 Reg (put_in_reg_zext64 x))
             (y64 Reg (put_nonzero_in_reg_zext64 y))
             (div Reg (a64_udiv $I64 x64 y64))
