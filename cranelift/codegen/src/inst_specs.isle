@@ -182,6 +182,26 @@
 )
 (instantiate urem bv_binary_8_to_64)
 
+(spec (srem x y)
+    (modifies clif_trap)
+    (provide
+        ; Let j1 be the signed interpretation of i1.
+        ; Let j2 be the signed interpretation of i2.
+        ; If i2 is 0, then the result is undefined.
+        (if (bv_is_zero! y)
+            clif_trap
+        ; Else, return the remainder of dividing j1 by j2, with the sign of the dividend j1.
+            (and
+                (not clif_trap)
+                ; REVIEW(mbm): does bvsrem have the same semantics as wasm?
+                (= result (bvsrem x y))
+
+            )
+        )
+    )
+)
+(instantiate srem bv_binary_8_to_64)
+
 (spec (iconst arg)
     (provide (= arg (zero_ext 64 result))))
 (instantiate iconst

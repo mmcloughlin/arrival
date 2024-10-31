@@ -1090,12 +1090,15 @@
 
 ;; Helper for placing a `Value` into a `Reg` and validating that it's nonzero.
 (decl put_nonzero_in_reg_sext64 (Value) Reg)
-(rule -1 (put_nonzero_in_reg_sext64 val)
+(attr put_nonzero_in_reg_sext64 (veri chain))
+(rule put_nonzero_in_reg_sext64_validate
+      -1 (put_nonzero_in_reg_sext64 val)
       (trap_if_zero_divisor (put_in_reg_sext64 val)))
 
 ;; Note that this has a special case where if the `Value` is a constant that's
 ;; not zero we can skip the zero check.
-(rule (put_nonzero_in_reg_sext64 (and (value_type ty)
+(rule put_nonzero_in_reg_sext64_const
+      (put_nonzero_in_reg_sext64 (and (value_type ty)
                                       (iconst (nonzero_u64_from_imm64 n))))
       (imm ty (ImmExtend.Sign) n))
 
@@ -1120,7 +1123,7 @@
             (result Reg (msub $I64 div y64 x64)))
         result))
 
-(rule (lower (has_type (fits_in_64 ty) (srem x y)))
+(rule srem (lower (has_type (fits_in_64 ty) (srem x y)))
       (let ((x64 Reg (put_in_reg_sext64 x))
             (y64 Reg (put_nonzero_in_reg_sext64 y))
             (div Reg (a64_sdiv $I64 x64 y64))
