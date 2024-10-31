@@ -460,7 +460,7 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (fdiv rn rm)))
       (vec_rrr (VecALUOp.Fdiv) rn rm (vector_size ty)))
 
-(rule (lower (has_type (ty_scalar_float ty) (fdiv rn rm)))
+(rule fdiv (lower (has_type (ty_scalar_float ty) (fdiv rn rm)))
       (fpu_rrr (FPUOp2.Div) rn rm (scalar_size ty)))
 
 ;;;; Rules for `fmin` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
