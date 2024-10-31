@@ -1,6 +1,6 @@
 use anyhow::{bail, format_err, Ok, Result};
 use cranelift_isle::{
-    ast::{self, AttrKind, AttrTarget, Def, Ident, Model, ModelType, SpecOp},
+    ast::{self, AttrKind, AttrTarget, Def, Ident, Model, ModelType, Modifies, SpecOp},
     lexer::Pos,
     sema::{ReturnKind, RuleId, Sym, Term, TermEnv, TermId, TypeEnv, TypeId},
 };
@@ -436,7 +436,7 @@ pub struct Spec {
     pub provides: Vec<Expr>,
     pub requires: Vec<Expr>,
     pub matches: Vec<Expr>,
-    pub modifies: Vec<Ident>,
+    pub modifies: Vec<Modifies>,
     pub pos: Pos,
 }
 

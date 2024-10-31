@@ -361,6 +361,13 @@ pub struct SpecMacro {
     pub pos: Pos,
 }
 
+/// State modification clause.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Modifies {
+    pub state: Ident,
+    pub cond: Option<Ident>,
+}
+
 /// A specification of the semantics of a term.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Spec {
@@ -375,7 +382,7 @@ pub struct Spec {
     /// Match conditions, which specify when a partial term returns a value.
     pub matches: Vec<SpecExpr>,
     /// State variables modified by the term.
-    pub modifies: Vec<Ident>,
+    pub modifies: Vec<Modifies>,
     pub pos: Pos,
 }
 

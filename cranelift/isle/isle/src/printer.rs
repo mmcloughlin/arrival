@@ -398,6 +398,16 @@ impl Printable for SpecMacro {
     }
 }
 
+impl Printable for Modifies {
+    fn to_doc(&self) -> RcDoc<()> {
+        let mut parts = vec![RcDoc::text("modifies"), self.state.to_doc()];
+        if let Some(cond) = &self.cond {
+            parts.push(cond.to_doc());
+        }
+        sexp(parts)
+    }
+}
+
 impl Printable for Spec {
     fn to_doc(&self) -> RcDoc<()> {
         let mut parts = vec![RcDoc::text("spec")];
@@ -406,12 +416,8 @@ impl Printable for Spec {
                 .into_iter()
                 .chain(self.args.iter().map(|a| a.to_doc())),
         ));
-        if !self.modifies.is_empty() {
-            parts.push(sexp(
-                Vec::from([RcDoc::text("modifies")])
-                    .into_iter()
-                    .chain(self.modifies.iter().map(|e| e.to_doc())),
-            ));
+        for modifies in &self.modifies {
+            parts.push(modifies.to_doc());
         }
         if !self.provides.is_empty() {
             parts.push(sexp(

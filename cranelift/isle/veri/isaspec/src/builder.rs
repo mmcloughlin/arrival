@@ -7,7 +7,7 @@ use anyhow::{bail, Result};
 use itertools::Itertools;
 
 use cranelift_codegen::isa::aarch64::inst::Inst;
-use cranelift_isle::ast::{self, Def, Spec, SpecExpr};
+use cranelift_isle::ast::{self, Def, Modifies, Spec, SpecExpr};
 use cranelift_isle::lexer::Pos;
 use cranelift_isle_veri_aslp::client::Client;
 
@@ -181,13 +181,17 @@ impl<'a> Builder<'a> {
 
     fn spec(&self) -> Result<Spec> {
         let cond = self.cases(&self.cfg.cases)?;
+        let modifies = spec_idents(&cond.modifies.iter().sorted().cloned().collect::<Vec<_>>());
         let spec = Spec {
             term: spec_ident(self.cfg.term.clone()),
             args: spec_idents(&self.cfg.args),
             requires: cond.requires,
             provides: cond.provides,
             matches: Vec::new(),
-            modifies: spec_idents(&cond.modifies.iter().sorted().cloned().collect::<Vec<_>>()),
+            modifies: modifies
+                .into_iter()
+                .map(|state| Modifies { state, cond: None })
+                .collect(),
             pos: Pos::default(),
         };
         Ok(spec)

@@ -432,9 +432,15 @@ impl<'a> Parser<'a> {
                     }
                 }
                 "modifies" => {
-                    while !self.is_rparen() {
-                        modifies.push(self.parse_ident()?);
-                    }
+                    let state = self.parse_ident()?;
+                    let cond = if self.is_sym() {
+                        Some(self.parse_ident().map_err(|err| {
+                            self.error(pos, format!("Invalid modifies condition: {err:?}"))
+                        })?)
+                    } else {
+                        None
+                    };
+                    modifies.push(Modifies { state, cond });
                 }
                 field => {
                     return Err(self.error(

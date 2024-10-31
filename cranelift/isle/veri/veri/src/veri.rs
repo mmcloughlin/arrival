@@ -900,7 +900,7 @@ struct ConditionsBuilder<'a> {
     expansion: &'a Expansion,
     prog: &'a Program,
 
-    modified_state: HashSet<String>,
+    state_modification_conds: HashMap<String, Vec<ExprId>>,
     binding_value: HashMap<BindingId, Symbolic>,
     expr_map: HashMap<Expr, ExprId>,
     conditions: Conditions,
@@ -912,7 +912,7 @@ impl<'a> ConditionsBuilder<'a> {
         Self {
             expansion,
             prog,
-            modified_state: HashSet::new(),
+            state_modification_conds: HashMap::new(),
             binding_value: HashMap::new(),
             expr_map: HashMap::new(),
             conditions: Conditions::default(),
@@ -955,10 +955,7 @@ impl<'a> ConditionsBuilder<'a> {
 
         // State defaults.
         for state in &self.prog.specenv.state {
-            // The default only applies if the state was not modified.
-            if !self.modified_state.contains(&state.name.0) {
-                self.assume_state_default(state)?;
-            }
+            self.state_default(state)?;
         }
 
         // Validate
@@ -974,17 +971,25 @@ impl<'a> ConditionsBuilder<'a> {
         Ok(())
     }
 
-    fn assume_state_default(&mut self, state: &State) -> anyhow::Result<()> {
+    fn state_default(&mut self, state: &State) -> anyhow::Result<()> {
         // Evaluate the default spec expression in a scope that only defines
         // the state variable itself.
         let mut vars = Variables::new();
         let name = &state.name.0;
         vars.set(name.clone(), self.conditions.state.get(name)?.clone())?;
-        let expr = self.spec_expr(&state.default, &vars)?;
+        let mut default = self.spec_expr(&state.default, &vars)?;
+
+        // Other specs may have declared conditions under which they modify the
+        // state. The default only applies when none of them are true.
+        if let Some(conds) = self.state_modification_conds.get(name) {
+            let modified = self.any(conds.clone());
+            let not_modified = self.dedup_expr(Expr::Not(modified));
+            default = self.scalar(Expr::Imp(not_modified, default.try_into()?));
+        }
 
         // The expression should define an assumption about the state variable,
         // so should be a scalar boolean.
-        self.conditions.assumptions.push(expr.try_into()?);
+        self.conditions.assumptions.push(default.try_into()?);
 
         Ok(())
     }
@@ -1196,6 +1201,29 @@ impl<'a> ConditionsBuilder<'a> {
         // Scope for spec expression evaluation. State variables are always available.
         let mut vars = self.conditions.state.clone();
 
+        // State modification conditions.
+        for modifies in &term_spec.modifies {
+            let cond = if let Some(cond_name) = &modifies.cond {
+                // Allocate new boolean for the modification condition.
+                let cond = self.alloc_variable(
+                    Type::Bool,
+                    format!("{name}_modification_cond", name = modifies.state.0),
+                );
+                // Bring into spec scope.
+                vars.set(cond_name.0.clone(), cond.into())?;
+                cond
+            } else {
+                // TODO(mbm): warn when state is both conditionally and unconditionaly modified.
+                self.boolean(true)
+            };
+
+            // Record condition to determine when the default spec applies.
+            self.state_modification_conds
+                .entry(modifies.state.0.clone())
+                .or_default()
+                .push(cond);
+        }
+
         // Inputs are available to the requires and matches clauses.
         for (name, input) in inputs {
             vars.set(name.0.clone(), (*input).clone())?;
@@ -1254,10 +1282,6 @@ impl<'a> ConditionsBuilder<'a> {
                 self.conditions.assertions.extend(provides);
             }
         }
-
-        // Record modified state.
-        self.modified_state
-            .extend(term_spec.modifies.iter().map(|v| v.0.clone()));
 
         // Record callsite.
         self.record_term_instantiation(term, args.to_vec(), ret)?;
@@ -2176,6 +2200,13 @@ impl<'a> ConditionsBuilder<'a> {
             .into_iter()
             .reduce(|acc, e| self.dedup_expr(Expr::And(acc, e)))
             .unwrap_or_else(|| self.boolean(true))
+    }
+
+    fn any(&mut self, exprs: Vec<ExprId>) -> ExprId {
+        exprs
+            .into_iter()
+            .reduce(|acc, e| self.dedup_expr(Expr::Or(acc, e)))
+            .unwrap_or_else(|| self.boolean(false))
     }
 
     fn boolean(&mut self, value: bool) -> ExprId {
