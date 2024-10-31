@@ -696,6 +696,7 @@ pub struct Conditions {
     pub assumptions: Vec<ExprId>,
     pub assertions: Vec<ExprId>,
     pub variables: Vec<Variable>,
+    pub state: Variables,
     pub calls: Vec<Call>,
     pub qualifiers: Vec<Qualifier>,
     pub pos: HashMap<ExprId, Pos>,
@@ -811,6 +812,11 @@ impl Conditions {
     }
 
     pub fn print_model(&self, model: &Model, prog: &Program) -> Result<()> {
+        // State
+        for (name, value) in &self.state.0 {
+            println!("state: {name} = {}", value.eval(model)?);
+        }
+
         // Calls
         for call in &self.calls {
             // Skip unit enum variant terms, which may occur frequently and are
@@ -863,8 +869,8 @@ impl Domain {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Variables(HashMap<String, Symbolic>);
+#[derive(Clone, Debug, Default)]
+pub struct Variables(HashMap<String, Symbolic>);
 
 impl Variables {
     fn new() -> Self {
@@ -894,7 +900,6 @@ struct ConditionsBuilder<'a> {
     expansion: &'a Expansion,
     prog: &'a Program,
 
-    state: Variables,
     modified_state: HashSet<String>,
     binding_value: HashMap<BindingId, Symbolic>,
     expr_map: HashMap<Expr, ExprId>,
@@ -907,7 +912,6 @@ impl<'a> ConditionsBuilder<'a> {
         Self {
             expansion,
             prog,
-            state: Variables::new(),
             modified_state: HashSet::new(),
             binding_value: HashMap::new(),
             expr_map: HashMap::new(),
@@ -966,7 +970,7 @@ impl<'a> ConditionsBuilder<'a> {
     fn init_state(&mut self, state: &State) -> Result<()> {
         let name = &state.name.0;
         let value = self.alloc_value(&state.ty, name.clone())?;
-        self.state.set(name.clone(), value)?;
+        self.conditions.state.set(name.clone(), value)?;
         Ok(())
     }
 
@@ -975,7 +979,7 @@ impl<'a> ConditionsBuilder<'a> {
         // the state variable itself.
         let mut vars = Variables::new();
         let name = &state.name.0;
-        vars.set(name.clone(), self.state.get(name)?.clone())?;
+        vars.set(name.clone(), self.conditions.state.get(name)?.clone())?;
         let expr = self.spec_expr(&state.default, &vars)?;
 
         // The expression should define an assumption about the state variable,
@@ -1190,7 +1194,7 @@ impl<'a> ConditionsBuilder<'a> {
         };
 
         // Scope for spec expression evaluation. State variables are always available.
-        let mut vars = self.state.clone();
+        let mut vars = self.conditions.state.clone();
 
         // Inputs are available to the requires and matches clauses.
         for (name, input) in inputs {
