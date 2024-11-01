@@ -1075,7 +1075,7 @@
 ;;
 ;; TODO: if `y` is -1 then a check that `x` is not INT_MIN is all that's
 ;; necessary, but right now `y` is checked to not be -1 as well.
-(rule (lower (has_type (fits_in_64 ty) (sdiv x y)))
+(rule sdiv (lower (has_type (fits_in_64 ty) (sdiv x y)))
       (let ((x64 Reg (put_in_reg_sext64 x))
             (y64 Reg (put_nonzero_in_reg_sext64 y))
             (valid_x64 Reg (trap_if_div_overflow ty x64 y64))

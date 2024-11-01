@@ -519,6 +519,20 @@
       )
 )
 
+(spec (ProducesFlags.ProducesFlagsTwiceSideEffect inst1 inst2)
+      (provide
+            ; Flags output from the first instruction pass to the second's input.
+            (= (:flags_out inst1) (:flags_in inst2))
+
+            ; Result flags of the ProducesFlags wrapper are from the second
+            ; instruction's output.
+            (= (:flags result) (:flags_out inst2))
+
+            ; No value is produced.
+            (not (:has_result result))
+      )
+)
+
 ;; Chain another producer to a `ProducesFlags`.
 (decl produces_flags_concat (ProducesFlags ProducesFlags) ProducesFlags)
 (attr produces_flags_concat (tag TODO))

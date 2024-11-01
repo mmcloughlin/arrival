@@ -1231,14 +1231,19 @@
 )
 
 (spec (MInst.TrapIf kind trap_code)
-      (modifies exec_trap)
+      (modifies exec_trap trap_cond)
       (provide
-            (= exec_trap (match kind
+            ; Conditions under which this instruction traps.
+            (= trap_cond
+                  (match kind
                         ((Zero r) (bv_is_zero! r))
                         ((NotZero r) (not (bv_is_zero! r)))
-                        ; TODO: (Cond cc)
+                        ((Cond cc) (cond_holds! cc (:flags_in result)))
                   )
             )
+
+            ; If this instruction traps, set the global trap state.
+            (=> trap_cond exec_trap)
       )
 )
 
@@ -1304,6 +1309,7 @@
 ))
 
 (type UImm5 (primitive UImm5))
+(model UImm5 (type (bv 5)))
 
 (type Imm12 (primitive Imm12))
 (model Imm12
@@ -1351,6 +1357,15 @@
             )
       )
 )
+
+(macro (n_set nzcv) (= (:N nzcv) #b1))
+(macro (n_clear nzcv) (= (:N nzcv) #b0))
+(macro (z_set nzcv) (= (:Z nzcv) #b1))
+(macro (z_clear nzcv) (= (:Z nzcv) #b0))
+(macro (c_set nzcv) (= (:C nzcv) #b1))
+(macro (c_clear nzcv) (= (:C nzcv) #b0))
+(macro (v_set nzcv) (= (:V nzcv) #b1))
+(macro (v_clear nzcv) (= (:V nzcv) #b0))
 
 (type ASIMDFPModImm (primitive ASIMDFPModImm))
 (type ASIMDMovModImm (primitive ASIMDMovModImm))
@@ -1629,6 +1644,42 @@
     (Al)
     (Nv)
 ))
+
+(macro (cond_holds cc nzcv)
+      (match cc
+            ; EQ	Z set	Equal
+            ((Eq) (z_set! nzcv))
+            ; NE	Z clear	Not equal
+            ((Ne) (z_clear! nzcv))
+            ; HS	C set	Higher or same (unsigned >= )
+            ((Hs) (c_set! nzcv))
+            ; LO	C clear	Lower (unsigned < )
+            ((Lo) (c_clear! nzcv))
+            ; MI	N set	Negative
+            ((Mi) (n_set! nzcv))
+            ; PL	N clear	Positive or zero
+            ((Pl) (n_clear! nzcv))
+            ; VS	V set	Overflow
+            ((Vs) (v_set! nzcv))
+            ; VC	V clear	No overflow
+            ((Vc) (v_clear! nzcv))
+            ; HI	C set and Z clear	Higher (unsigned >)
+            ((Hi) (and (c_set! nzcv) (z_clear! nzcv)))
+            ; LS	C clear or Z set	Lower or same (unsigned <=)
+            ((Ls) (or (c_clear! nzcv) (z_set! nzcv)))
+            ; GE	N and V the same	Signed >=
+            ((Ge) (= (:N nzcv) (:V nzcv)))
+            ; LT	N and V differ	Signed <
+            ((Lt) (not (= (:N nzcv) (:V nzcv))))
+            ; GT	Z clear, N and V the same	Signed >
+            ((Gt) (and (z_clear! nzcv) (= (:N nzcv) (:V nzcv))))
+            ; LE	Z set, N and V differ	Signed <=
+            ((Le) (and (z_set! nzcv) (not (= (:N nzcv) (:V nzcv)))))
+            ; AL	Any	Always. This suffix is normally omitted.
+            ((Al) true)
+            ((Nv) false)
+      )
+)
 
 (type VectorSize extern
   (enum
@@ -2203,6 +2254,10 @@
 
 (decl u8_into_uimm5 (u8) UImm5)
 (extern constructor u8_into_uimm5 u8_into_uimm5)
+(spec (u8_into_uimm5 n)
+      (provide (= result (extract 4 0 n)))
+      (require (bvult n #x20))
+)
 
 (decl u8_into_imm12 (u8) Imm12)
 (extern constructor u8_into_imm12 u8_into_imm12)
@@ -2433,6 +2488,14 @@
 
 (decl nzcv (bool bool bool bool) NZCV)
 (extern constructor nzcv nzcv)
+(spec (nzcv n z c v)
+      (provide
+            (= (:N result) (bool2bit! n))
+            (= (:Z result) (bool2bit! z))
+            (= (:C result) (bool2bit! c))
+            (= (:V result) (bool2bit! v))
+      )
+)
 
 (decl cond_br_zero (Reg) CondBrKind)
 (extern constructor cond_br_zero cond_br_zero)
@@ -2443,6 +2506,7 @@
 
 (decl cond_br_cond (Cond) CondBrKind)
 (extern constructor cond_br_cond cond_br_cond)
+(spec (cond_br_cond cc) (provide (= result (CondBrKind.Cond cc))))
 
 ;; Instruction creation helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3660,6 +3724,11 @@
         reg))
 
 (decl size_from_ty (Type) OperandSize)
+(spec (size_from_ty ty)
+      (provide
+            (= result (if (<= ty 32) (OperandSize.Size32) (OperandSize.Size64))))
+      (require
+            (or (= ty 8) (= ty 16) (= ty 32) (= ty 64))))
 (rule 1 (size_from_ty (fits_in_32 _ty)) (OperandSize.Size32))
 (rule (size_from_ty $I64) (OperandSize.Size64))
 
@@ -3667,22 +3736,29 @@
 ;; The following checks must be done in 32-bit or 64-bit, depending
 ;; on the input type.
 (decl trap_if_div_overflow (Type Reg Reg) Reg)
+(attr trap_if_div_overflow (veri chain))
+; Rule fails verification in the 8/16 bit cases. Tag broken until fix can be landed.
+; See: https://github.com/bytecodealliance/wasmtime/issues/9537
+(attr rule trap_if_div_overflow (tag broken))
 (rule (trap_if_div_overflow ty x y)
       (let (
           ;; Check RHS is -1.
-          (_ Unit (emit (MInst.AluRRImm12 (ALUOp.AddS) (operand_size ty) (writable_zero_reg) y (u8_into_imm12 1))))
+          (check_rhs MInst (MInst.AluRRImm12 (ALUOp.AddS) (operand_size ty) (writable_zero_reg) y (u8_into_imm12 1)))
 
           ;; Check LHS is min_value, by subtracting 1 and branching if
           ;; there is overflow.
-          (_ Unit (emit (MInst.CCmpImm (size_from_ty ty)
-                                       x
-                                       (u8_into_uimm5 1)
-                                       (nzcv $false $false $false $false)
-                                       (Cond.Eq))))
-          (_ Unit (emit (MInst.TrapIf (cond_br_cond (Cond.Vs))
-                                      (trap_code_integer_overflow))))
+          (check_lhs MInst (MInst.CCmpImm (size_from_ty ty)
+                                    x
+                                    (u8_into_uimm5 1)
+                                    (nzcv $false $false $false $false)
+                                    (Cond.Eq)))
+          (trap_if MInst (MInst.TrapIf (cond_br_cond (Cond.Vs))
+                                 (trap_code_integer_overflow)))
         )
-        x))
+        (with_flags_reg
+            (ProducesFlags.ProducesFlagsTwiceSideEffect check_rhs check_lhs)
+            (ConsumesFlags.ConsumesFlagsReturnsReg trap_if x)
+        )))
 
 ;; Check for unsigned overflow.
 (decl trap_if_overflow (ProducesFlags TrapCode) Reg)

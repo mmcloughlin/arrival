@@ -28,6 +28,12 @@
 ; bitvector zero test
 (macro (bv_is_zero x) (= x (bvzero! (widthof x))))
 
+; n-bit bitvector with the top bit set.
+(macro (bv_top_bit_set n) (bvnot (bvlshr_int! (bvnot (bvzero! n)) 1)))
+
+; Convert a boolean to a single bit.
+(macro (bool2bit b) (if b #b1 #b0))
+
 ;; Floating-point helpers
 
 ; Whether two floating-point values have the same sign.

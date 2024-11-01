@@ -829,6 +829,7 @@
 
 (decl pure trap_code_integer_overflow () TrapCode)
 (extern constructor trap_code_integer_overflow trap_code_integer_overflow)
+(spec (trap_code_integer_overflow) (provide (= result (TrapCode.IntegerOverflow))))
 
 (decl pure trap_code_bad_conversion_to_integer () TrapCode)
 (extern constructor trap_code_bad_conversion_to_integer trap_code_bad_conversion_to_integer)

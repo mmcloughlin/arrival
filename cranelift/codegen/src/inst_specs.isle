@@ -166,6 +166,32 @@
 )
 (instantiate udiv bv_binary_8_to_64)
 
+(spec (sdiv x y)
+    (modifies clif_trap)
+    (provide
+        ; If j2 is 0, then the result is undefined.
+        (if (bv_is_zero! y)
+            clif_trap
+        ; Else if j1 divided by j2 is 2^{N−1}, then the result is undefined.
+        ;
+        ; Note: the only way this can happen is the case (−2^{N−1})/(−1).
+        (if (and
+                ; x is -2^{N-1}
+                (= x (bv_top_bit_set! (widthof x)))
+                ; y is -1
+                (bv_is_zero! (bvnot y))
+            )
+            clif_trap
+        ; Else, return the result of dividing j1 by j2, truncated toward zero.
+            (and
+                (not clif_trap)
+                (= result (bvsdiv x y))
+            )
+        ))
+    )
+)
+
+(instantiate sdiv bv_binary_8_to_64)
 (spec (urem x y)
     (modifies clif_trap)
     (provide
