@@ -1078,7 +1078,8 @@
 (rule sdiv (lower (has_type (fits_in_64 ty) (sdiv x y)))
       (let ((x64 Reg (put_in_reg_sext64 x))
             (y64 Reg (put_nonzero_in_reg_sext64 y))
-            (valid_x64 Reg (trap_if_div_overflow ty x64 y64))
+            (intmin_check_x Reg (intmin_check ty x64))
+            (valid_x64 Reg (trap_if_div_overflow ty intmin_check_x x64 y64))
             (result Reg (a64_sdiv $I64 valid_x64 y64)))
         result))
 
