@@ -3880,12 +3880,15 @@
 ;; instead, but for now each backend needs to do this.
 (decl amode (Type Value i32) AMode)
 (attr amode (veri chain))
-(rule 0 (amode ty val offset)
+(rule amode_base_case
+      0 (amode ty val offset)
         (amode_no_more_iconst ty val offset))
-(rule 1 (amode ty (iadd x (i32_from_iconst y)) offset)
+(rule amode_iadd_const_right
+      1 (amode ty (iadd x (i32_from_iconst y)) offset)
         (if-let new_offset (s32_add_fallible y offset))
         (amode_no_more_iconst ty x new_offset))
-(rule 2 (amode ty (iadd (i32_from_iconst x) y) offset)
+(rule amode_iadd_const_left
+      2 (amode ty (iadd (i32_from_iconst x) y) offset)
         (if-let new_offset (s32_add_fallible x offset))
         (amode_no_more_iconst ty y new_offset))
 
@@ -3914,15 +3917,20 @@
 ;; instructions. Constants on the other hand added to the amode represent only
 ;; a single instruction folded in, so fewer instructions should be generated
 ;; with these higher priority than the rules above.
-(rule 3 (amode_no_more_iconst ty (iadd x y) offset)
+(rule amode_no_more_iconst_iadd
+      3 (amode_no_more_iconst ty (iadd x y) offset)
         (AMode.RegReg (amode_add x offset) y))
-(rule 4 (amode_no_more_iconst ty (iadd x (uextend y @ (value_type $I32))) offset)
+(rule amode_no_more_iconst_iadd_uextend_right
+      4 (amode_no_more_iconst ty (iadd x (uextend y @ (value_type $I32))) offset)
         (AMode.RegExtended (amode_add x offset) y (ExtendOp.UXTW)))
-(rule 4 (amode_no_more_iconst ty (iadd x (sextend y @ (value_type $I32))) offset)
+(rule amode_no_more_iconst_iadd_sextend_right
+      4 (amode_no_more_iconst ty (iadd x (sextend y @ (value_type $I32))) offset)
         (AMode.RegExtended (amode_add x offset) y (ExtendOp.SXTW)))
-(rule 5 (amode_no_more_iconst ty (iadd (uextend x @ (value_type $I32)) y) offset)
+(rule amode_no_more_iconst_iadd_uextend_left
+      5 (amode_no_more_iconst ty (iadd (uextend x @ (value_type $I32)) y) offset)
         (AMode.RegExtended (amode_add y offset) x (ExtendOp.UXTW)))
-(rule 5 (amode_no_more_iconst ty (iadd (sextend x @ (value_type $I32)) y) offset)
+(rule amode_no_more_iconst_iadd_sextend_left
+      5 (amode_no_more_iconst ty (iadd (sextend x @ (value_type $I32)) y) offset)
         (AMode.RegExtended (amode_add y offset) x (ExtendOp.SXTW)))
 
 ;; `RegScaled*` rules where this matches an addition of an "index register" to a
@@ -3932,32 +3940,40 @@
 ;; Note that this can additionally bundle an extending operation but the
 ;; extension must happen before the shift. This will pattern-match the shift
 ;; first and then if that succeeds afterwards try to find an extend.
-(rule 6 (amode_no_more_iconst ty (iadd x (ishl y (iconst (u64_from_imm64 n)))) offset)
+(rule amode_no_more_iconst_reg_scaled_right
+      6 (amode_no_more_iconst ty (iadd x (ishl y (iconst (u64_from_imm64 n)))) offset)
         (if-let $true (u64_eq (ty_bytes ty) (u64_shl 1 n)))
         (amode_reg_scaled (amode_add x offset) y))
-(rule 7 (amode_no_more_iconst ty (iadd (ishl y (iconst (u64_from_imm64 n))) x) offset)
+(rule amode_no_more_iconst_reg_scaled_left
+      7 (amode_no_more_iconst ty (iadd (ishl y (iconst (u64_from_imm64 n))) x) offset)
         (if-let $true (u64_eq (ty_bytes ty) (u64_shl 1 n)))
         (amode_reg_scaled (amode_add x offset) y))
 
 (decl amode_reg_scaled (Reg Value) AMode)
 (attr amode_reg_scaled (veri chain))
-(rule 0 (amode_reg_scaled base index)
+(rule amode_reg_scaled_base
+      0 (amode_reg_scaled base index)
         (AMode.RegScaled base index))
-(rule 1 (amode_reg_scaled base (uextend index @ (value_type $I32)))
+(rule amode_reg_scaled_uextend
+      1 (amode_reg_scaled base (uextend index @ (value_type $I32)))
         (AMode.RegScaledExtended base index (ExtendOp.UXTW)))
-(rule 1 (amode_reg_scaled base (sextend index @ (value_type $I32)))
+(rule amode_reg_scaled_sextend
+      1 (amode_reg_scaled base (sextend index @ (value_type $I32)))
         (AMode.RegScaledExtended base index (ExtendOp.SXTW)))
 
 ;; Helper to add a 32-bit signed immediate to the register provided. This will
 ;; select an appropriate `add` instruction to use.
 (decl amode_add (Reg i32) Reg)
 (attr amode_add (veri chain))
-(rule 0 (amode_add x y)
+(rule amode_add_base
+      0 (amode_add x y)
         (add $I64 x (imm $I64 (ImmExtend.Zero) (i64_as_u64 y))))
-(rule 1 (amode_add x y)
+(rule amode_add_imm12
+      1 (amode_add x y)
         (if-let (imm12_from_u64 imm12) (i64_as_u64 y))
         (add_imm $I64 x imm12))
-(rule 2 (amode_add x 0) x)
+(rule amode_add_zero
+      2 (amode_add x 0) x)
 
 ;; Creates a `PairAMode` for the `Value` provided plus the `i32` constant
 ;; offset provided.
