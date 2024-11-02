@@ -3898,10 +3898,12 @@
 
 ;; Optimize cases where the `offset` provided fits into a immediates of
 ;; various kinds of addressing modes.
-(rule 1 (amode_no_more_iconst ty val offset)
+(rule amode_no_more_iconst_unscaled
+      1 (amode_no_more_iconst ty val offset)
         (if-let simm9 (simm9_from_i64 offset))
         (AMode.Unscaled val simm9))
-(rule 2 (amode_no_more_iconst ty val offset)
+(rule amode_no_more_iconst_unsigned_offset
+      2 (amode_no_more_iconst ty val offset)
         (if-let uimm12 (uimm12_scaled_from_i64 offset ty))
         (AMode.UnsignedOffset val uimm12))
 
@@ -3976,7 +3978,24 @@
 
 (decl pure partial uimm12_scaled_from_i64 (i64 Type) UImm12Scaled)
 (extern constructor uimm12_scaled_from_i64 uimm12_scaled_from_i64)
-(attr uimm12_scaled_from_i64 (tag TODO))
+(spec (uimm12_scaled_from_i64 value ty)
+      (match
+            (let
+                  (
+                        (scale (bits2bytes! (int2bv 64 ty)))
+                        (limit (bvmul (int2bv 64 4095) scale))
+                  )
+                  (and
+                        (bvsge value (bvzero! 64))
+                        (bvsle value limit)
+                        (bv_is_zero! (bvand value (bvsub scale (bvone! 64))))
+                  )
+            )
+      )
+      (provide
+            (= result (extract 11 0 (bvudiv value (bits2bytes! (int2bv 64 ty)))))
+      )
+)
 
 (decl pure partial simm9_from_i64 (i64) SImm9)
 (extern constructor simm9_from_i64 simm9_from_i64)

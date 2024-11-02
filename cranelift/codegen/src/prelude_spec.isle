@@ -13,6 +13,9 @@
 ; n-bit bitvector with value one.
 (macro (bvone n) (zero_ext n #b1))
 
+; n-bit bitvector with value all ones.
+(macro (bvones n) (bvnot (bvzero! n)))
+
 ; bit-vector shift left by an integer amount.
 (macro (bvshl_int x s) (bvshl x (int2bv (widthof x) s)))
 
@@ -29,10 +32,13 @@
 (macro (bv_is_zero x) (= x (bvzero! (widthof x))))
 
 ; n-bit bitvector with the top bit set.
-(macro (bv_top_bit_set n) (bvnot (bvlshr_int! (bvnot (bvzero! n)) 1)))
+(macro (bv_top_bit_set n) (bvnot (bvlshr_int! (bvones! n) 1)))
 
 ; Convert a boolean to a single bit.
 (macro (bool2bit b) (if b #b1 #b0))
+
+; Convert number of bits to number of bytes.
+(macro (bits2bytes bits) (bvlshr_int! bits 3))
 
 ;; Floating-point helpers
 
