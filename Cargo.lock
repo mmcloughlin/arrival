@@ -794,6 +794,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cranelift-isle-veri-meta"
+version = "0.1.0"
+dependencies = [
+ "wasmparser 0.216.0",
+]
+
+[[package]]
 name = "cranelift-isle-veri-test-macros"
 version = "0.1.0"
 dependencies = [
