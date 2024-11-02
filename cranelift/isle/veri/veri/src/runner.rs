@@ -55,13 +55,16 @@ enum ExpansionPredicate {
     FirstRuleNamed,
     Tagged(String),
     ContainsRule(String),
+    And(Box<ExpansionPredicate>, Box<ExpansionPredicate>),
 }
 
 impl FromStr for ExpansionPredicate {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        Ok(if s == "first-rule-named" {
+        Ok(if let Some((p, q)) = s.split_once(',') {
+            ExpansionPredicate::And(Box::new(p.parse()?), Box::new(q.parse()?))
+        } else if s == "first-rule-named" {
             ExpansionPredicate::FirstRuleNamed
         } else if let Some(tag) = s.strip_prefix("tag:") {
             ExpansionPredicate::Tagged(tag.to_string())
@@ -267,6 +270,9 @@ impl Runner {
                     .get_rule_by_identifier(&identifier)
                     .ok_or(format_err!("unknown rule '{identifier}'"))?;
                 expansion.rules.contains(&rule.id)
+            }
+            ExpansionPredicate::And(p, q) => {
+                self.eval_predicate(p, expansion)? && self.eval_predicate(q, expansion)?
             }
         })
     }
