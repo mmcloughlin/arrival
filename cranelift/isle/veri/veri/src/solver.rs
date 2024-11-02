@@ -335,6 +335,12 @@ impl<'a> Solver<'a> {
             Expr::FPPositiveZero(x) => Ok(self.fp_value("+zero", x)?),
             Expr::FPNegativeZero(x) => Ok(self.fp_value("-zero", x)?),
             Expr::FPNaN(x) => Ok(self.fp_value("NaN", x)?),
+            Expr::FPEq(x, y) => Ok(self.fp_test("fp.eq", x, y)?),
+            Expr::FPNe(x, y) => Ok(self.fp_test("fp.ne", x, y)?),
+            Expr::FPLt(x, y) => Ok(self.fp_test("fp.lt", x, y)?),
+            Expr::FPGt(x, y) => Ok(self.fp_test("fp.gt", x, y)?),
+            Expr::FPLe(x, y) => Ok(self.fp_test("fp.le", x, y)?),
+            Expr::FPGe(x, y) => Ok(self.fp_test("fp.ge", x, y)?),
             Expr::FPAdd(x, y) => Ok(self.fp_rounding_binary("fp.add", x, y)?),
             Expr::FPSub(x, y) => Ok(self.fp_rounding_binary("fp.sub", x, y)?),
             Expr::FPMul(x, y) => Ok(self.fp_rounding_binary("fp.mul", x, y)?),
@@ -565,6 +571,21 @@ impl<'a> Solver<'a> {
         self.smt.assert(self.smt.eq(result_as_fp, result_fp))?;
 
         Ok(result)
+    }
+
+    /// Floating point test operation without rounding, to boolean.
+    fn fp_test(&mut self, op: &str, x: ExprId, y: ExprId) -> Result<SExpr> {
+        // Convert to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(x)
+            .context("floating point expression must be a bit-vector of known width")?;
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+        let y = self.to_fp(self.expr_atom(y), width)?;
+
+        // Binary result, no conversion needed after test
+        Ok(self.smt.list(vec![self.smt.atom(op), x, y]))
     }
 
     /// Floating point binary operand without rounding.

@@ -344,6 +344,12 @@ impl<'a> SystemBuilder<'a> {
             | Expr::BVSge(y, z)
             | Expr::BVSlt(y, z)
             | Expr::BVSle(y, z)
+            | Expr::FPEq(y, z)
+            | Expr::FPNe(y, z)
+            | Expr::FPLt(y, z)
+            | Expr::FPGt(y, z)
+            | Expr::FPLe(y, z)
+            | Expr::FPGe(y, z)
             | Expr::BVSaddo(y, z) => {
                 self.boolean(x);
                 self.bit_vector(*y);

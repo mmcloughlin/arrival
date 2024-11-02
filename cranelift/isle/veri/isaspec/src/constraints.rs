@@ -564,7 +564,9 @@ impl Translator {
                 let (addr, size, access) = expect_ternary(args)?;
                 self.mem_read(addr, size, access)
             }
-            "FPAdd" | "FPSub" | "FPMul" | "FPDiv" => self.primitive(&func.name, args),
+            "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" => {
+                self.primitive(&func.name, args)
+            }
             unexpected => todo!("func: {unexpected}"),
         }
     }

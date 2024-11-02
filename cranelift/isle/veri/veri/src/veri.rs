@@ -108,6 +108,12 @@ pub enum Expr {
     FPPositiveZero(ExprId),
     FPNegativeZero(ExprId),
     FPNaN(ExprId),
+    FPEq(ExprId, ExprId),
+    FPNe(ExprId, ExprId),
+    FPLt(ExprId, ExprId),
+    FPGt(ExprId, ExprId),
+    FPLe(ExprId, ExprId),
+    FPGe(ExprId, ExprId),
     FPAdd(ExprId, ExprId),
     FPSub(ExprId, ExprId),
     FPMul(ExprId, ExprId),
@@ -191,6 +197,12 @@ impl Expr {
             | Expr::BVConvTo(x, y)
             | Expr::Int2BV(x, y)
             | Expr::BVConcat(x, y)
+            | Expr::FPEq(x, y)
+            | Expr::FPNe(x, y)
+            | Expr::FPLt(x, y)
+            | Expr::FPGt(x, y)
+            | Expr::FPLe(x, y)
+            | Expr::FPGe(x, y)
             | Expr::FPAdd(x, y)
             | Expr::FPSub(x, y)
             | Expr::FPMul(x, y)
@@ -262,6 +274,12 @@ impl std::fmt::Display for Expr {
             Expr::FPPositiveZero(x) => write!(f, "fp.+zero({})", x.index()),
             Expr::FPNegativeZero(x) => write!(f, "fp.-zero({})", x.index()),
             Expr::FPNaN(x) => write!(f, "fp.NaN({})", x.index()),
+            Expr::FPEq(x, y) => write!(f, "fp.eq({}, {})", x.index(), y.index()),
+            Expr::FPNe(x, y) => write!(f, "fp.ne({}, {})", x.index(), y.index()),
+            Expr::FPLt(x, y) => write!(f, "fp.lt({}, {})", x.index(), y.index()),
+            Expr::FPGt(x, y) => write!(f, "fp.gt({}, {})", x.index(), y.index()),
+            Expr::FPLe(x, y) => write!(f, "fp.le({}, {})", x.index(), y.index()),
+            Expr::FPGe(x, y) => write!(f, "fp.ge({}, {})", x.index(), y.index()),
             Expr::FPAdd(x, y) => write!(f, "fp.add({}, {})", x.index(), y.index()),
             Expr::FPSub(x, y) => write!(f, "fp.sub({}, {})", x.index(), y.index()),
             Expr::FPMul(x, y) => write!(f, "fp.mul({}, {})", x.index(), y.index()),
@@ -1849,6 +1867,12 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPPositiveZero(x) => unary_expr!(Expr::FPPositiveZero, x),
             spec::ExprKind::FPNegativeZero(x) => unary_expr!(Expr::FPNegativeZero, x),
             spec::ExprKind::FPNaN(x) => unary_expr!(Expr::FPNaN, x),
+            spec::ExprKind::FPEq(x, y) => binary_expr!(Expr::FPEq, x, y),
+            spec::ExprKind::FPNe(x, y) => binary_expr!(Expr::FPNe, x, y),
+            spec::ExprKind::FPLt(x, y) => binary_expr!(Expr::FPLt, x, y),
+            spec::ExprKind::FPGt(x, y) => binary_expr!(Expr::FPGt, x, y),
+            spec::ExprKind::FPLe(x, y) => binary_expr!(Expr::FPLe, x, y),
+            spec::ExprKind::FPGe(x, y) => binary_expr!(Expr::FPGe, x, y),
             spec::ExprKind::FPAdd(x, y) => binary_expr!(Expr::FPAdd, x, y),
             spec::ExprKind::FPSub(x, y) => binary_expr!(Expr::FPSub, x, y),
             spec::ExprKind::FPMul(x, y) => binary_expr!(Expr::FPMul, x, y),

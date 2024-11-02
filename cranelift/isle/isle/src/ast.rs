@@ -305,6 +305,12 @@ pub enum SpecOp {
     Concat,
 
     // Floating point (IEEE 754-2008)
+    FPEq,
+    FPNe,
+    FPLt,
+    FPGt,
+    FPLe,
+    FPGe,
     FPPositiveInfinity,
     FPNegativeInfinity,
     FPPositiveZero,

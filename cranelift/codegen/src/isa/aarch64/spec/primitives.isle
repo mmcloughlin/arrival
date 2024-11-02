@@ -282,7 +282,7 @@
     ;             result = FPZero(sign1 EOR sign2, N);
                 (if (or zero1 zero2)
                     (fp_signed_zero! (xor! sign1 sign2) N)
-    ;       else 
+    ;       else
     ;             result = FPRound(value1*value2, fpcr, N);
                 (fp.mul x y)
     ;
@@ -342,7 +342,7 @@
     ;             result = FPZero(sign1 EOR sign2, N);
                 (if (or zero1 inf2)
                     (fp_signed_zero! (xor! sign1 sign2) N)
-    ;          else 
+    ;          else
     ;             result = FPRound(value1/value2, fpcr, N);
                 (fp.div x y)
     ;
@@ -350,6 +350,189 @@
     ;            FPProcessDenorms(type1, type2, N, fpcr);
     ;     return result;
                 )))
+            )
+        ))
+    )
+)
+
+;; FPMax: Floating point maximum
+; Note: ignoring the alternative floating point behavior for now
+(macro (FPMax value1 value2 fpcr)
+    ; bits(N) FPMax(bits(N) op1, bits(N) op2, FPCR_Type fpcr)
+    ;     boolean altfp = IsFeatureImplemented(FEAT_AFP) && !UsingAArch32() && fpcr.AH == '1';
+    ;     boolean fpexc = TRUE;
+    ;     return FPMax(op1, op2, fpcr, altfp, fpexc);
+
+    ; // FPMax()
+    ; // =======
+
+    ; bits(N) FPMax(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean altfp)
+    ;     boolean fpexc = TRUE;
+    ;     return FPMax(op1, op2, fpcr, altfp, fpexc);
+
+    ; // FPMax()
+    ; // =======
+    ; // Compare two inputs and return the larger value after rounding. The
+    ; // 'fpcr' argument supplies the FPCR control bits and 'altfp' determines
+    ; // if the function should use alternative floating-point behavior.
+
+    ; bits(N) FPMax(bits(N) op1, bits(N) op2, FPCR_Type fpcr_in, boolean altfp, boolean fpexc)
+    ; // FPMax()
+    ; // ======
+    ;
+    ; bits(N) FPMax(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean fpexc)
+    ;
+    ; assert N IN {16,32,64};
+    ; boolean done;
+    ; bits(N) result;
+    ; FPCR_Type fpcr = fpcr_in;
+    ; (type1,sign1,value1) = FPUnpack(op1, fpcr, fpexc);
+    ; (type2,sign2,value2) = FPUnpack(op2, fpcr, fpexc);
+
+    ; if altfp && type1 == FPType_Zero && type2 == FPType_Zero && sign1 != sign2 then
+    ;     // Alternate handling of zeros with differing sign
+    ;     return FPZero(sign2, N);
+    ; elsif altfp && (type1 IN {FPType_SNaN, FPType_QNaN} || type2 IN {FPType_SNaN, FPType_QNaN}) then
+    ;     // Alternate handling of NaN inputs
+    ;     if fpexc then FPProcessException(FPExc_InvalidOp, fpcr);
+    ;     return (if type2 == FPType_Zero then FPZero(sign2, N) else op2);
+    (let
+        (
+            (sign1 (fp.isNegative value1))
+            (sign2 (fp.isNegative value2))
+            (N (widthof value1))
+        )
+    ;
+    ;   (done,result) = FPProcessNaNs(type1, type2, op1, op2, fpcr, fpexc);
+        (if (fp.isNaN value1)
+            (FPProcessNaN! value1)
+        (if (fp.isNaN value2)
+            (FPProcessNaN! value2)
+    ;     if !done then
+    ;         if value1 > value2 then
+    ;             (fptype,sign,value) = (type1,sign1,value1);
+    ;         else
+    ;             (fptype,sign,value) = (type2,sign2,value2);
+            (let
+                (
+                    (sign   (if (fp.Gt value1 value2) sign1 sign2))
+                    (value  (if (fp.Gt value1 value2) value1 value2))
+                    (inf    (fp.isInfinite value))
+                    (zero   (fp.isZero value))
+                )
+    ;         if fptype == FPType_Infinity then
+    ;             result = FPInfinity(sign, N);
+                (if inf
+                    (fp_signed_inf! sign N)
+    ;         elsif fptype == FPType_Zero then
+    ;            sign = sign1 AND sign2;         // Use most positive sign
+    ;            result = FPZero(sign, N);
+                (if zero
+                    (fp_signed_zero! (and sign1 sign2) N)
+    ;          else
+    ;             // The use of FPRound() covers the case where there is a trapped underflow exception
+    ;             // for a denormalized number even though the result is exact.
+    ;             rounding = FPRoundingMode(fpcr);
+    ;             if altfp then    // Denormal output is not flushed to zero
+    ;                 fpcr.FZ = '0';
+    ;                 fpcr.FZ16 = '0';
+    ;             result = FPRound(value, fpcr, rounding, fpexc, N);
+    ;         if fpexc then FPProcessDenorms(type1, type2, N, fpcr);
+                   value
+    ;     return result;
+                ))
+            )
+        ))
+    )
+)
+
+
+;; FPMin: Floating point minimum
+; Note: ignoring the alternative floating point behavior for now
+(macro (FPMin value1 value2 fpcr)
+    ; bits(N) FPMin(bits(N) op1, bits(N) op2, FPCR_Type fpcr)
+    ;     boolean altfp = IsFeatureImplemented(FEAT_AFP) && !UsingAArch32() && fpcr.AH == '1';
+    ;     boolean fpexc = TRUE;
+    ;     return FPMin(op1, op2, fpcr, altfp, fpexc);
+
+    ; // FPMin()
+    ; // =======
+
+    ; bits(N) FPMin(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean altfp)
+    ;     boolean fpexc = TRUE;
+    ;     return FPMin(op1, op2, fpcr, altfp, fpexc);
+
+    ; // FPMin()
+    ; // =======
+    ; // Compare two inputs and return the larger value after rounding. The
+    ; // 'fpcr' argument supplies the FPCR control bits and 'altfp' determines
+    ; // if the function should use alternative floating-point behavior.
+
+    ; bits(N) FPMin(bits(N) op1, bits(N) op2, FPCR_Type fpcr_in, boolean altfp, boolean fpexc)
+    ; // FPMin()
+    ; // ======
+    ;
+    ; bits(N) FPMin(bits(N) op1, bits(N) op2, FPCR_Type fpcr, boolean fpexc)
+    ;
+    ; assert N IN {16,32,64};
+    ; boolean done;
+    ; bits(N) result;
+    ; FPCR_Type fpcr = fpcr_in;
+    ; (type1,sign1,value1) = FPUnpack(op1, fpcr, fpexc);
+    ; (type2,sign2,value2) = FPUnpack(op2, fpcr, fpexc);
+
+    ; if altfp && type1 == FPType_Zero && type2 == FPType_Zero && sign1 != sign2 then
+    ;     // Alternate handling of zeros with differing sign
+    ;     return FPZero(sign2, N);
+    ; elsif altfp && (type1 IN {FPType_SNaN, FPType_QNaN} || type2 IN {FPType_SNaN, FPType_QNaN}) then
+    ;     // Alternate handling of NaN inputs
+    ;     if fpexc then FPProcessException(FPExc_InvalidOp, fpcr);
+    ;     return (if type2 == FPType_Zero then FPZero(sign2, N) else op2);
+    (let
+        (
+            (sign1 (fp.isNegative value1))
+            (sign2 (fp.isNegative value2))
+            (N (widthof value1))
+        )
+    ;
+    ;   (done,result) = FPProcessNaNs(type1, type2, op1, op2, fpcr, fpexc);
+        (if (fp.isNaN value1)
+            (FPProcessNaN! value1)
+        (if (fp.isNaN value2)
+            (FPProcessNaN! value2)
+    ;     if !done then
+    ;         if value1 < value2 then
+    ;             (fptype,sign,value) = (type1,sign1,value1);
+    ;         else
+    ;             (fptype,sign,value) = (type2,sign2,value2);
+            (let
+                (
+                    (sign   (if (fp.Lt value1 value2) sign1 sign2))
+                    (value  (if (fp.Lt value1 value2) value1 value2))
+                    (inf    (fp.isInfinite value))
+                    (zero   (fp.isZero value))
+                )
+    ;         if fptype == FPType_Infinity then
+    ;             result = FPInfinity(sign, N);
+                (if inf
+                    (fp_signed_inf! sign N)
+    ;         elsif fptype == FPType_Zero then
+    ;            sign = sign1 OR sign2;              // Use most negative sign
+    ;            result = FPZero(sign, N);
+                (if zero
+                    (fp_signed_zero! (or sign1 sign2) N)
+    ;          else
+    ;             // The use of FPRound() covers the case where there is a trapped underflow exception
+    ;             // for a denormalized number even though the result is exact.
+    ;             rounding = FPRoundingMode(fpcr);
+    ;             if altfp then    // Denormal output is not flushed to zero
+    ;                 fpcr.FZ = '0';
+    ;                 fpcr.FZ16 = '0';
+    ;             result = FPRound(value, fpcr, rounding, fpexc, N);
+    ;         if fpexc then FPProcessDenorms(type1, type2, N, fpcr);
+                   value
+    ;     return result;
+                ))
             )
         ))
     )
