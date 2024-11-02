@@ -13,3 +13,6 @@ wasm2clif="data/wasm2clif.json"
 # Tagging
 cliftags="data/cliftags.json"
 ./script/cliftags.py --data "${wasm2clif}" --output "${cliftags}"
+
+# ISLE tags
+./script/isletags.py --data "${cliftags}" --output "../../../codegen/src/inst_tags.isle"
