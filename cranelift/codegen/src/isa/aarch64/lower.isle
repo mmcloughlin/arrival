@@ -2596,7 +2596,7 @@
       (mov_from_vec x 0 (scalar_size out_ty)))
 
 ; GPR <=> GPR
-(rule 1 (lower (has_type out_ty (bitcast _ x @ (value_type in_ty))))
+(rule scalar_bitcast 1 (lower (has_type out_ty (bitcast _ x @ (value_type in_ty))))
       (if (ty_int_ref_scalar_64 out_ty))
       (if (ty_int_ref_scalar_64 in_ty))
       x)

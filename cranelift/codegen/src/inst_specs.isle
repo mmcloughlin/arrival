@@ -852,3 +852,15 @@
     ((args (bv 32)) (ret (bv 32)))
     ((args (bv 64)) (ret (bv 64)))
 )
+
+(spec (bitcast flags x)
+    (provide (= result x))
+)
+; I32ReinterpretF32
+; I64ReinterpretF64
+; F32ReinterpretI32
+; F64ReinterpretI64
+(instantiate bitcast
+    ((args (named MemFlags) (bv 32)) (ret (bv 32)))
+    ((args (named MemFlags) (bv 64)) (ret (bv 64)))
+)
