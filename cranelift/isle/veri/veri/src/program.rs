@@ -2,7 +2,7 @@ use crate::spec::{self, SpecEnv};
 use crate::trie;
 use anyhow::{bail, Result};
 use cranelift_isle::ast::{Def, Ident};
-use cranelift_isle::error::Errors;
+use cranelift_isle::error::{self, Errors, Span};
 use cranelift_isle::files::Files;
 use cranelift_isle::lexer::Pos;
 use cranelift_isle::sema::{
@@ -135,6 +135,19 @@ impl Program {
 
     pub fn build_trie(&self) -> Result<Vec<(TermId, RuleSet)>, Errors> {
         trie::build_trie(&self.termenv, self.files.clone())
+    }
+
+    pub(crate) fn error_at_pos(&self, pos: Pos, msg: impl Into<String>) -> Errors {
+        // In order to piggy back off the existing diagnostic error reporting in
+        // ISLE, we shoehorn our error type into one of the existing error
+        // categories.
+        //
+        // TODO(mbm): cleaner positional error reporting for the verifier
+        let err = error::Error::TypeError {
+            msg: msg.into(),
+            span: Span::new_single(pos),
+        };
+        Errors::new(vec![err], self.files.clone())
     }
 
     fn build_overlaps(defs: &[Def], files: Arc<Files>) -> Result<HashMap<RuleId, HashSet<RuleId>>> {

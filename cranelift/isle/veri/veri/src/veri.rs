@@ -8,7 +8,6 @@ use crate::{
 use anyhow::{bail, format_err, Context, Error, Result};
 use cranelift_isle::{
     ast::Ident,
-    error::{self, Errors, Span},
     lexer::Pos,
     sema::{Sym, TermId, TypeId, VariantId},
     trie_again::{Binding, BindingId, Constraint, TupleIndex},
@@ -2402,22 +2401,9 @@ impl<'a> ConditionsBuilder<'a> {
 
     fn error(&self, msg: impl Into<String>) -> Error {
         if let Some(pos) = self.position_stack.last() {
-            self.error_at_pos(*pos, msg).into()
+            self.prog.error_at_pos(*pos, msg).into()
         } else {
             Error::msg(msg.into())
         }
-    }
-
-    fn error_at_pos(&self, pos: Pos, msg: impl Into<String>) -> Errors {
-        // In order to piggy back off the existing diagnostic error reporting in
-        // ISLE, we shoehorn our error type into one of the existing error
-        // categories.
-        //
-        // TODO(mbm): cleaner positional error reporting for the verifier
-        let err = error::Error::TypeError {
-            msg: msg.into(),
-            span: Span::new_single(pos),
-        };
-        Errors::new(vec![err], self.prog.files.clone())
     }
 }
