@@ -1996,7 +1996,7 @@
             (vec_size VectorSize (vector_size ty)))
           (value_reg (float_cmp_zero_swap cond rn vec_size))))
 
-(rule 0 (lower (has_type out_ty
+(rule fcmp 0 (lower (has_type out_ty
               (fcmp cond x @ (value_type (ty_scalar_float in_ty)) y)))
       (with_flags (fpu_cmp (scalar_size in_ty) x y)
                   (materialize_bool_result (fp_cond_code cond))))

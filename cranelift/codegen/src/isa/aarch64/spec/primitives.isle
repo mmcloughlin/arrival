@@ -415,8 +415,8 @@
     ;             (fptype,sign,value) = (type2,sign2,value2);
             (let
                 (
-                    (sign   (if (fp.Gt value1 value2) sign1 sign2))
-                    (value  (if (fp.Gt value1 value2) value1 value2))
+                    (sign   (if (fp.gt value1 value2) sign1 sign2))
+                    (value  (if (fp.gt value1 value2) value1 value2))
                     (inf    (fp.isInfinite value))
                     (zero   (fp.isZero value))
                 )
@@ -507,8 +507,8 @@
     ;             (fptype,sign,value) = (type2,sign2,value2);
             (let
                 (
-                    (sign   (if (fp.Lt value1 value2) sign1 sign2))
-                    (value  (if (fp.Lt value1 value2) value1 value2))
+                    (sign   (if (fp.lt value1 value2) sign1 sign2))
+                    (value  (if (fp.lt value1 value2) value1 value2))
                     (inf    (fp.isInfinite value))
                     (zero   (fp.isZero value))
                 )
@@ -537,3 +537,36 @@
         ))
     )
 )
+
+;; FPCompare: Floating point comparison
+(macro (FPCompare value1 value2 signal_nans fpcr)
+    ; bits(4) FPCompare(bits(N) op1, bits(N) op2, boolean signal_nans, FPCR_Type fpcr)
+    ;     assert N IN {16,32,64};
+    ;     (type1,sign1,value1) = FPUnpack(op1, fpcr);
+    ;     (type2,sign2,value2) = FPUnpack(op2, fpcr);
+    ;     bits(4) result;
+    ;     if type1 IN {FPType_SNaN, FPType_QNaN} || type2 IN {FPType_SNaN, FPType_QNaN} then
+    ;         result = '0011';
+    ;         if type1 == FPType_SNaN || type2 == FPType_SNaN || signal_nans then
+    ;             FPProcessException(FPExc_InvalidOp, fpcr);
+    (if (or (fp.isNaN value1) (fp.isNaN value2))
+        (if signal_nans ; signal_nans is always false, but we need to read
+            #b0011
+            #b0011)
+    ;     else
+    ;         // All non-NaN cases can be evaluated on the values produced by FPUnpack()
+    ;         if value1 == value2 then
+    ;             result = '0110';
+    (if (fp.eq value1 value2)
+        #b0110
+
+    ;         elsif value1 < value2 then
+    ;             result = '1000';
+    (if (fp.lt value1 value2)
+        #b1000
+    ;         else  // value1 > value2
+    ;             result = '0010';
+        #b0010
+    ;         FPProcessDenorms(type1, type2, N, fpcr);
+    ;     return result;
+    ))))

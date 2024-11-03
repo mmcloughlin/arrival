@@ -21,6 +21,10 @@ pub fn vreg(i: usize) -> Target {
     Target::Index(Box::new(z), i)
 }
 
+pub fn literal(s: &str) -> Target {
+    Target::Var(s.to_string())
+}
+
 pub fn pstate() -> Target {
     Target::Var("PSTATE".to_string())
 }
@@ -35,6 +39,11 @@ pub fn fpcr() -> Target {
 
 pub fn state() -> Scope {
     let mut scope = Scope::new();
+
+    // Boolean literals
+    for lit in ["FALSE", "TRUE"] {
+        scope.global(literal(lit));
+    }
 
     // Memory effects.
     let read_effect = ReadEffect::new();

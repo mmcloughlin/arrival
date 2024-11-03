@@ -4170,6 +4170,22 @@
 ;; TODO: Port lower_fp_condcode() to ISLE.
 (extern constructor fp_cond_code fp_cond_code)
 
+;; Ported from lower_fp_condcode. Note nontrivial mapping for lt and lte.
+(spec (fp_cond_code cc)
+      (provide
+            (= result
+                  (match cc
+                        ((Equal) (Cond.Eq))
+                        ((NotEqual) (Cond.Ne))
+                        ((GreaterThanOrEqual) (Cond.Ge))
+                        ((GreaterThan) (Cond.Gt))
+                        ((LessThanOrEqual) (Cond.Ls))
+                        ((LessThan) (Cond.Mi))
+                  )
+            )
+      )
+)
+
 ;; Lower an integer cond code.
 (decl cond_code (IntCC) Cond)
 ;; TODO: Port lower_condcode() to ISLE.

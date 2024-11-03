@@ -24,6 +24,7 @@ use cranelift_isle::{
     printer,
 };
 use cranelift_isle_veri_aslp::client::Client;
+use cranelift_isle_veri_isaspec::aarch64::literal;
 use cranelift_isle_veri_isaspec::memory::SetEffect;
 use cranelift_isle_veri_isaspec::spec::spec_conv_to;
 use cranelift_isle_veri_isaspec::{
@@ -37,7 +38,7 @@ use cranelift_isle_veri_isaspec::{
     memory::ReadEffect,
     spec::{
         spec_as_bit_vector_width, spec_binary, spec_const_bit_vector, spec_const_int,
-        spec_discriminator, spec_eq, spec_eq_bool, spec_extract, spec_field, spec_var,
+        spec_discriminator, spec_eq, spec_eq_bool, spec_extract, spec_false, spec_field, spec_var,
     },
 };
 use itertools::Itertools;
@@ -167,6 +168,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "conds.isle".into(),
             specs: define_conds()?,
+        },
+        FileConfig {
+            name: "fpu_cmp.isle".into(),
+            specs: vec![define_fpu_cmp()],
         },
         FileConfig {
             name: "fpu_rr.isle".into(),
@@ -1996,6 +2001,50 @@ fn define_fpu_rr() -> SpecConfig {
                                 }),
                             })
                             .collect(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+fn define_fpu_cmp() -> SpecConfig {
+    // ScalarSize
+    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+    let mut mappings = flags_mappings();
+    mappings
+        .reads
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rn")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rm")));
+    mappings
+        .reads
+        .insert(literal("FALSE"), Mapping::require(spec_false()));
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
+
+    SpecConfig {
+        term: "MInst.FpuCmp".to_string(),
+        args: ["size", "rn", "rm"].map(String::from).to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| Arm {
+                    variant: format!("{size:?}"),
+                    args: Vec::new(),
+                    body: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::FpuCmp {
+                            size: *size,
+                            rn: vreg(4),
+                            rm: vreg(5),
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
                     }),
                 })
                 .collect(),

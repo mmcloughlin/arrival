@@ -485,6 +485,37 @@
     (conv_to (widthof x)
         (bvxor x (fp_sign_bit_set! (widthof x)))))
 
+; fcmp: floating-point compare.
+(spec (fcmp c x y)
+    (provide
+        ;; Restrict to operations used from Wasm for now
+        (or (= c (FloatCC.Equal))
+            (= c (FloatCC.NotEqual))
+            (= c (FloatCC.LessThan))
+            (= c (FloatCC.GreaterThan))
+            (= c (FloatCC.LessThanOrEqual))
+            (= c (FloatCC.GreaterThanOrEqual)))
+        (= result
+            (if
+                (match c
+                    ((Equal) (fp.eq x y))
+                    ((NotEqual) (fp.ne x y))
+                    ((LessThan) (fp.lt x y))
+                    ((GreaterThan) (fp.gt x y))
+                    ((LessThanOrEqual) (fp.le x y))
+                    ((GreaterThanOrEqual) (fp.ge x y))
+                )
+                #x01
+                #x00
+            )
+        )
+    )
+)
+(instantiate fcmp
+    ((args (named FloatCC) (bv 32) (bv 32)) (ret (bv 8)))
+    ((args (named FloatCC) (bv 64) (bv 64)) (ret (bv 8)))
+)
+
 ; fadd: floating-point addition.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).

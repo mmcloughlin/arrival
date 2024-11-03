@@ -274,6 +274,13 @@ fn define_insts() -> Vec<Inst> {
         });
     }
 
+    // FpuCmp
+    insts.push(Inst::FpuCmp {
+        size: ScalarSize::Size64,
+        rn: vreg(1),
+        rm: vreg(2),
+    });
+
     // FpuRR
     let fpu_op1s = [FPUOp1::Neg];
     for fpu_op1 in fpu_op1s {

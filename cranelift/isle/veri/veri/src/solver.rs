@@ -336,11 +336,14 @@ impl<'a> Solver<'a> {
             Expr::FPNegativeZero(x) => Ok(self.fp_value("-zero", x)?),
             Expr::FPNaN(x) => Ok(self.fp_value("NaN", x)?),
             Expr::FPEq(x, y) => Ok(self.fp_test("fp.eq", x, y)?),
-            Expr::FPNe(x, y) => Ok(self.fp_test("fp.ne", x, y)?),
+            Expr::FPNe(x, y) => {
+                let test_eq = self.fp_test("fp.eq", x, y)?;
+                Ok(self.smt.not(test_eq))
+            }
             Expr::FPLt(x, y) => Ok(self.fp_test("fp.lt", x, y)?),
             Expr::FPGt(x, y) => Ok(self.fp_test("fp.gt", x, y)?),
-            Expr::FPLe(x, y) => Ok(self.fp_test("fp.le", x, y)?),
-            Expr::FPGe(x, y) => Ok(self.fp_test("fp.ge", x, y)?),
+            Expr::FPLe(x, y) => Ok(self.fp_test("fp.leq", x, y)?),
+            Expr::FPGe(x, y) => Ok(self.fp_test("fp.geq", x, y)?),
             Expr::FPAdd(x, y) => Ok(self.fp_rounding_binary("fp.add", x, y)?),
             Expr::FPSub(x, y) => Ok(self.fp_rounding_binary("fp.sub", x, y)?),
             Expr::FPMul(x, y) => Ok(self.fp_rounding_binary("fp.mul", x, y)?),
