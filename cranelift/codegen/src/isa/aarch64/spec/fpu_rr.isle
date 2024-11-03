@@ -15,7 +15,9 @@
                                 128
                                 (concat
                                     (bvnot (extract 63 63 (conv_to 128 (as rn (bv 64)))))
-                                    (extract 62 0 (conv_to 128 (as rn (bv 64))))))))))
+                                    (extract 62 0 (conv_to 128 (as rn (bv 64))))))))
+                    ((Abs)
+                        (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 (extract 62 0 (conv_to 128 (as rn (bv 64)))))))))
             ((Size32)
                 (match
                     fpu_op
@@ -26,5 +28,13 @@
                                 128
                                 (concat
                                     (bvnot (extract 31 31 (conv_to 128 (as rn (bv 64)))))
-                                    (extract 30 0 (conv_to 128 (as rn (bv 64))))))))))))
-    (require (match size ((Size64) (match fpu_op ((Neg) true))) ((Size32) (match fpu_op ((Neg) true))))))
+                                    (extract 30 0 (conv_to 128 (as rn (bv 64))))))))
+                    ((Abs)
+                        (=
+                            (conv_to 128 (as rd (bv 64)))
+                            (zero_ext 128 (extract 30 0 (conv_to 128 (as rn (bv 64)))))))))))
+    (require
+        (match
+            size
+            ((Size64) (match fpu_op ((Neg) true) ((Abs) true)))
+            ((Size32) (match fpu_op ((Neg) true) ((Abs) true))))))

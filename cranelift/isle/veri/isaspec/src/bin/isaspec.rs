@@ -1951,7 +1951,7 @@ fn define_fpu_rrr() -> SpecConfig {
 // MInst.FpuRR specification configuration.
 fn define_fpu_rr() -> SpecConfig {
     // FPUOp1
-    let fpu_op1s = [FPUOp1::Neg];
+    let fpu_op1s = [FPUOp1::Neg, FPUOp1::Abs];
 
     // ScalarSize
     let sizes = [ScalarSize::Size32, ScalarSize::Size64];
