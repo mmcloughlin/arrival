@@ -803,6 +803,7 @@ pub enum Status {
     Solved,
     Inapplicable,
     Underconstrained,
+    TypeError(String),
 }
 
 impl std::fmt::Display for Status {
@@ -811,6 +812,7 @@ impl std::fmt::Display for Status {
             Status::Solved => write!(f, "solved"),
             Status::Inapplicable => write!(f, "inapplicable"),
             Status::Underconstrained => write!(f, "underconstrained"),
+            Status::TypeError(e) => write!(f, "type error {e}"),
         }
     }
 }
@@ -909,8 +911,14 @@ impl Solver {
         // If we do, merge this type value with the existing one.
         let existing = &self.assignment.expr_type_value[&x];
         let merged = TypeValue::merge(existing, &tv).ok_or_else(|| {
-            log::debug!("inapplicable set type value: {existing:?} = {tv:?}",);
-            Status::Inapplicable
+            if !existing.ty().is_compatible_with(&tv.ty()) {
+                Status::TypeError(format!(
+                    "concrete type error between types:\n\t{existing}\n\t{tv}"
+                ))
+            } else {
+                log::debug!("inapplicable set type value: {existing:?} = {tv:?}",);
+                Status::Inapplicable
+            }
         })?;
         if merged != *existing {
             self.assignment.expr_type_value.insert(x, merged);

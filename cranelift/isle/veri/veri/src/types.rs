@@ -60,6 +60,19 @@ impl Type {
             _ => None,
         }
     }
+
+    pub fn is_compatible_with(&self, other: &Type) -> bool {
+        match (self, other) {
+            (Type::Unknown, _)
+            | (_, Type::Unknown)
+            | (Type::Unspecified, Type::Unspecified)
+            | (Type::Unit, Type::Unit)
+            | (Type::Bool, Type::Bool)
+            | (Type::Int, Type::Int)
+            | (Type::BitVector(_), Type::BitVector(_)) => true,
+            _ => false,
+        }
+    }
 }
 
 impl std::fmt::Display for Type {

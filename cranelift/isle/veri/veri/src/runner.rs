@@ -309,11 +309,14 @@ impl Runner {
                 solution.assignment.pretty_print(&conditions);
             }
 
-            match solution.status {
+            match &solution.status {
                 type_inference::Status::Solved => (),
                 type_inference::Status::Inapplicable => continue,
                 type_inference::Status::Underconstrained => {
                     bail!("underconstrained type inference")
+                }
+                type_inference::Status::TypeError(e) => {
+                    bail!("type error {e}")
                 }
             }
 
