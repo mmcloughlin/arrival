@@ -685,7 +685,7 @@
 (rule -1 (lower (has_type ty @ (multi_lane 64 _) (fcvt_from_uint x @ (value_type (multi_lane 64 _)))))
       (vec_misc (VecMisc2.Ucvtf) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))
+(rule fcvt_from_uint_f32_u32 (lower (has_type $F32 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))
       (int_to_fpu (IntToFpuOp.U32ToF32) (put_in_reg_zext32 x)))
 
 (rule (lower (has_type $F64 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))

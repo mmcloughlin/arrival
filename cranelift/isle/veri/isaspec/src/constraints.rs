@@ -424,7 +424,10 @@ impl Translator {
                 let width = bits.len();
                 Ok(spec_const_bit_vector(val, width))
             }
-            _ => todo!("expr: {expr:?}"),
+            Expr::LitInt(v) => {
+                let val = v.parse()?;
+                Ok(spec_const_int(val))
+            }
         }
     }
 
@@ -466,6 +469,11 @@ impl Translator {
                     spec_const_bit_vector(1, 1),
                     spec_const_bit_vector(0, 1),
                 ))
+            }
+            "cvt_bits_uint" => {
+                let x = expect_unary(args)?;
+                let x = self.expr(x)?;
+                Ok(spec_bv2nat(x))
             }
             "ite" => {
                 let (c, t, e) = expect_ternary(args)?;
@@ -564,9 +572,8 @@ impl Translator {
                 let (addr, size, access) = expect_ternary(args)?;
                 self.mem_read(addr, size, access)
             }
-            "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" | "FPCompare" => {
-                self.primitive(&func.name, args)
-            }
+            "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" | "FPCompare"
+            | "FixedToFP" => self.primitive(&func.name, args),
             unexpected => todo!("func: {unexpected}"),
         }
     }

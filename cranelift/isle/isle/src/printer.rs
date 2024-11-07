@@ -343,6 +343,8 @@ impl Printable for SpecOp {
             SpecOp::ConvTo => "conv_to",
             SpecOp::Int2BV => "int2bv",
             SpecOp::BV2Nat => "bv2nat",
+            SpecOp::ToFP => "to_fp",
+            SpecOp::ToFPUnsigned => "to_fp_unsigned",
             SpecOp::WidthOf => "widthof",
             SpecOp::If => "if",
             SpecOp::Switch => "switch",

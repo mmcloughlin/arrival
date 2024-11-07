@@ -13,8 +13,8 @@ use cranelift_codegen::isa::aarch64::inst::{
 use cranelift_codegen::{
     ir::MemFlags,
     isa::aarch64::inst::{
-        writable_xreg, xreg, ALUOp, ALUOp3, AMode, BitOp, Cond, ExtendOp, Imm12, Inst, OperandSize,
-        ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm,
+        writable_xreg, xreg, ALUOp, ALUOp3, AMode, BitOp, Cond, ExtendOp, Imm12, Inst, IntToFpuOp,
+        OperandSize, ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm,
     },
     Reg, Writable,
 };
@@ -38,7 +38,8 @@ use cranelift_isle_veri_isaspec::{
     memory::ReadEffect,
     spec::{
         spec_as_bit_vector_width, spec_binary, spec_const_bit_vector, spec_const_int,
-        spec_discriminator, spec_eq, spec_eq_bool, spec_extract, spec_false, spec_field, spec_var,
+        spec_discriminator, spec_eq, spec_eq_bool, spec_extract, spec_false, spec_field, spec_true,
+        spec_var,
     },
 };
 use itertools::Itertools;
@@ -184,6 +185,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "mov_to_fpu.isle".into(),
             specs: vec![define_mov_to_fpu()],
+        },
+        FileConfig {
+            name: "int_to_fpu.isle".into(),
+            specs: vec![define_int_to_fpu()],
         },
         FileConfig {
             name: "mov_from_vec.isle".into(),
@@ -2093,6 +2098,66 @@ fn define_mov_to_fpu() -> SpecConfig {
                             rd: writable_vreg(4),
                             rn: xreg(5),
                             size: *size,
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+// ;; Conversion: integer -> FP.
+// MInst.IntToFpu specification configuration.
+fn define_int_to_fpu() -> SpecConfig {
+    let ops: [IntToFpuOp; 8] = [
+        IntToFpuOp::U32ToF32,
+        IntToFpuOp::I32ToF32,
+        IntToFpuOp::U32ToF64,
+        IntToFpuOp::I32ToF64,
+        IntToFpuOp::U64ToF32,
+        IntToFpuOp::I64ToF32,
+        IntToFpuOp::U64ToF64,
+        IntToFpuOp::I64ToF64,
+    ];
+
+    let mut mappings = flags_mappings();
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
+    mappings
+        .reads
+        .insert(literal("FALSE"), Mapping::allow(spec_false()));
+    mappings
+        .reads
+        .insert(literal("TRUE"), Mapping::allow(spec_true()));
+    mappings.writes.insert(
+        aarch64::vreg(4),
+        Mapping::require(spec_var("rd".to_string())),
+    );
+    mappings.reads.insert(
+        aarch64::gpreg(5),
+        Mapping::require(spec_var("rn".to_string())),
+    );
+
+    SpecConfig {
+        term: "MInst.IntToFpu".to_string(),
+        args: ["op", "rd", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("op".to_string()),
+            arms: ops
+                .iter()
+                .rev()
+                .map(|op| Arm {
+                    variant: format!("{op:?}"),
+                    args: Vec::new(),
+                    body: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::IntToFpu {
+                            op: *op,
+                            rd: writable_vreg(4),
+                            rn: xreg(5),
                         }),
                         scope: aarch64::state(),
                         mappings: mappings.clone(),

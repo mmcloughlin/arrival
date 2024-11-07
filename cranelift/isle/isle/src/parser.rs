@@ -666,6 +666,8 @@ impl<'a> Parser<'a> {
             "rev" => Ok(SpecOp::Rev),
             "cls" => Ok(SpecOp::Cls),
             "clz" => Ok(SpecOp::Clz),
+            "to_fp" => Ok(SpecOp::ToFP),
+            "to_fp_unsigned" => Ok(SpecOp::ToFPUnsigned),
             "fp.+oo" => Ok(SpecOp::FPPositiveInfinity),
             "fp.-oo" => Ok(SpecOp::FPNegativeInfinity),
             "fp.+zero" => Ok(SpecOp::FPPositiveZero),

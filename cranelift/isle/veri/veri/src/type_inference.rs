@@ -446,6 +446,13 @@ impl<'a> SystemBuilder<'a> {
                 self.integer(x);
                 self.bit_vector(*y);
             }
+            Expr::ToFP(w, y) | Expr::ToFPUnsigned(w, y) => {
+                self.integer(*w);
+                self.bit_vector(*y);
+                self.bit_vector(x);
+                self.width_of(x, *w);
+                self.width_of(*y, *w);
+            }
             Expr::WidthOf(y) => {
                 self.integer(x);
                 self.bit_vector(*y);

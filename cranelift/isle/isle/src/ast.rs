@@ -340,6 +340,8 @@ pub enum SpecOp {
     ConvTo,
     Int2BV,
     BV2Nat,
+    ToFP,
+    ToFPUnsigned,
     WidthOf,
 
     // Control operations

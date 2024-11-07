@@ -108,6 +108,8 @@ pub enum ExprKind {
     BVSignExt(Expr, Expr),
     // Conversion to wider/narrower bits, without an explicit extend.
     BVConvTo(Expr, Expr),
+    ToFP(Expr, Expr),
+    ToFPUnsigned(Expr, Expr),
 
     // Extract specified bits
     BVExtract(usize, usize, Expr),
@@ -311,6 +313,8 @@ impl ExprKind {
                 SpecOp::Int2BV => binary_expr!(ExprKind::Int2BV, args, pos),
                 SpecOp::BV2Nat => unary_expr!(ExprKind::BV2Nat, args, pos),
                 SpecOp::WidthOf => unary_expr!(ExprKind::WidthOf, args, pos),
+                SpecOp::ToFP => binary_expr!(ExprKind::ToFP, args, pos),
+                SpecOp::ToFPUnsigned => binary_expr!(ExprKind::ToFPUnsigned, args, pos),
 
                 // Floating point (IEEE)
                 SpecOp::FPPositiveInfinity => unary_expr!(ExprKind::FPPositiveInfinity, args, pos),

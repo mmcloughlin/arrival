@@ -570,3 +570,42 @@
     ;         FPProcessDenorms(type1, type2, N, fpcr);
     ;     return result;
     ))))
+
+;; // Convert M-bit fixed point 'op' with FBITS fractional bits to
+;; // N-bit precision floating point, controlled by UNSIGNED and ROUNDING.
+(macro (FixedToFP op fbits unsigned fpcr rounding)
+; bits(N) FixedToFP(bits(M) op, integer fbits, boolean unsigned, FPCRType fpcr, FPRounding rounding)
+;     assert N IN {16,32,64};
+;     assert M IN {16,32,64};
+;     bits(N) result;
+;     assert fbits >= 0;
+;     assert rounding != FPRounding_ODD;
+;     // Correct signed-ness
+;     int_operand = Int(op, unsigned);
+;     // Scale by fractional bits and generate a real value
+;     real_operand = Real(int_operand) / 2.0^fbits;
+;     if real_operand == 0.0 then
+;         result = FPZero('0');
+;     else
+;         result = FPRound(real_operand, fpcr, rounding);
+;     return result;
+
+;; Use the SMTLIB conversion functions to accomplish the same behavior
+    (let
+        (
+            (result
+                (if unsigned
+                    (to_fp_unsigned (widthof op) op)
+                    (to_fp (widthof op) op)))
+        )
+        (if (and
+                ;; fbits of 0 means we can use pure integer logic
+                (= 0 fbits)
+                (= rounding rounding)
+            )
+            result
+            ;; unspecified bits if assumptions not met
+            (with (unspecified) unspecified)
+        )
+    )
+)

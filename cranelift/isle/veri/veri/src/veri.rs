@@ -101,6 +101,10 @@ pub enum Expr {
     // Bitwidth.
     WidthOf(ExprId),
 
+    // Floating point conversion.
+    ToFP(ExprId, ExprId),
+    ToFPUnsigned(ExprId, ExprId),
+
     // Floating point.
     FPPositiveInfinity(ExprId),
     FPNegativeInfinity(ExprId),
@@ -195,6 +199,8 @@ impl Expr {
             | Expr::BVSignExt(x, y)
             | Expr::BVConvTo(x, y)
             | Expr::Int2BV(x, y)
+            | Expr::ToFP(x, y)
+            | Expr::ToFPUnsigned(x, y)
             | Expr::BVConcat(x, y)
             | Expr::FPEq(x, y)
             | Expr::FPNe(x, y)
@@ -266,6 +272,8 @@ impl std::fmt::Display for Expr {
             Expr::BVExtract(h, l, x) => write!(f, "bv_extract({h}, {l}, {})", x.index()),
             Expr::BVConcat(x, y) => write!(f, "bv_concat({}, {})", x.index(), y.index()),
             Expr::Int2BV(w, x) => write!(f, "int2bv({}, {})", w.index(), x.index()),
+            Expr::ToFP(w, x) => write!(f, "to_fp({}, {})", w.index(), x.index()),
+            Expr::ToFPUnsigned(w, x) => write!(f, "to_fp_unsigned({}, {})", w.index(), x.index()),
             Expr::BV2Nat(x) => write!(f, "bv2nat({})", x.index()),
             Expr::WidthOf(x) => write!(f, "width_of({})", x.index()),
             Expr::FPPositiveInfinity(x) => write!(f, "fp.+oo({})", x.index()),
@@ -1845,6 +1853,18 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::BV2Nat(x) => {
                 let x = self.spec_expr(x, vars)?.try_into()?;
                 Ok(self.scalar(Expr::BV2Nat(x)))
+            }
+
+            spec::ExprKind::ToFP(w, x) => {
+                let w = self.spec_expr(w, vars)?.try_into()?;
+                let x = self.spec_expr(x, vars)?.try_into()?;
+                Ok(self.scalar(Expr::ToFP(w, x)))
+            }
+
+            spec::ExprKind::ToFPUnsigned(w, x) => {
+                let w = self.spec_expr(w, vars)?.try_into()?;
+                let x = self.spec_expr(x, vars)?.try_into()?;
+                Ok(self.scalar(Expr::ToFPUnsigned(w, x)))
             }
 
             spec::ExprKind::WidthOf(x) => {

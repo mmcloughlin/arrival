@@ -105,6 +105,10 @@ pub fn spec_conv_to(w: usize, x: SpecExpr) -> SpecExpr {
     spec_binary(SpecOp::ConvTo, spec_const_int(w.try_into().unwrap()), x)
 }
 
+pub fn spec_bv2nat(x: SpecExpr) -> SpecExpr {
+    spec_unary(SpecOp::BV2Nat, x)
+}
+
 pub fn spec_zero_ext(w: usize, x: SpecExpr) -> SpecExpr {
     spec_ext(SpecOp::ZeroExt, w, x)
 }

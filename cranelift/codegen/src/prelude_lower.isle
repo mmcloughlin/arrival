@@ -150,7 +150,7 @@
 ;; As a side effect, this marks the value as used.
 (decl put_in_reg (Value) Reg)
 (spec (put_in_reg arg)
-      (provide (= result (conv_to (widthof result) arg)))
+      (provide (= result (conv_to 64 arg)))
       (require (<= (widthof arg) 64))
 )
 (extern constructor put_in_reg put_in_reg)

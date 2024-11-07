@@ -329,6 +329,8 @@ impl<'a> Solver<'a> {
             Expr::BV2Nat(x) => Ok(self
                 .smt
                 .list(vec![self.smt.atom("bv2nat"), self.expr_atom(x)])),
+            Expr::ToFP(w, x) => self.to_fp_from_expr(w, x, true),
+            Expr::ToFPUnsigned(w, x) => self.to_fp_from_expr(w, x, false),
             Expr::WidthOf(x) => self.width_of(x),
             Expr::FPPositiveInfinity(x) => Ok(self.fp_value("+oo", x)?),
             Expr::FPNegativeInfinity(x) => Ok(self.fp_value("-oo", x)?),
@@ -663,6 +665,36 @@ impl<'a> Solver<'a> {
             ]),
             x,
         ]))
+    }
+
+    fn to_fp_from_expr(&mut self, w: ExprId, xid: ExprId, signed: bool) -> Result<SExpr> {
+        // Destination width expression should have known integer value.
+        let width: usize = self
+            .assignment
+            .try_int_value(w)
+            .context("destination width of to_fp expression should have known integer value")?
+            .try_into()
+            .expect("width should be representable as usize");
+
+        let x = self.expr_atom(xid);
+        let (eb, sb) = Self::fp_exponent_significand_bits(width)?;
+        let fp = self.smt.list(vec![
+            self.smt.list(vec![
+                self.smt.atoms().und,
+                self.smt
+                    .atom(if signed { "to_fp" } else { "to_fp_unsigned" }),
+                self.smt.numeral(eb),
+                self.smt.numeral(sb),
+            ]),
+            self.smt.atom(ROUNDING_MODE),
+            x,
+        ]);
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec("conv", width)?;
+        let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, fp))?;
+
+        Ok(result)
     }
 
     fn fp_exponent_significand_bits(width: usize) -> Result<(usize, usize)> {
