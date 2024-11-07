@@ -453,6 +453,12 @@ impl<'a> SystemBuilder<'a> {
                 self.width_of(x, *w);
                 self.width_of(*y, *w);
             }
+            Expr::ToFPFromFP(w, y) => {
+                self.integer(*w);
+                self.bit_vector(*y);
+                self.bit_vector(x);
+                self.width_of(x, *w);
+            }
             Expr::WidthOf(y) => {
                 self.integer(x);
                 self.bit_vector(*y);

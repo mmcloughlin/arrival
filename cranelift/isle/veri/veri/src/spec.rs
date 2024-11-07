@@ -110,6 +110,7 @@ pub enum ExprKind {
     BVConvTo(Expr, Expr),
     ToFP(Expr, Expr),
     ToFPUnsigned(Expr, Expr),
+    ToFPFromFP(Expr, Expr),
 
     // Extract specified bits
     BVExtract(usize, usize, Expr),
@@ -315,6 +316,7 @@ impl ExprKind {
                 SpecOp::WidthOf => unary_expr!(ExprKind::WidthOf, args, pos),
                 SpecOp::ToFP => binary_expr!(ExprKind::ToFP, args, pos),
                 SpecOp::ToFPUnsigned => binary_expr!(ExprKind::ToFPUnsigned, args, pos),
+                SpecOp::ToFPFromFP => binary_expr!(ExprKind::ToFPFromFP, args, pos),
 
                 // Floating point (IEEE)
                 SpecOp::FPPositiveInfinity => unary_expr!(ExprKind::FPPositiveInfinity, args, pos),

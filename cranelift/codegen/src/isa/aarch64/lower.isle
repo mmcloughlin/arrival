@@ -510,7 +510,7 @@
 
 ;;;; Rules for `fdemote` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type $F32 (fdemote x)))
+(rule fdemote (lower (has_type $F32 (fdemote x)))
       (fpu_rr (FPUOp1.Cvt64To32) x (ScalarSize.Size64)))
 
 ;;;; Rules for `ceil` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

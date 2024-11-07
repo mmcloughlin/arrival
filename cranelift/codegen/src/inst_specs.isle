@@ -875,3 +875,39 @@
     ((args (bv 32)) (ret (bv 64)))
     ((args (bv 64)) (ret (bv 32)))
     ((args (bv 64)) (ret (bv 64))))
+
+; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
+(spec (fdemote z)
+    (match
+        ;; Demote only can return bv-32 as written
+        (= (widthof result) 32))
+    (provide
+        (= result
+            ; If z is a canonical NaN, then return an element of nans{} (i.e., a canonical NaN of size N).
+            ; Else if z is a NaN, then return an element of nans{±nan(1)} (i.e., any NaN of size N).
+            (if (fp.isNaN z)
+                ;; Note: derived from Wasm reference interpreter:
+                ;; https://github.com/WebAssembly/spec/blob/268a03da8576cc491d708777e69676724938aec9/interpreter/exec/f32_convert.ml#L4
+                (bvor #x7fc00000
+                     (extract 31 0
+                         (bvor
+                             (bvshl_int! (bvlshr_int! z 63) 31)
+                             (bvlshr_int! (bvshl_int! z 12) 41)
+                         )
+                     )
+                 )
+            ; Else if z is an infinity, then return that infinity.
+            (if (fp.isInfinite z)
+                (if (fp.isNegative z) (fp.-oo 32) (fp.+oo 32))
+            ; Else if z is a zero, then return that zero.
+            (if (fp.isZero z)
+                (if (fp.isNegative z) (fp.-zero 32) (fp.+zero 32))
+            ; Else,return float(z)
+                (to_fp_from_fp 32 z)
+            )))
+        )
+    )
+)
+(instantiate fdemote
+    ((args (bv 64)) (ret (bv 32)))
+)

@@ -1961,7 +1961,7 @@ fn define_fpu_rrr() -> SpecConfig {
 // MInst.FpuRR specification configuration.
 fn define_fpu_rr() -> SpecConfig {
     // FPUOp1
-    let fpu_op1s = [FPUOp1::Neg, FPUOp1::Abs];
+    let fpu_op1s = [FPUOp1::Neg, FPUOp1::Abs, FPUOp1::Cvt64To32];
 
     // ScalarSize
     let sizes = [ScalarSize::Size32, ScalarSize::Size64];
@@ -1974,6 +1974,9 @@ fn define_fpu_rr() -> SpecConfig {
     mappings
         .reads
         .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").allow().build());
 
     SpecConfig {
         term: "MInst.FpuRR".to_string(),
@@ -1991,6 +1994,7 @@ fn define_fpu_rr() -> SpecConfig {
                         on: spec_var("fpu_op".to_string()),
                         arms: fpu_op1s
                             .iter()
+                            .filter(|fpu_op1| is_fpu_op1_size_supported(**fpu_op1, *size))
                             .map(|op| Arm {
                                 variant: format!("{op:?}"),
                                 args: Vec::new(),
@@ -2010,6 +2014,13 @@ fn define_fpu_rr() -> SpecConfig {
                 })
                 .collect(),
         }),
+    }
+}
+
+fn is_fpu_op1_size_supported(fpu_op1: FPUOp1, size: ScalarSize) -> bool {
+    match fpu_op1 {
+        FPUOp1::Cvt64To32 => size == ScalarSize::Size64,
+        _ => true,
     }
 }
 

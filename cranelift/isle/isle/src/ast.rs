@@ -342,6 +342,7 @@ pub enum SpecOp {
     BV2Nat,
     ToFP,
     ToFPUnsigned,
+    ToFPFromFP,
     WidthOf,
 
     // Control operations

@@ -331,6 +331,7 @@ impl<'a> Solver<'a> {
                 .list(vec![self.smt.atom("bv2nat"), self.expr_atom(x)])),
             Expr::ToFP(w, x) => self.to_fp_from_expr(w, x, true),
             Expr::ToFPUnsigned(w, x) => self.to_fp_from_expr(w, x, false),
+            Expr::ToFPFromFP(w, x) => self.to_fp_from_fp(w, x),
             Expr::WidthOf(x) => self.width_of(x),
             Expr::FPPositiveInfinity(x) => Ok(self.fp_value("+oo", x)?),
             Expr::FPNegativeInfinity(x) => Ok(self.fp_value("-oo", x)?),
@@ -692,6 +693,43 @@ impl<'a> Solver<'a> {
         // Return bit-vector that's equal to the expression as a floating point.
         let result = self.declare_bit_vec("conv", width)?;
         let result_as_fp = self.to_fp(result, width)?;
+        self.smt.assert(self.smt.eq(result_as_fp, fp))?;
+
+        Ok(result)
+    }
+
+    fn to_fp_from_fp(&mut self, w: ExprId, xid: ExprId) -> Result<SExpr> {
+        // Destination width expression should have known integer value.
+        let new_width: usize = self
+            .assignment
+            .try_int_value(w)
+            .context(
+                "destination width of to_fp_from_fp expression should have known integer value",
+            )?
+            .try_into()
+            .expect("width should be representable as usize");
+
+        // Convert operand to floating point.
+        let width = self
+            .assignment
+            .try_bit_vector_width(xid)
+            .context("floating point expression must be a bit-vector of known width")?;
+        let x = self.to_fp(self.expr_atom(xid), width)?;
+
+        let (eb, sb) = Self::fp_exponent_significand_bits(new_width)?;
+        let fp = self.smt.list(vec![
+            self.smt.list(vec![
+                self.smt.atoms().und,
+                self.smt.atom("to_fp"),
+                self.smt.numeral(eb),
+                self.smt.numeral(sb),
+            ]),
+            self.smt.atom(ROUNDING_MODE),
+            x,
+        ]);
+        // Return bit-vector that's equal to the expression as a floating point.
+        let result = self.declare_bit_vec("conv", new_width)?;
+        let result_as_fp = self.to_fp(result, new_width)?;
         self.smt.assert(self.smt.eq(result_as_fp, fp))?;
 
         Ok(result)
