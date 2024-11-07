@@ -687,6 +687,8 @@ impl<'a> Parser<'a> {
             "fp.min" => Ok(SpecOp::FPMin),
             "fp.max" => Ok(SpecOp::FPMax),
             "fp.neg" => Ok(SpecOp::FPNeg),
+            "fp.ceil" => Ok(SpecOp::FPCeil),
+            "fp.floor" => Ok(SpecOp::FPFloor),
             "fp.sqrt" => Ok(SpecOp::FPSqrt),
             "fp.isZero" => Ok(SpecOp::FPIsZero),
             "fp.isInfinite" => Ok(SpecOp::FPIsInfinite),

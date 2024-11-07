@@ -125,6 +125,8 @@ pub enum Expr {
     FPMin(ExprId, ExprId),
     FPMax(ExprId, ExprId),
     FPNeg(ExprId),
+    FPCeil(ExprId),
+    FPFloor(ExprId),
     FPSqrt(ExprId),
     FPIsZero(ExprId),
     FPIsInfinite(ExprId),
@@ -158,6 +160,8 @@ impl Expr {
             | Expr::FPNegativeZero(x)
             | Expr::FPNaN(x)
             | Expr::FPNeg(x)
+            | Expr::FPCeil(x)
+            | Expr::FPFloor(x)
             | Expr::FPSqrt(x)
             | Expr::FPIsZero(x)
             | Expr::FPIsInfinite(x)
@@ -297,6 +301,8 @@ impl std::fmt::Display for Expr {
             Expr::FPMin(x, y) => write!(f, "fp.min({}, {})", x.index(), y.index()),
             Expr::FPMax(x, y) => write!(f, "fp.max({}, {})", x.index(), y.index()),
             Expr::FPNeg(x) => write!(f, "fp.neg({})", x.index()),
+            Expr::FPCeil(x) => write!(f, "fp.ceil({})", x.index()),
+            Expr::FPFloor(x) => write!(f, "fp.floor({})", x.index()),
             Expr::FPSqrt(x) => write!(f, "fp.sqrt({})", x.index()),
             Expr::FPIsZero(x) => write!(f, "fp.isZero({})", x.index()),
             Expr::FPIsInfinite(x) => write!(f, "fp.isInfinite({})", x.index()),
@@ -1908,6 +1914,8 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPMin(x, y) => binary_expr!(Expr::FPMin, x, y),
             spec::ExprKind::FPMax(x, y) => binary_expr!(Expr::FPMax, x, y),
             spec::ExprKind::FPNeg(x) => unary_expr!(Expr::FPNeg, x),
+            spec::ExprKind::FPCeil(x) => unary_expr!(Expr::FPCeil, x),
+            spec::ExprKind::FPFloor(x) => unary_expr!(Expr::FPFloor, x),
             spec::ExprKind::FPSqrt(x) => unary_expr!(Expr::FPSqrt, x),
             spec::ExprKind::FPIsZero(x) => unary_expr!(Expr::FPIsZero, x),
             spec::ExprKind::FPIsInfinite(x) => unary_expr!(Expr::FPIsInfinite, x),

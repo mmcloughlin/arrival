@@ -695,3 +695,74 @@
     ;     return result;
     )
 )
+
+(macro (FPRoundInt op fpcr rounding exact)
+    ;bits(N) FPRoundInt(bits(N) op, FPCR_Type fpcr, FPRounding rounding, boolean exact)
+    ;    assert rounding != FPRounding_ODD;
+    ;    assert N IN {16,32,64};
+    ;    // When alternative floating-point support is TRUE, do not generate
+    ;    // Input Denormal floating-point exceptions.
+    ;    altfp = IsFeatureImplemented(FEAT_AFP) && !UsingAArch32() && fpcr.AH == '1';
+    ;    fpexc = !altfp;
+    ;    // Unpack using FPCR to determine if subnormals are flushed-to-zero.
+    ;    (fptype,sign,value) = FPUnpack(op, fpcr, fpexc);
+    (let
+        (
+            (sign (fp.isNegative op))
+            (N (widthof op))
+        )
+    ;    bits(N) result;
+    ;    if fptype == FPType_SNaN || fptype == FPType_QNaN then
+    ;        result = FPProcessNaN(fptype, op, fpcr);
+    (if (fp.isNaN op)
+        (FPProcessNaN! op)
+    ;    elsif fptype == FPType_Infinity then
+    ;        result = FPInfinity(sign, N);
+    (if (fp.isInfinite op)
+        (fp_signed_inf! sign N)
+    ;    elsif fptype == FPType_Zero then
+    ;        result = FPZero(sign, N);
+    (if (fp.isZero op)
+        (fp_signed_zero! sign N)
+    ;    else
+
+;;  FPRounding_TIEEVEN, FPRounding_POSINF, FPRounding_NEGINF,  FPRounding_ZERO, FPRounding_TIEAWAY, FPRounding_ODD
+    ;        // Extract integer component.
+    ;        int_result = RoundDown(value);
+    ;        error = value - Real(int_result);
+    ;        // Determine whether supplied rounding mode requires an increment.
+    ;        boolean round_up;
+    (let ((result
+        (switch rounding
+    ;        case rounding of
+    ;            when FPRounding_TIEEVEN
+    ;                round_up = (error > 0.5 || (error == 0.5 && int_result<0> == '1'));
+    ;            when FPRounding_POSINF
+    ;                round_up = (error != 0.0);
+            (1 (fp.ceil op))
+    ;            when FPRounding_NEGINF
+    ;                round_up = FALSE;
+            (2 (fp.floor op))
+    ;            when FPRounding_ZERO
+    ;                round_up = (error != 0.0 && int_result < 0);
+    ;            when FPRounding_TIEAWAY
+    ;                round_up = (error > 0.5 || (error == 0.5 && int_result >= 0));
+        )
+    ;        if round_up then int_result = int_result + 1;
+    ;        // Convert integer value into an equivalent real value.
+    ;        real_result = Real(int_result);
+    ;        // Re-encode as a floating-point value, result is always exact.
+    ;        if real_result == 0.0 then
+    ;            result = FPZero(sign, N);
+    ;        else
+    ;            result = FPRound(real_result, fpcr, FPRounding_ZERO, N);
+    ;        // Generate inexact exceptions.
+    ;        if error != 0.0 && exact then
+    ;            FPProcessException(FPExc_Inexact, fpcr);
+    ;    return result;
+    ))
+    (if exact
+        (with (unspecified) unspecified)
+        result))
+    ))))
+)

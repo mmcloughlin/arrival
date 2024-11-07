@@ -371,6 +371,8 @@ impl Printable for SpecOp {
             SpecOp::FPMin => "fp.min",
             SpecOp::FPMax => "fp.max",
             SpecOp::FPNeg => "fp.neg",
+            SpecOp::FPCeil => "fp.ceil",
+            SpecOp::FPFloor => "fp.floor",
             SpecOp::FPSqrt => "fp.sqrt",
             SpecOp::FPIsZero => "fp.isZero",
             SpecOp::FPIsInfinite => "fp.isInfinite",

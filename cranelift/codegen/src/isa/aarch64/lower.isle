@@ -518,10 +518,10 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (ceil x)))
       (vec_misc (VecMisc2.Frintp) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (ceil x)))
+(rule ceil_32 (lower (has_type $F32 (ceil x)))
       (fpu_round (FpuRoundMode.Plus32) x))
 
-(rule (lower (has_type $F64 (ceil x)))
+(rule ceil_64 (lower (has_type $F64 (ceil x)))
       (fpu_round (FpuRoundMode.Plus64) x))
 
 ;;;; Rules for `floor` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -529,10 +529,10 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (floor x)))
       (vec_misc (VecMisc2.Frintm) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (floor x)))
+(rule floor_32 (lower (has_type $F32 (floor x)))
       (fpu_round (FpuRoundMode.Minus32) x))
 
-(rule (lower (has_type $F64 (floor x)))
+(rule floor_64 (lower (has_type $F64 (floor x)))
       (fpu_round (FpuRoundMode.Minus64) x))
 
 ;;;; Rules for `trunc` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

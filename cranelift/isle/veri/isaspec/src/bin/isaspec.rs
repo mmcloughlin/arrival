@@ -7,8 +7,8 @@ use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, FPUOp1, FPUOp2, MoveWideConst, MoveWideOp, SImm9, ScalarSize,
-    UImm12Scaled, UImm5, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
+    vreg, writable_vreg, FPUOp1, FPUOp2, FpuRoundMode, MoveWideConst, MoveWideOp, SImm9,
+    ScalarSize, UImm12Scaled, UImm5, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -177,6 +177,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "fpu_rr.isle".into(),
             specs: vec![define_fpu_rr()],
+        },
+        FileConfig {
+            name: "fpu_round.isle".into(),
+            specs: vec![define_fpu_round()],
         },
         FileConfig {
             name: "fpu_rrr.isle".into(),
@@ -2169,6 +2173,61 @@ fn define_int_to_fpu() -> SpecConfig {
                             op: *op,
                             rd: writable_vreg(4),
                             rn: xreg(5),
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+fn define_fpu_round() -> SpecConfig {
+    // FpuRoundMode
+    let modes = [
+        FpuRoundMode::Minus32,
+        FpuRoundMode::Minus64,
+        FpuRoundMode::Plus32,
+        FpuRoundMode::Plus64,
+        FpuRoundMode::Zero32,
+        FpuRoundMode::Zero64,
+        FpuRoundMode::Nearest32,
+        FpuRoundMode::Nearest64,
+    ];
+
+    // FpuRound
+    let mut mappings = Mappings::default();
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").allow().build());
+    mappings
+        .reads
+        .insert(literal("FALSE"), Mapping::require(spec_false()));
+
+    SpecConfig {
+        term: "MInst.FpuRound".to_string(),
+        args: ["mode", "rd", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("mode".to_string()),
+            arms: modes
+                .iter()
+                .rev()
+                .map(|mode| Arm {
+                    variant: format!("{mode:?}"),
+                    args: Vec::new(),
+                    body: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::FpuRound {
+                            op: *mode,
+                            rd: writable_vreg(4),
+                            rn: vreg(5),
                         }),
                         scope: aarch64::state(),
                         mappings: mappings.clone(),

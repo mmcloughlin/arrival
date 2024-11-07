@@ -853,6 +853,64 @@
     ((args (bv 64)) (ret (bv 64)))
 )
 
+; ceil: floating-point ceiling.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (ceil x)
+    (provide
+        (= result
+            ; If z is a NaN, then return an element of nans{z}.
+            (if (fp.isNaN x)
+                (nans1! x)
+            ; Else if z is infinity, then return z.
+            (if (fp.isInfinite x)
+                x
+            ; Else if z is zero, then return z.
+            (if (fp.isZero x)
+                x
+            ; Else if z is smaller than 0 but greater than −1, then return negative zero.
+            (if (and (fp.lt x (fp.-zero (widthof x))) (fp.gt x (fp_minus_one! (widthof x))))
+                (fp.-zero (widthof x))
+            ; Else return the smallest integral value that is not smaller than z.
+                (fp.ceil x)
+            ))))
+        )
+    )
+)
+(instantiate ceil
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
+
+; floor: floating-point floor.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (floor x)
+    (provide
+        (= result
+            ; If z is a NaN, then return an element of nans{z}.
+            (if (fp.isNaN x)
+                (nans1! x)
+            ; Else if z is infinity, then return z.
+            (if (fp.isInfinite x)
+                x
+            ; Else if z is zero, then return z.
+            (if (fp.isZero x)
+                x
+            ; Else if z is greater than 0 but smaller than 1, then return positive zero.
+            (if (and (fp.gt x (fp.-zero (widthof x))) (fp.lt x (fp_one! (widthof x))))
+                (fp.+zero (widthof x))
+            ; Else return the smallest integral value that is not smaller than z.
+                (fp.floor x)
+            ))))
+        )
+    )
+)
+(instantiate floor
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
+
 (spec (bitcast flags x)
     (provide (= result x))
 )
