@@ -7,8 +7,9 @@ use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, FPUOp1, FPUOp2, FpuRoundMode, MoveWideConst, MoveWideOp, SImm9,
-    ScalarSize, UImm12Scaled, UImm5, VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
+    vreg, writable_vreg, FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm,
+    FpuRoundMode, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled, UImm5, VecALUOp,
+    VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -181,6 +182,14 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "fpu_round.isle".into(),
             specs: vec![define_fpu_round()],
+        },
+        FileConfig {
+            name: "fpu_rri.isle".into(),
+            specs: vec![define_fpu_rri()],
+        },
+        FileConfig {
+            name: "fpu_rrimod.isle".into(),
+            specs: vec![define_fpu_rrimod()],
         },
         FileConfig {
             name: "fpu_rrr.isle".into(),
@@ -2235,6 +2244,123 @@ fn define_fpu_round() -> SpecConfig {
                 })
                 .collect(),
         }),
+    }
+}
+
+fn define_fpu_rri() -> SpecConfig {
+    let ops = [
+        (
+            32,
+            FPUOpRI::UShr32(FPURightShiftImm {
+                amount: 31,
+                lane_size_in_bits: 32,
+            }),
+        ),
+        (
+            64,
+            FPUOpRI::UShr64(FPURightShiftImm {
+                amount: 63,
+                lane_size_in_bits: 64,
+            }),
+        ),
+    ];
+    // FpuRRI
+    let mut mappings = Mappings::default();
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+
+    SpecConfig {
+        term: "MInst.FpuRRI".to_string(),
+        args: ["fpu_op", "rd", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Cases(
+            ops.iter()
+                .rev()
+                .map(|(size, fpu_op)| Case {
+                    conds: vec![spec_eq(
+                        spec_field(
+                            "lane_size_in_bits".to_string(),
+                            spec_var("fpu_op".to_string()),
+                        ),
+                        spec_const_bit_vector(*size, 8),
+                    )],
+                    cases: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::FpuRRI {
+                            fpu_op: *fpu_op,
+                            rd: writable_vreg(4),
+                            rn: vreg(5),
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
+                    }),
+                })
+                .collect(),
+        ),
+    }
+}
+
+// ;; Variant of FpuRRI that modifies its `rd`
+fn define_fpu_rrimod() -> SpecConfig {
+    let ops = [
+        (
+            32,
+            FPUOpRIMod::Sli32(FPULeftShiftImm {
+                amount: 31,
+                lane_size_in_bits: 32,
+            }),
+        ),
+        (
+            64,
+            FPUOpRIMod::Sli64(FPULeftShiftImm {
+                amount: 63,
+                lane_size_in_bits: 64,
+            }),
+        ),
+    ];
+    // FpuRRIMod
+    let mut mappings = Mappings::default();
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("ri")));
+    mappings
+        .reads
+        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
+
+    SpecConfig {
+        term: "MInst.FpuRRIMod".to_string(),
+        args: ["fpu_op", "rd", "ri", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Cases(
+            ops.iter()
+                .rev()
+                .map(|(size, fpu_op)| Case {
+                    conds: vec![spec_eq(
+                        spec_field(
+                            "lane_size_in_bits".to_string(),
+                            spec_var("fpu_op".to_string()),
+                        ),
+                        spec_const_bit_vector(*size, 8),
+                    )],
+                    cases: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::FpuRRIMod {
+                            fpu_op: *fpu_op,
+                            rd: writable_vreg(4),
+                            ri: vreg(4),
+                            rn: vreg(5),
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
+                    }),
+                })
+                .collect(),
+        ),
     }
 }
 

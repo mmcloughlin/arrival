@@ -2031,7 +2031,10 @@ impl<'a> ConditionsBuilder<'a> {
         let field = fields
             .iter()
             .find(|f| f.name == name.0)
-            .ok_or(self.error(format!("missing struct field: {}", name.0)))?;
+            .ok_or(self.error(format!(
+                "attempt to access nonexistent struct field: {}",
+                name.0
+            )))?;
 
         Ok(field.value.clone())
     }

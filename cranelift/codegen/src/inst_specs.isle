@@ -974,6 +974,28 @@
     ((args (bv 64)) (ret (bv 64)))
 )
 
+; fcopysign: floating-point copysign.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (fcopysign x y)
+    (provide
+        (= result
+            ; If z1 and z2 have the same sign, then return z1.
+            (if (fp_equal_sign_inc_nan! x y)
+                x
+            ; Else return z1 with negated sign.
+            (if (fp.isNaN x)
+                (nan_neg! x)
+                (fp.neg x)
+            ))
+        )
+    )
+)
+(instantiate fcopysign
+    ((args (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (bv 64) (bv 64)) (ret (bv 64)))
+)
+
 (spec (bitcast flags x)
     (provide (= result x))
 )

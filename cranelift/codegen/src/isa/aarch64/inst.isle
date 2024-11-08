@@ -1556,7 +1556,21 @@
 ))
 
 (type FPUOpRI extern (enum))
+(model FPUOpRI (type
+      (struct
+            (size (bv 8))
+            (amount (bv 8))
+            (lane_size_in_bits (bv 8))
+      )
+))
 (type FPUOpRIMod extern (enum))
+(model FPUOpRIMod (type
+      (struct
+            (size (bv 8))
+            (amount (bv 8))
+            (lane_size_in_bits (bv 8))
+      )
+))
 
 (type OperandSize extern
       (enum Size32
@@ -2306,11 +2320,25 @@
 ;; and the amount to shift by.
 (decl fpu_op_ri_ushr (u8 u8) FPUOpRI)
 (extern constructor fpu_op_ri_ushr fpu_op_ri_ushr)
+(spec (fpu_op_ri_ushr ty_bits shift)
+      (provide
+            (= (:size result) ty_bits)
+            (= (:amount result) shift)
+            (= (:lane_size_in_bits result) ty_bits)
+      )
+)
 
 ;; Constructs an FPUOpRIMod.Sli* given the size in bits of the value (or lane)
 ;; and the amount to shift by.
 (decl fpu_op_ri_sli (u8 u8) FPUOpRIMod)
 (extern constructor fpu_op_ri_sli fpu_op_ri_sli)
+(spec (fpu_op_ri_sli ty_bits shift)
+      (provide
+            (= (:size result) ty_bits)
+            (= (:amount result) shift)
+            (= (:lane_size_in_bits result) ty_bits)
+      )
+)
 
 (decl pure partial lshr_from_u64 (Type u64) ShiftOpAndAmt)
 (extern constructor lshr_from_u64 lshr_from_u64)
@@ -4386,20 +4414,22 @@
 (decl max_shift (Type) u8)
 (rule (max_shift $F64) 63)
 (rule (max_shift $F32) 31)
+(attr max_shift (veri chain))
 
 ;; Helper for generating `fcopysign` instruction sequences.
-
 (decl fcopy_sign (Reg Reg Type) Reg)
 (rule 1 (fcopy_sign x y (ty_scalar_float ty))
       (let ((dst WritableReg (temp_writable_reg $F64))
             (tmp Reg (fpu_rri (fpu_op_ri_ushr (ty_bits ty) (max_shift ty)) y))
             (_ Unit (emit (MInst.FpuRRIMod (fpu_op_ri_sli (ty_bits ty) (max_shift ty)) dst x tmp))))
        dst))
-(rule (fcopy_sign x y ty @ (multi_lane _ _))
+(rule fcopy_sign_vec (fcopy_sign x y ty @ (multi_lane _ _))
       (let ((dst WritableReg (temp_writable_reg $I8X16))
             (tmp Reg (ushr_vec_imm y (max_shift (lane_type ty)) (vector_size ty)))
             (_ Unit (emit (MInst.VecShiftImmMod (VecShiftImmModOp.Sli) dst x tmp (vector_size ty) (max_shift (lane_type ty))))))
        dst))
+(attr fcopy_sign (veri chain))
+(attr rule fcopy_sign_vec (tag TODO))
 
 ;; Helpers for generating `MInst.FpuToInt` instructions.
 
