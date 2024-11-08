@@ -1,4 +1,27 @@
 {
+	"icmp": [
+		"wasm_category_comparison",
+		"wasm_category_loads",
+		"wasm_category_stores",
+		"wasm_proposal_mvp"
+	],
+	"iconst": [
+		"wasm_category_const",
+		"wasm_category_loads",
+		"wasm_category_stores",
+		"wasm_proposal_mvp"
+	],
+	"isub": [
+		"wasm_category_binary",
+		"wasm_category_loads",
+		"wasm_category_stores",
+		"wasm_proposal_mvp"
+	],
+	"uadd_overflow_trap": [
+		"wasm_category_loads",
+		"wasm_category_stores",
+		"wasm_proposal_mvp"
+	],
 	"uload8": [
 		"wasm_category_loads",
 		"wasm_proposal_mvp"
@@ -41,10 +64,6 @@
 	],
 	"istore32": [
 		"wasm_category_stores",
-		"wasm_proposal_mvp"
-	],
-	"iconst": [
-		"wasm_category_const",
 		"wasm_proposal_mvp"
 	],
 	"f32const": [
@@ -176,10 +195,6 @@
 		"wasm_category_binary",
 		"wasm_proposal_mvp"
 	],
-	"isub": [
-		"wasm_category_binary",
-		"wasm_proposal_mvp"
-	],
 	"fsub": [
 		"wasm_category_binary",
 		"wasm_proposal_mvp"
@@ -222,10 +237,6 @@
 	],
 	"fcopysign": [
 		"wasm_category_binary",
-		"wasm_proposal_mvp"
-	],
-	"icmp": [
-		"wasm_category_comparison",
 		"wasm_proposal_mvp"
 	],
 	"icmp_imm": [

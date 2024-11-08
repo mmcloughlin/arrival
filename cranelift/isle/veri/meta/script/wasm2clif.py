@@ -122,6 +122,16 @@ def derive_arm_translation(arm):
     if "translate_fcmp(" in arm.body:
         instructions.append("fcmp")
         instructions.append("uextend")
+    if "translate_store(" in arm.body or "translate_load(" in arm.body:
+        # prepare_addr
+        instructions.append("uadd_overflow_trap")
+        # bounds_checks::bounds_check_and_compute_addr
+        instructions.append("icmp")
+        instructions.append("isub")
+        instructions.append("iconst")
+
+    # Deduplicate and sort
+    instructions = sorted(list(set(instructions)))
 
     return Translation(operators, instructions)
 

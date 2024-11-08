@@ -2553,7 +2553,6 @@
 				"BrTable"
 			],
 			"instructions": [
-				"br_table",
 				"br_table"
 			]
 		},
@@ -2623,6 +2622,10 @@
 				"I32Load8U"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"uadd_overflow_trap",
 				"uload8"
 			]
 		},
@@ -2631,6 +2634,10 @@
 				"I32Load16U"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"uadd_overflow_trap",
 				"uload16"
 			]
 		},
@@ -2639,7 +2646,11 @@
 				"I32Load8S"
 			],
 			"instructions": [
-				"sload8"
+				"icmp",
+				"iconst",
+				"isub",
+				"sload8",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2647,7 +2658,11 @@
 				"I32Load16S"
 			],
 			"instructions": [
-				"sload16"
+				"icmp",
+				"iconst",
+				"isub",
+				"sload16",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2655,6 +2670,10 @@
 				"I64Load8U"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"uadd_overflow_trap",
 				"uload8"
 			]
 		},
@@ -2663,6 +2682,10 @@
 				"I64Load16U"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"uadd_overflow_trap",
 				"uload16"
 			]
 		},
@@ -2671,7 +2694,11 @@
 				"I64Load8S"
 			],
 			"instructions": [
-				"sload8"
+				"icmp",
+				"iconst",
+				"isub",
+				"sload8",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2679,7 +2706,11 @@
 				"I64Load16S"
 			],
 			"instructions": [
-				"sload16"
+				"icmp",
+				"iconst",
+				"isub",
+				"sload16",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2687,7 +2718,11 @@
 				"I64Load32S"
 			],
 			"instructions": [
-				"sload32"
+				"icmp",
+				"iconst",
+				"isub",
+				"sload32",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2695,6 +2730,10 @@
 				"I64Load32U"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"uadd_overflow_trap",
 				"uload32"
 			]
 		},
@@ -2703,7 +2742,11 @@
 				"I32Load"
 			],
 			"instructions": [
-				"load"
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2711,7 +2754,11 @@
 				"F32Load"
 			],
 			"instructions": [
-				"load"
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2719,7 +2766,11 @@
 				"I64Load"
 			],
 			"instructions": [
-				"load"
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2727,7 +2778,11 @@
 				"F64Load"
 			],
 			"instructions": [
-				"load"
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2735,7 +2790,11 @@
 				"V128Load"
 			],
 			"instructions": [
-				"load"
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2794,7 +2853,11 @@
 				"F64Store"
 			],
 			"instructions": [
-				"store"
+				"icmp",
+				"iconst",
+				"isub",
+				"store",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2803,7 +2866,11 @@
 				"I64Store8"
 			],
 			"instructions": [
-				"istore8"
+				"icmp",
+				"iconst",
+				"istore8",
+				"isub",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2812,7 +2879,11 @@
 				"I64Store16"
 			],
 			"instructions": [
-				"istore16"
+				"icmp",
+				"iconst",
+				"istore16",
+				"isub",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2820,7 +2891,11 @@
 				"I64Store32"
 			],
 			"instructions": [
-				"istore32"
+				"icmp",
+				"iconst",
+				"istore32",
+				"isub",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -2828,7 +2903,11 @@
 				"V128Store"
 			],
 			"instructions": [
-				"store"
+				"icmp",
+				"iconst",
+				"isub",
+				"store",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -4076,8 +4155,12 @@
 				"V128Load64Splat"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
 				"splat",
-				"load"
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -4086,8 +4169,12 @@
 				"V128Load64Zero"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
+				"isub",
+				"load",
 				"scalar_to_vector",
-				"load"
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -4098,8 +4185,12 @@
 				"V128Load64Lane"
 			],
 			"instructions": [
+				"icmp",
+				"iconst",
 				"insertlane",
-				"load"
+				"isub",
+				"load",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -4111,7 +4202,11 @@
 			],
 			"instructions": [
 				"extractlane",
-				"store"
+				"icmp",
+				"iconst",
+				"isub",
+				"store",
+				"uadd_overflow_trap"
 			]
 		},
 		{
@@ -4151,8 +4246,8 @@
 				"I16x8ReplaceLane"
 			],
 			"instructions": [
-				"ireduce",
-				"insertlane"
+				"insertlane",
+				"ireduce"
 			]
 		},
 		{
@@ -4407,8 +4502,8 @@
 				"V128AnyTrue"
 			],
 			"instructions": [
-				"vany_true",
-				"uextend"
+				"uextend",
+				"vany_true"
 			]
 		},
 		{
@@ -4419,8 +4514,8 @@
 				"I64x2AllTrue"
 			],
 			"instructions": [
-				"vall_true",
-				"uextend"
+				"uextend",
+				"vall_true"
 			]
 		},
 		{
@@ -4617,8 +4712,8 @@
 				"F64x2PMax"
 			],
 			"instructions": [
-				"fcmp",
-				"bitselect"
+				"bitselect",
+				"fcmp"
 			]
 		},
 		{
@@ -4627,8 +4722,8 @@
 				"F64x2PMin"
 			],
 			"instructions": [
-				"fcmp",
-				"bitselect"
+				"bitselect",
+				"fcmp"
 			]
 		},
 		{
@@ -4679,8 +4774,8 @@
 				"F64x2ConvertLowI32x4S"
 			],
 			"instructions": [
-				"swiden_low",
-				"fcvt_from_sint"
+				"fcvt_from_sint",
+				"swiden_low"
 			]
 		},
 		{
@@ -4688,8 +4783,8 @@
 				"F64x2ConvertLowI32x4U"
 			],
 			"instructions": [
-				"uwiden_low",
-				"fcvt_from_uint"
+				"fcvt_from_uint",
+				"uwiden_low"
 			]
 		},
 		{
@@ -4722,8 +4817,8 @@
 			],
 			"instructions": [
 				"fcvt_to_sint_sat",
-				"vconst",
-				"snarrow"
+				"snarrow",
+				"vconst"
 			]
 		},
 		{
@@ -4742,8 +4837,8 @@
 			],
 			"instructions": [
 				"fcvt_to_uint_sat",
-				"vconst",
-				"uunarrow"
+				"uunarrow",
+				"vconst"
 			]
 		},
 		{
@@ -4879,9 +4974,9 @@
 				"I16x8ExtAddPairwiseI8x16S"
 			],
 			"instructions": [
-				"swiden_low",
+				"iadd_pairwise",
 				"swiden_high",
-				"iadd_pairwise"
+				"swiden_low"
 			]
 		},
 		{
@@ -4889,9 +4984,9 @@
 				"I32x4ExtAddPairwiseI16x8S"
 			],
 			"instructions": [
-				"swiden_low",
+				"iadd_pairwise",
 				"swiden_high",
-				"iadd_pairwise"
+				"swiden_low"
 			]
 		},
 		{
@@ -4899,9 +4994,9 @@
 				"I16x8ExtAddPairwiseI8x16U"
 			],
 			"instructions": [
-				"uwiden_low",
+				"iadd_pairwise",
 				"uwiden_high",
-				"iadd_pairwise"
+				"uwiden_low"
 			]
 		},
 		{
@@ -4909,9 +5004,9 @@
 				"I32x4ExtAddPairwiseI16x8U"
 			],
 			"instructions": [
-				"uwiden_low",
+				"iadd_pairwise",
 				"uwiden_high",
-				"iadd_pairwise"
+				"uwiden_low"
 			]
 		},
 		{
@@ -4955,13 +5050,10 @@
 				"I32x4DotI16x8S"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
+				"iadd_pairwise",
 				"imul",
 				"swiden_high",
-				"swiden_high",
-				"imul",
-				"iadd_pairwise"
+				"swiden_low"
 			]
 		},
 		{
@@ -4985,9 +5077,8 @@
 				"I16x8ExtMulLowI8x16S"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
-				"imul"
+				"imul",
+				"swiden_low"
 			]
 		},
 		{
@@ -4995,9 +5086,8 @@
 				"I16x8ExtMulHighI8x16S"
 			],
 			"instructions": [
-				"swiden_high",
-				"swiden_high",
-				"imul"
+				"imul",
+				"swiden_high"
 			]
 		},
 		{
@@ -5005,9 +5095,8 @@
 				"I16x8ExtMulLowI8x16U"
 			],
 			"instructions": [
-				"uwiden_low",
-				"uwiden_low",
-				"imul"
+				"imul",
+				"uwiden_low"
 			]
 		},
 		{
@@ -5015,9 +5104,8 @@
 				"I16x8ExtMulHighI8x16U"
 			],
 			"instructions": [
-				"uwiden_high",
-				"uwiden_high",
-				"imul"
+				"imul",
+				"uwiden_high"
 			]
 		},
 		{
@@ -5025,9 +5113,8 @@
 				"I32x4ExtMulLowI16x8S"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
-				"imul"
+				"imul",
+				"swiden_low"
 			]
 		},
 		{
@@ -5035,9 +5122,8 @@
 				"I32x4ExtMulHighI16x8S"
 			],
 			"instructions": [
-				"swiden_high",
-				"swiden_high",
-				"imul"
+				"imul",
+				"swiden_high"
 			]
 		},
 		{
@@ -5045,9 +5131,8 @@
 				"I32x4ExtMulLowI16x8U"
 			],
 			"instructions": [
-				"uwiden_low",
-				"uwiden_low",
-				"imul"
+				"imul",
+				"uwiden_low"
 			]
 		},
 		{
@@ -5055,9 +5140,8 @@
 				"I32x4ExtMulHighI16x8U"
 			],
 			"instructions": [
-				"uwiden_high",
-				"uwiden_high",
-				"imul"
+				"imul",
+				"uwiden_high"
 			]
 		},
 		{
@@ -5065,9 +5149,8 @@
 				"I64x2ExtMulLowI32x4S"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
-				"imul"
+				"imul",
+				"swiden_low"
 			]
 		},
 		{
@@ -5075,9 +5158,8 @@
 				"I64x2ExtMulHighI32x4S"
 			],
 			"instructions": [
-				"swiden_high",
-				"swiden_high",
-				"imul"
+				"imul",
+				"swiden_high"
 			]
 		},
 		{
@@ -5085,9 +5167,8 @@
 				"I64x2ExtMulLowI32x4U"
 			],
 			"instructions": [
-				"uwiden_low",
-				"uwiden_low",
-				"imul"
+				"imul",
+				"uwiden_low"
 			]
 		},
 		{
@@ -5095,9 +5176,8 @@
 				"I64x2ExtMulHighI32x4U"
 			],
 			"instructions": [
-				"uwiden_high",
-				"uwiden_high",
-				"imul"
+				"imul",
+				"uwiden_high"
 			]
 		},
 		{
@@ -5112,9 +5192,9 @@
 				"F64x2RelaxedMax"
 			],
 			"instructions": [
-				"fmax",
+				"bitselect",
 				"fcmp",
-				"bitselect"
+				"fmax"
 			]
 		},
 		{
@@ -5123,9 +5203,9 @@
 				"F64x2RelaxedMin"
 			],
 			"instructions": [
-				"fmin",
+				"bitselect",
 				"fcmp",
-				"bitselect"
+				"fmin"
 			]
 		},
 		{
@@ -5143,9 +5223,9 @@
 				"F64x2RelaxedMadd"
 			],
 			"instructions": [
+				"fadd",
 				"fma",
-				"fmul",
-				"fadd"
+				"fmul"
 			]
 		},
 		{
@@ -5154,10 +5234,10 @@
 				"F64x2RelaxedNmadd"
 			],
 			"instructions": [
-				"fneg",
+				"fadd",
 				"fma",
 				"fmul",
-				"fadd"
+				"fneg"
 			]
 		},
 		{
@@ -5187,9 +5267,9 @@
 			],
 			"instructions": [
 				"fcvt_to_sint_sat",
-				"x86_cvtt2dq",
+				"snarrow",
 				"vconst",
-				"snarrow"
+				"x86_cvtt2dq"
 			]
 		},
 		{
@@ -5206,13 +5286,10 @@
 				"I16x8RelaxedDotI8x16I7x16S"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
-				"imul",
-				"swiden_high",
-				"swiden_high",
-				"imul",
 				"iadd_pairwise",
+				"imul",
+				"swiden_high",
+				"swiden_low",
 				"x86_pmaddubsw"
 			]
 		},
@@ -5221,18 +5298,12 @@
 				"I32x4RelaxedDotI8x16I7x16AddS"
 			],
 			"instructions": [
-				"swiden_low",
-				"swiden_low",
+				"iadd",
+				"iadd_pairwise",
 				"imul",
 				"swiden_high",
-				"swiden_high",
-				"imul",
-				"iadd_pairwise",
-				"x86_pmaddubsw",
 				"swiden_low",
-				"swiden_high",
-				"iadd_pairwise",
-				"iadd"
+				"x86_pmaddubsw"
 			]
 		},
 		{
