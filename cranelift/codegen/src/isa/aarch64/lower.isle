@@ -540,10 +540,10 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (trunc x)))
       (vec_misc (VecMisc2.Frintz) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (trunc x)))
+(rule trunc_32 (lower (has_type $F32 (trunc x)))
       (fpu_round (FpuRoundMode.Zero32) x))
 
-(rule (lower (has_type $F64 (trunc x)))
+(rule trunc_64 (lower (has_type $F64 (trunc x)))
       (fpu_round (FpuRoundMode.Zero64) x))
 
 ;;;; Rules for `nearest` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

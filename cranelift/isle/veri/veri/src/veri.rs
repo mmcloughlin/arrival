@@ -128,6 +128,7 @@ pub enum Expr {
     FPCeil(ExprId),
     FPFloor(ExprId),
     FPSqrt(ExprId),
+    FPTrunc(ExprId),
     FPNearest(ExprId),
     FPIsZero(ExprId),
     FPIsInfinite(ExprId),
@@ -164,6 +165,7 @@ impl Expr {
             | Expr::FPCeil(x)
             | Expr::FPFloor(x)
             | Expr::FPSqrt(x)
+            | Expr::FPTrunc(x)
             | Expr::FPNearest(x)
             | Expr::FPIsZero(x)
             | Expr::FPIsInfinite(x)
@@ -306,6 +308,7 @@ impl std::fmt::Display for Expr {
             Expr::FPCeil(x) => write!(f, "fp.ceil({})", x.index()),
             Expr::FPFloor(x) => write!(f, "fp.floor({})", x.index()),
             Expr::FPSqrt(x) => write!(f, "fp.sqrt({})", x.index()),
+            Expr::FPTrunc(x) => write!(f, "fp.trunc({})", x.index()),
             Expr::FPNearest(x) => write!(f, "fp.nearest({})", x.index()),
             Expr::FPIsZero(x) => write!(f, "fp.isZero({})", x.index()),
             Expr::FPIsInfinite(x) => write!(f, "fp.isInfinite({})", x.index()),
@@ -1920,6 +1923,7 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPCeil(x) => unary_expr!(Expr::FPCeil, x),
             spec::ExprKind::FPFloor(x) => unary_expr!(Expr::FPFloor, x),
             spec::ExprKind::FPSqrt(x) => unary_expr!(Expr::FPSqrt, x),
+            spec::ExprKind::FPTrunc(x) => unary_expr!(Expr::FPTrunc, x),
             spec::ExprKind::FPNearest(x) => unary_expr!(Expr::FPNearest, x),
             spec::ExprKind::FPIsZero(x) => unary_expr!(Expr::FPIsZero, x),
             spec::ExprKind::FPIsInfinite(x) => unary_expr!(Expr::FPIsInfinite, x),

@@ -401,7 +401,8 @@ impl<'a> SystemBuilder<'a> {
             | Expr::FPSqrt(y)
             | Expr::FPCeil(y)
             | Expr::FPFloor(y)
-            | Expr::FPNearest(y) => {
+            | Expr::FPNearest(y)
+            | Expr::FPTrunc(y) => {
                 self.bit_vector(x);
                 self.bit_vector(*y);
 

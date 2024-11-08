@@ -911,6 +911,37 @@
     ((args (bv 64)) (ret (bv 64)))
 )
 
+; trunc: floating-point truncate.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (trunc x)
+    (provide
+        (= result
+            ; If z is a NaN, then return an element of nans{z}.
+            (if (fp.isNaN x)
+                (nans1! x)
+            ; Else if z is infinity, then return z.
+            (if (fp.isInfinite x)
+                x
+            ; Else if z is a zero, then return z.
+            (if (fp.isZero x)
+                x
+            ; Else if z is greater than 0 but smaller than 1, then return positive zero.
+            (if (and (fp.gt x (fp.+zero (widthof x))) (fp.lt x (fp_one! (widthof x))))
+                (fp.+zero (widthof x))
+            ; Else if z is smaller than 0 but greater than −1, then return negative zero.
+            (if (and (fp.lt x (fp.-zero (widthof x))) (fp.gt x (fp_minus_one! (widthof x))))
+                (fp.-zero (widthof x))
+            ; Else return the integral value with the same sign as z and the largest magnitude that is not larger than the magnitude of z.
+                (fp.trunc x)
+            )))))
+        )
+    )
+)
+(instantiate trunc
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
 ; nearest: floating-point nearest.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).

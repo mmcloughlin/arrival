@@ -57,6 +57,7 @@ static UNSPECIFIED_SORT: &str = "Unspecified";
 static UNIT_SORT: &str = "Unit";
 
 static ROUND_NEAREST_TIES_TO_EVEN: &str = "roundNearestTiesToEven";
+static ROUND_TOWARD_ZERO: &str = "roundTowardZero";
 static ROUND_TOWARD_POSITIVE: &str = "roundTowardPositive";
 static ROUND_TOWARD_NEGATIVE: &str = "roundTowardNegative";
 static ROUNDING_MODE: &str = ROUND_NEAREST_TIES_TO_EVEN;
@@ -364,6 +365,9 @@ impl<'a> Solver<'a> {
                 Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_TOWARD_NEGATIVE, x)?)
             }
             Expr::FPSqrt(x) => Ok(self.fp_unary("fp.sqrt", x)?),
+            Expr::FPTrunc(x) => {
+                Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_TOWARD_ZERO, x)?)
+            }
             Expr::FPNearest(x) => {
                 Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_NEAREST_TIES_TO_EVEN, x)?)
             }
