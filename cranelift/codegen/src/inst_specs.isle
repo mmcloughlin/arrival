@@ -911,6 +911,38 @@
     ((args (bv 64)) (ret (bv 64)))
 )
 
+; nearest: floating-point nearest.
+;
+; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
+(spec (nearest x)
+    (provide
+        (= result
+            ; If z is a NaN, then return an element of nans{z}.
+            (if (fp.isNaN x)
+                (nans1! x)
+            ; Else if z is infinity, then return z.
+            (if (fp.isInfinite x)
+                x
+            ; Else if z is zero, then return z.
+            (if (fp.isZero x)
+                x
+            ; Else if z is greater than 0 but smaller than or equal to 0.5, then return positive zero.
+            (if (and (fp.gt x (fp.+zero (widthof x))) (fp.le x (fp_half! (widthof x))))
+                (fp.+zero (widthof x))
+            ; Else if z is smaller than 0 but greater than or equal to −0.5, then return negative zero.
+            (if (and (fp.lt x (fp.-zero (widthof x))) (fp.ge x (fp_minus_half! (widthof x))))
+                (fp.-zero (widthof x))
+            ; Else return the integral value that is nearest to z; if two values are equally near, return the even one.
+                (fp.nearest x)
+            )))))
+        )
+    )
+)
+(instantiate nearest
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64)))
+)
+
 (spec (bitcast flags x)
     (provide (= result x))
 )

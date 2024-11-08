@@ -56,9 +56,10 @@ enum RotationDirection {
 static UNSPECIFIED_SORT: &str = "Unspecified";
 static UNIT_SORT: &str = "Unit";
 
-static ROUNDING_MODE: &str = "roundNearestTiesToEven";
+static ROUND_NEAREST_TIES_TO_EVEN: &str = "roundNearestTiesToEven";
 static ROUND_TOWARD_POSITIVE: &str = "roundTowardPositive";
 static ROUND_TOWARD_NEGATIVE: &str = "roundTowardNegative";
+static ROUNDING_MODE: &str = ROUND_NEAREST_TIES_TO_EVEN;
 
 pub struct Solver<'a> {
     smt: Context,
@@ -363,6 +364,9 @@ impl<'a> Solver<'a> {
                 Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_TOWARD_NEGATIVE, x)?)
             }
             Expr::FPSqrt(x) => Ok(self.fp_unary("fp.sqrt", x)?),
+            Expr::FPNearest(x) => {
+                Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_NEAREST_TIES_TO_EVEN, x)?)
+            }
             Expr::FPIsZero(x) => Ok(self.fp_unary_predicate("fp.isZero", x)?),
             Expr::FPIsInfinite(x) => Ok(self.fp_unary_predicate("fp.isInfinite", x)?),
             Expr::FPIsNaN(x) => Ok(self.fp_unary_predicate("fp.isNaN", x)?),

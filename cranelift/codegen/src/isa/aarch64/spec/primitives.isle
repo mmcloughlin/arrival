@@ -737,6 +737,7 @@
     ;        case rounding of
     ;            when FPRounding_TIEEVEN
     ;                round_up = (error > 0.5 || (error == 0.5 && int_result<0> == '1'));
+            (0 (fp.nearest op))
     ;            when FPRounding_POSINF
     ;                round_up = (error != 0.0);
             (1 (fp.ceil op))

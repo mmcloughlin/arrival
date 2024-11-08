@@ -551,10 +551,10 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (nearest x)))
       (vec_misc (VecMisc2.Frintn) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (nearest x)))
+(rule nearest_32 (lower (has_type $F32 (nearest x)))
       (fpu_round (FpuRoundMode.Nearest32) x))
 
-(rule (lower (has_type $F64 (nearest x)))
+(rule nearest_64 (lower (has_type $F64 (nearest x)))
       (fpu_round (FpuRoundMode.Nearest64) x))
 
 ;;;; Rules for `fma` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

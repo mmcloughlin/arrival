@@ -326,6 +326,7 @@ pub enum SpecOp {
     FPCeil,
     FPFloor,
     FPSqrt,
+    FPNearest,
     FPIsZero,
     FPIsInfinite,
     FPIsNaN,
