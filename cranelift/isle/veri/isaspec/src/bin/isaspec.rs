@@ -1977,6 +1977,7 @@ fn define_fpu_rr() -> SpecConfig {
     let fpu_op1s = [
         FPUOp1::Neg,
         FPUOp1::Abs,
+        FPUOp1::Sqrt,
         FPUOp1::Cvt64To32,
         FPUOp1::Cvt32To64,
     ];

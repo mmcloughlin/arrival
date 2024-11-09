@@ -484,7 +484,7 @@
 (rule -1 (lower (has_type ty @ (multi_lane _ _) (sqrt x)))
       (vec_misc (VecMisc2.Fsqrt) x (vector_size ty)))
 
-(rule (lower (has_type (ty_scalar_float ty) (sqrt x)))
+(rule fsqrt (lower (has_type (ty_scalar_float ty) (sqrt x)))
       (fpu_rr (FPUOp1.Sqrt) x (scalar_size ty)))
 
 ;;;; Rules for `fneg` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

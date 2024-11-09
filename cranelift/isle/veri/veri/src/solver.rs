@@ -364,7 +364,9 @@ impl<'a> Solver<'a> {
             Expr::FPFloor(x) => {
                 Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_TOWARD_NEGATIVE, x)?)
             }
-            Expr::FPSqrt(x) => Ok(self.fp_unary("fp.sqrt", x)?),
+            Expr::FPSqrt(x) => {
+                Ok(self.fp_rounding_unary("fp.sqrt", ROUND_NEAREST_TIES_TO_EVEN, x)?)
+            }
             Expr::FPTrunc(x) => {
                 Ok(self.fp_rounding_unary("fp.roundToIntegral", ROUND_TOWARD_ZERO, x)?)
             }

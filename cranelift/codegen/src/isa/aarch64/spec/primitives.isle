@@ -772,3 +772,35 @@
         result))
     ))))
 )
+
+(macro (FPSqrt op fpcr)
+; bits(N) FPSqrt(bits(N) op, FPCRType fpcr)
+    ;     assert N IN {16,32,64};
+    ;     (fptype,sign,value) = FPUnpack(op, fpcr);
+    ;     if fptype == FPType_SNaN || fptype == FPType_QNaN then
+    (let
+        (
+            (sign (fp.isNegative op))
+            (N (widthof op))
+        )
+        (if (fp.isNaN op)
+            (FPProcessNaN! op)
+    ;         result = FPProcessNaN(fptype, op, fpcr);
+    ;     elsif fptype == FPType_Zero then
+    ;         result = FPZero(sign);
+        (if (fp.isZero op)
+            (fp_signed_zero! sign N)
+    ;     elsif fptype == FPType_Infinity && sign == '0' then
+    ;         result = FPInfinity(sign);
+        (if (and (fp.isInfinite op) (not sign))
+            (fp.+oo N)
+    ;     elsif sign == '1' then
+    ;         result = FPDefaultNaN();
+    ;         FPProcessException(FPExc_InvalidOp, fpcr);
+        (if sign
+        (nan_canon! N)
+    ;     else
+    ;         result = FPRound(Sqrt(value), fpcr);
+        (fp.sqrt op))))))
+    ;     return result;
+)
