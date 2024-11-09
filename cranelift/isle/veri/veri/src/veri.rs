@@ -881,6 +881,14 @@ impl Conditions {
 
         Ok(())
     }
+
+    pub fn error_at_expr(&self, prog: &Program, x: ExprId, msg: impl Into<String>) -> Error {
+        if let Some(pos) = self.pos.get(&x) {
+            prog.error_at_pos(*pos, msg).into()
+        } else {
+            Error::msg(msg.into())
+        }
+    }
 }
 
 enum TermKind {

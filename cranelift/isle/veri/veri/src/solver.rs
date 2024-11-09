@@ -1,9 +1,10 @@
 use std::{cmp::Ordering, iter::zip};
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{bail, Context as _, Error, Result};
 use easy_smt::{Context, Response, SExpr, SExprData};
 
 use crate::{
+    program::Program,
     type_inference::Assignment,
     types::{Const, Type, Width},
     veri::{Conditions, Expr, ExprId, Model},
@@ -64,6 +65,7 @@ static ROUNDING_MODE: &str = ROUND_NEAREST_TIES_TO_EVEN;
 
 pub struct Solver<'a> {
     smt: Context,
+    prog: &'a Program,
     conditions: &'a Conditions,
     assignment: &'a Assignment,
     tmp_idx: usize,
@@ -72,11 +74,13 @@ pub struct Solver<'a> {
 impl<'a> Solver<'a> {
     pub fn new(
         smt: Context,
+        prog: &'a Program,
         conditions: &'a Conditions,
         assignment: &'a Assignment,
     ) -> Result<Self> {
         let mut solver = Self {
             smt,
+            prog,
             conditions,
             assignment,
             tmp_idx: 0,
@@ -411,7 +415,7 @@ impl<'a> Solver<'a> {
         // Build zero_extend expression.
         let padding = dst
             .checked_sub(src)
-            .expect("cannot zero extend to smaller width");
+            .ok_or(self.error(x, "cannot zero extend to smaller width"))?;
         Ok(self.zero_extend(padding, self.expr_atom(x)))
     }
 
@@ -435,7 +439,7 @@ impl<'a> Solver<'a> {
         // Build sign_extend expression.
         let padding = dst
             .checked_sub(src)
-            .expect("cannot sign extend to smaller width");
+            .ok_or(self.error(x, "cannot sign extend to smaller width"))?;
         Ok(self.sign_extend(padding, self.expr_atom(x)))
     }
 
@@ -896,5 +900,9 @@ impl<'a> Solver<'a> {
                 self.smt.bvlshr(source, wrapped_amount),
             ),
         }
+    }
+
+    fn error(&self, x: ExprId, msg: impl Into<String>) -> Error {
+        self.conditions.error_at_expr(self.prog, x, msg)
     }
 }
