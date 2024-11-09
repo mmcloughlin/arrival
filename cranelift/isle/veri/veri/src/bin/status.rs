@@ -21,6 +21,10 @@ struct Opts {
     #[arg(long, required = true)]
     work_dir: std::path::PathBuf,
 
+    /// Tag defining in-scope expansions.
+    #[arg(long = "include-tag", value_name = "TAG")]
+    include_tag: String,
+
     /// Skip expansions containing terms with this tag.
     #[arg(long = "skip-tag", value_name = "TAG")]
     skip_tags: Vec<String>,
@@ -60,14 +64,20 @@ fn main() -> Result<()> {
     expander.expand();
 
     // Show status.
-    status(expander.expansions(), &opts.skip_tags, &prog);
+    status(
+        expander.expansions(),
+        opts.include_tag,
+        &opts.skip_tags,
+        &prog,
+    );
 
     Ok(())
 }
 
-fn status(expansions: &Vec<Expansion>, skip_tags: &[String], prog: &Program) {
+fn status(expansions: &Vec<Expansion>, include_tag: String, skip_tags: &[String], prog: &Program) {
     // Report config
     println!("CONFIG");
+    println!("include_tag\t{include_tag}");
     println!("skip_tags\t{skip_tags}", skip_tags = skip_tags.join(","));
     println!();
 
@@ -79,7 +89,7 @@ fn status(expansions: &Vec<Expansion>, skip_tags: &[String], prog: &Program) {
     for expansion in expansions {
         total += 1;
 
-        if skip(expansion, skip_tags, prog) {
+        if !expansion_in_scope(expansion, &include_tag, skip_tags, prog) {
             num_out_of_scope += 1;
             continue;
         }
@@ -116,14 +126,22 @@ fn status(expansions: &Vec<Expansion>, skip_tags: &[String], prog: &Program) {
     }
 }
 
-fn skip(expansion: &Expansion, skip_tags: &[String], prog: &Program) -> bool {
+fn expansion_in_scope(
+    expansion: &Expansion,
+    include_tag: &String,
+    skip_tags: &[String],
+    prog: &Program,
+) -> bool {
     let tags = expansion.tags(prog);
+    if !tags.contains(include_tag) {
+        return false;
+    }
     for tag in skip_tags {
         if tags.contains(tag) {
-            return true;
+            return false;
         }
     }
-    false
+    true
 }
 
 fn unspecified_terms(expansion: &Expansion, prog: &Program) -> Vec<TermId> {
