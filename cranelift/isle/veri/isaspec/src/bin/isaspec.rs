@@ -1974,7 +1974,12 @@ fn define_fpu_rrr() -> SpecConfig {
 // MInst.FpuRR specification configuration.
 fn define_fpu_rr() -> SpecConfig {
     // FPUOp1
-    let fpu_op1s = [FPUOp1::Neg, FPUOp1::Abs, FPUOp1::Cvt64To32];
+    let fpu_op1s = [
+        FPUOp1::Neg,
+        FPUOp1::Abs,
+        FPUOp1::Cvt64To32,
+        FPUOp1::Cvt32To64,
+    ];
 
     // ScalarSize
     let sizes = [ScalarSize::Size32, ScalarSize::Size64];
@@ -2033,6 +2038,7 @@ fn define_fpu_rr() -> SpecConfig {
 fn is_fpu_op1_size_supported(fpu_op1: FPUOp1, size: ScalarSize) -> bool {
     match fpu_op1 {
         FPUOp1::Cvt64To32 => size == ScalarSize::Size64,
+        FPUOp1::Cvt32To64 => size == ScalarSize::Size32,
         _ => true,
     }
 }
@@ -2156,10 +2162,9 @@ fn define_int_to_fpu() -> SpecConfig {
     mappings
         .reads
         .insert(literal("TRUE"), Mapping::allow(spec_true()));
-    mappings.writes.insert(
-        aarch64::vreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
+    mappings
+        .writes
+        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
     mappings.reads.insert(
         aarch64::gpreg(5),
         Mapping::require(spec_var("rn".to_string())),

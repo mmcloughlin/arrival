@@ -505,7 +505,7 @@
 
 ;;;; Rules for `fpromote` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type $F64 (fpromote x)))
+(rule fpromote (lower (has_type $F64 (fpromote x)))
       (fpu_rr (FPUOp1.Cvt32To64) x (ScalarSize.Size32)))
 
 ;;;; Rules for `fdemote` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

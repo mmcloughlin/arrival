@@ -23,7 +23,7 @@
                             (t1 t3)
                             (and
                                 (= t1 (zero_ext 4 (extract 23 22 fpcr)))
-                                (= t3 (FPConvert! (extract 63 0 (conv_to 128 (as rn (bv 64)))) fpcr (bv2nat t1)))
+                                (= t3 (FPConvert! (extract 63 0 (conv_to 128 (as rn (bv 64)))) fpcr (bv2nat t1) 32 64))
                                 (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))))
             ((Size32)
                 (match
@@ -37,11 +37,16 @@
                                     (bvnot (extract 31 31 (conv_to 128 (as rn (bv 64)))))
                                     (extract 30 0 (conv_to 128 (as rn (bv 64))))))))
                     ((Abs)
-                        (=
-                            (conv_to 128 (as rd (bv 64)))
-                            (zero_ext 128 (extract 30 0 (conv_to 128 (as rn (bv 64)))))))))))
+                        (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 (extract 30 0 (conv_to 128 (as rn (bv 64)))))))
+                    ((Cvt32To64)
+                        (with
+                            (t1 t3)
+                            (and
+                                (= t1 (zero_ext 4 (extract 23 22 fpcr)))
+                                (= t3 (FPConvert! (extract 31 0 (conv_to 128 (as rn (bv 64)))) fpcr (bv2nat t1) 64 32))
+                                (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))))))
     (require
         (match
             size
             ((Size64) (match fpu_op ((Neg) true) ((Abs) true) ((Cvt64To32) true)))
-            ((Size32) (match fpu_op ((Neg) true) ((Abs) true))))))
+            ((Size32) (match fpu_op ((Neg) true) ((Abs) true) ((Cvt32To64) true))))))

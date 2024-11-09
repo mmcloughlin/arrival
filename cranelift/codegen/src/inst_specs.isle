@@ -1054,3 +1054,31 @@
 (instantiate fdemote
     ((args (bv 64)) (ret (bv 32)))
 )
+
+; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
+(spec (fpromote z)
+    (match
+        ;; Promote only can return bv-32 as written
+        (= (widthof result) 64))
+    (provide
+        (= result
+            ; If z is a canonical NaN, then return an element of nans{} (i.e., a canonical NaN of size N).
+            ; Else if z is a NaN, then return an element of nans{±nan(1)} (i.e., any arithmetic NaN of size N).
+            (if (fp.isNaN z)
+                ;; Note: derived from Wasm reference interpreter:
+                ;; https://github.com/WebAssembly/spec/blob/5d12bd74c49932deb7ab4bae3d29bf106f19d10b/interpreter/exec/f64_convert.ml#L4
+                (bvor #x7ff8000000000000
+                    (bvor
+                        (bvshl_int! (bvlshr_int! (zero_ext 64 z) 31) 63)
+                        (bvlshr_int! (bvshl_int! (zero_ext 64 z) 41) 12)
+                    )
+                )
+            ; Else, return z.
+                (to_fp_from_fp 64 z)
+            )
+        )
+    )
+)
+(instantiate fpromote
+    ((args (bv 32)) (ret (bv 64)))
+)

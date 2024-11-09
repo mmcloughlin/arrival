@@ -573,7 +573,8 @@ impl Translator {
                 self.mem_read(addr, size, access)
             }
             "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" | "FPCompare"
-            | "FixedToFP" | "FPConvert" | "FPRoundInt" => self.primitive(&func.name, args),
+            | "FixedToFP" | "FPRoundInt" => self.primitive(&func.name, args),
+            "FPConvert" => self.primitive_with_types(&func.name, types, args),
             unexpected => todo!("func: {unexpected}"),
         }
     }
@@ -674,6 +675,20 @@ impl Translator {
                 .iter()
                 .map(|arg| self.expr(arg))
                 .collect::<Result<_>>()?,
+            pos: Pos::default(),
+        })
+    }
+
+    fn primitive_with_types(
+        &mut self,
+        name: &str,
+        types: &[Expr],
+        args: &[Expr],
+    ) -> Result<SpecExpr> {
+        let all_args = args.iter().chain(types);
+        Ok(SpecExpr::Macro {
+            name: spec_ident(name.to_string()),
+            args: all_args.map(|arg| self.expr(arg)).collect::<Result<_>>()?,
             pos: Pos::default(),
         })
     }

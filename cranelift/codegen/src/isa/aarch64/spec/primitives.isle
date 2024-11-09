@@ -613,7 +613,7 @@
 )
 
 ;; FPCompare: Floating point comparison
-(macro (FPConvert op fpcr rounding)
+(macro (FPConvert op fpcr rounding M N)
     ; bits(M) FPConvert(bits(N) op, FPCRType fpcr, FPRounding rounding)
     ;     assert M IN {16,32,64};
     ;     assert N IN {16,32,64};
@@ -622,7 +622,6 @@
     ;     (fptype,sign,value) = FPUnpackCV(op, fpcr);
     (let
         (
-            (M 32)
             (sign (fp.isNegative op))
         )
     ;     alt_hp = (M == 16) && (fpcr.AHP == '1');
@@ -636,7 +635,7 @@
     ;         if fptype == FPType_SNaN || alt_hp then
     ;             FPProcessException(FPExc_InvalidOp,fpcr);
     (if (fp.isNaN op)
-        (FPConvertNaN! op M)
+        (conv_to 64 (FPConvertNaN! op M N))
     ;     else if fptype == FPType_Infinity then
     ;         if alt_hp then
     ;             result = sign:Ones(M-1);
@@ -660,7 +659,7 @@
     )))))
 )
 
-(macro (FPConvertNaN op M)
+(macro (FPConvertNaN x M N)
     ; bits(M) FPConvertNaN(bits(N) op, integer M)
     ;     assert N IN {16,32,64};
     ;     assert M IN {16,32,64};
@@ -669,8 +668,13 @@
     ;     sign = op<N-1>;
     (let
         (
-            (N (widthof op))
-            (sign (extract 63 63 op))
+            (op (zero_ext 64 x))
+            (sign
+                (if (= N 64)
+                (extract 63 63 op)
+                (extract 31 31 op)
+                )
+            )
     ;     // Unpack payload from input NaN
     ;     case N of
             (frac (switch N
