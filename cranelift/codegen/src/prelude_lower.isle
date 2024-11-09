@@ -1243,6 +1243,23 @@
 ;; Helper for extracting an immediate that's not 0 and not -1 from an imm64.
 (decl pure partial safe_divisor_from_imm64 (Type Imm64) u64)
 (extern constructor safe_divisor_from_imm64 safe_divisor_from_imm64)
+;; Implemented in the same style as the Rust implementation
+(spec (safe_divisor_from_imm64 ty arg)
+      (match
+            (let (
+                  (minus1 (zero_ext 64 (bvones! ty)))
+                  (zero (bvzero! 64))
+                  (bits (bvand arg minus1))
+            )
+            (and
+                  (not (= bits minus1))
+                  (not (= bits zero)))))
+      (provide
+            (let (
+                  (minus1 (zero_ext 64 (bvones! ty)))
+                  (bits (bvand arg minus1))
+            )
+            (= result bits))))
 
 ;;;; Automatic conversions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

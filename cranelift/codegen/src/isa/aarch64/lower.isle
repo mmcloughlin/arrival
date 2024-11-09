@@ -1085,7 +1085,7 @@
 
 ;; Special case for `sdiv` where no checks are needed due to division by a
 ;; constant meaning the checks are always passed.
-(rule 1 (lower (has_type (fits_in_64 ty) (sdiv x (iconst imm))))
+(rule sdiv_safe_divisor 1 (lower (has_type (fits_in_64 ty) (sdiv x (iconst imm))))
       (if-let y (safe_divisor_from_imm64 ty imm))
       (a64_sdiv $I64 (put_in_reg_sext64 x) (imm ty (ImmExtend.Sign) y)))
 
