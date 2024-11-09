@@ -588,6 +588,13 @@
       )
 )
 
+(spec (ConsumesFlags.ConsumesFlagsSideEffect inst)
+      (provide
+            (= (:flags result) (:flags_in inst))
+            (not (:has_result result))
+      )
+)
+
 ;; Get the produced register out of a ProducesFlags.
 (decl produces_flags_get_reg (ProducesFlags) Reg)
 (rule (produces_flags_get_reg (ProducesFlags.ProducesFlagsReturnsReg _ reg)) reg)
@@ -640,6 +647,9 @@
             )
             (=> (and (not (:has_result producer)) (:has_result consumer))
                   (= (:lo result) (:result consumer))
+            )
+            (=> (and (:has_result producer) (not (:has_result consumer)))
+                  (= (:lo result) (:result producer))
             )
       )
 )

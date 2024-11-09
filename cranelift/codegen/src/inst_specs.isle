@@ -228,6 +228,39 @@
 )
 (instantiate srem bv_binary_8_to_64)
 
+;; "Unsigned addition of x and y, trapping if the result overflows."
+;; "Accepts 32 or 64-bit integers, and does not support vector types."
+(spec (uadd_overflow_trap x y trap_code)
+    (modifies clif_trap)
+    (provide
+        (let
+            (
+                (N (widthof x))
+                ;; Use at least 1 extra bit for unsigned overflow
+                (sum (bvadd (zero_ext 65 x) (zero_ext 65 y)))
+                ;; Unsigned overflow if some carry out.
+                (carry
+                    (switch N
+                        (32 (extract 32 32 sum))
+                        (64 (extract 64 64 sum))))
+            )
+            (if (= carry #b1)
+                clif_trap
+                (and
+                    (not clif_trap)
+                    (= result (conv_to N sum))
+                )
+            )
+        )
+    )
+)
+
+(instantiate uadd_overflow_trap
+    ((args (bv 32) (bv 32) (named TrapCode)) (ret (bv 32)))
+    ((args (bv 64) (bv 64) (named TrapCode)) (ret (bv 64)))
+)
+
+
 (spec (iconst arg)
     (provide (= arg (zero_ext 64 result))))
 (instantiate iconst
