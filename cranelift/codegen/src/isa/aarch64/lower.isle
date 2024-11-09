@@ -688,13 +688,13 @@
 (rule fcvt_from_uint_f32_u32 (lower (has_type $F32 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))
       (int_to_fpu (IntToFpuOp.U32ToF32) (put_in_reg_zext32 x)))
 
-(rule (lower (has_type $F64 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))
+(rule fcvt_from_uint_f64_u32 (lower (has_type $F64 (fcvt_from_uint x @ (value_type (fits_in_32 _)))))
       (int_to_fpu (IntToFpuOp.U32ToF64) (put_in_reg_zext32 x)))
 
-(rule 1 (lower (has_type $F32 (fcvt_from_uint x @ (value_type $I64))))
+(rule fcvt_from_uint_f32_u64 1 (lower (has_type $F32 (fcvt_from_uint x @ (value_type $I64))))
       (int_to_fpu (IntToFpuOp.U64ToF32) x))
 
-(rule 1 (lower (has_type $F64 (fcvt_from_uint x @ (value_type $I64))))
+(rule fcvt_from_uint_f64_u64 1 (lower (has_type $F64 (fcvt_from_uint x @ (value_type $I64))))
       (int_to_fpu (IntToFpuOp.U64ToF64) x))
 
 ;;;; Rules for `fcvt_from_sint` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -705,16 +705,16 @@
 (rule -1 (lower (has_type ty @ (multi_lane 64 _) (fcvt_from_sint x @ (value_type (multi_lane 64 _)))))
       (vec_misc (VecMisc2.Scvtf) x (vector_size ty)))
 
-(rule (lower (has_type $F32 (fcvt_from_sint x @ (value_type (fits_in_32 _)))))
+(rule fcvt_from_uint_f32_i32 (lower (has_type $F32 (fcvt_from_sint x @ (value_type (fits_in_32 _)))))
       (int_to_fpu (IntToFpuOp.I32ToF32) (put_in_reg_sext32 x)))
 
-(rule (lower (has_type $F64 (fcvt_from_sint x @ (value_type (fits_in_32 _)))))
+(rule fcvt_from_uint_f64_i32 (lower (has_type $F64 (fcvt_from_sint x @ (value_type (fits_in_32 _)))))
       (int_to_fpu (IntToFpuOp.I32ToF64) (put_in_reg_sext32 x)))
 
-(rule 1 (lower (has_type $F32 (fcvt_from_sint x @ (value_type $I64))))
+(rule fcvt_from_uint_f32_i64 1 (lower (has_type $F32 (fcvt_from_sint x @ (value_type $I64))))
       (int_to_fpu (IntToFpuOp.I64ToF32) x))
 
-(rule 1 (lower (has_type $F64 (fcvt_from_sint x @ (value_type $I64))))
+(rule fcvt_from_uint_f64_i64 1 (lower (has_type $F64 (fcvt_from_sint x @ (value_type $I64))))
       (int_to_fpu (IntToFpuOp.I64ToF64) x))
 
 ;;;; Rules for `fcvt_to_uint_sat` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

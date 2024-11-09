@@ -573,8 +573,8 @@ impl Translator {
                 self.mem_read(addr, size, access)
             }
             "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" | "FPCompare" | "FPSqrt"
-            | "FixedToFP" | "FPRoundInt" => self.primitive(&func.name, args),
-            "FPConvert" => self.primitive_with_types(&func.name, types, args),
+            | "FPRoundInt" => self.primitive(&func.name, args),
+            "FPConvert" | "FixedToFP" => self.primitive_with_types(&func.name, types, args),
             unexpected => todo!("func: {unexpected}"),
         }
     }

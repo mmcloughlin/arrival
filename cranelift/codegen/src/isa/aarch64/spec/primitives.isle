@@ -575,7 +575,7 @@
 
 ;; // Convert M-bit fixed point 'op' with FBITS fractional bits to
 ;; // N-bit precision floating point, controlled by UNSIGNED and ROUNDING.
-(macro (FixedToFP op fbits unsigned fpcr rounding)
+(macro (FixedToFP op fbits unsigned fpcr rounding M N)
 ; bits(N) FixedToFP(bits(M) op, integer fbits, boolean unsigned, FPCRType fpcr, FPRounding rounding)
 ;     assert N IN {16,32,64};
 ;     assert M IN {16,32,64};
@@ -597,8 +597,8 @@
         (
             (result
                 (if unsigned
-                    (to_fp_unsigned (widthof op) op)
-                    (to_fp (widthof op) op)))
+                    (to_fp_unsigned N (conv_to N (zero_ext 64 op)))
+                    (to_fp N (conv_to N (sign_ext 64 op)))))
         )
         (if (and
                 ;; fbits of 0 means we can use pure integer logic

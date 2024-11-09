@@ -1041,16 +1041,25 @@
     ((args (named MemFlags) (bv 64)) (ret (bv 64)))
 )
 
+(form fcvt
+    ((args (bv 32)) (ret (bv 32)))
+    ((args (bv 32)) (ret (bv 64)))
+    ((args (bv 64)) (ret (bv 32)))
+    ((args (bv 64)) (ret (bv 64))))
+
 (spec (fcvt_from_uint x)
     (provide
         (let ((N (widthof result)))
             (= result (to_fp_unsigned N (conv_to N (zero_ext 64 x))))))
 )
-(instantiate fcvt_from_uint
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 32)) (ret (bv 64)))
-    ((args (bv 64)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64))))
+(instantiate fcvt_from_uint fcvt)
+
+(spec (fcvt_from_sint x)
+    (provide
+        (let ((N (widthof result)))
+            (= result (to_fp N (conv_to N (sign_ext 64 x))))))
+)
+(instantiate fcvt_from_sint fcvt)
 
 ; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
 (spec (fdemote z)

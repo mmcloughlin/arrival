@@ -2163,9 +2163,11 @@ fn define_int_to_fpu() -> SpecConfig {
     mappings
         .reads
         .insert(literal("TRUE"), Mapping::allow(spec_true()));
-    mappings
-        .writes
-        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
+
+    mappings.writes.insert(
+        aarch64::vreg(4),
+        Mapping::require(spec_var("rd".to_string())),
+    );
     mappings.reads.insert(
         aarch64::gpreg(5),
         Mapping::require(spec_var("rn".to_string())),
