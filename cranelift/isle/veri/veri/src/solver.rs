@@ -154,6 +154,20 @@ impl<'a> Solver<'a> {
         Ok(verdict)
     }
 
+    pub fn exit(&mut self) -> Result<()> {
+        // Send (exit) command.
+        let exit = self.smt.list(vec![self.smt.atom("exit")]);
+        self.smt.raw_send(exit)?;
+
+        // Expect success response.
+        let resp = self.smt.raw_recv()?;
+        let atoms = self.smt.atoms();
+        if resp != atoms.success {
+            bail!("bad solver exit: {}", self.smt.display(resp))
+        }
+        Ok(())
+    }
+
     pub fn model(&mut self) -> Result<Model> {
         let xs: Vec<_> = (0..self.conditions.exprs.len()).map(ExprId).collect();
         let expr_atoms = xs.iter().map(|x| self.expr_atom(*x)).collect();

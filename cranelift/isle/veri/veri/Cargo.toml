@@ -10,7 +10,7 @@ log = { workspace = true }
 env_logger = { workspace = true }
 anyhow = { workspace = true, features = ['std', 'backtrace'] }
 clap = { workspace = true, features = ['default', 'env'] }
-easy-smt = "0.2"
+easy-smt = "0.2.3"
 
 [dev-dependencies]
 tempfile = { workspace = true }

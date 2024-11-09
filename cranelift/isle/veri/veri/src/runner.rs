@@ -374,6 +374,8 @@ impl Runner {
             Verification::Success | Verification::Unknown => (),
         };
 
+        solver.exit()?;
+
         Ok(())
     }
 
