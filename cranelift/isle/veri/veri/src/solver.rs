@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, iter::zip};
 
-use anyhow::{bail, Context as _, Error, Result};
+use anyhow::{bail, format_err, Context as _, Error, Result};
 use easy_smt::{Context, Response, SExpr, SExprData};
 
 use crate::{
@@ -209,7 +209,9 @@ impl<'a> Solver<'a> {
 
     fn assign_expr(&mut self, x: ExprId, expr: &Expr) -> Result<()> {
         let lhs = self.smt.atom(self.expr_name(x));
-        let rhs = self.expr_to_smt(expr)?;
+        let rhs = self
+            .expr_to_smt(expr)
+            .map_err(|err| self.error(x, err.to_string()))?;
         Ok(self.smt.assert(
             self.smt
                 .named(format!("expr{}", x.index()), self.smt.eq(lhs, rhs)),
@@ -429,7 +431,7 @@ impl<'a> Solver<'a> {
         // Build zero_extend expression.
         let padding = dst
             .checked_sub(src)
-            .ok_or(self.error(x, "cannot zero extend to smaller width"))?;
+            .ok_or(format_err!("cannot zero extend to smaller width"))?;
         Ok(self.zero_extend(padding, self.expr_atom(x)))
     }
 
@@ -453,7 +455,7 @@ impl<'a> Solver<'a> {
         // Build sign_extend expression.
         let padding = dst
             .checked_sub(src)
-            .ok_or(self.error(x, "cannot sign extend to smaller width"))?;
+            .ok_or(format_err!("cannot sign extend to smaller width"))?;
         Ok(self.sign_extend(padding, self.expr_atom(x)))
     }
 
