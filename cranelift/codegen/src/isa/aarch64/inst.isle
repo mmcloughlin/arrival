@@ -1013,17 +1013,23 @@
 (attr MInst.FpuRRRR (tag float))
 (attr MInst.FpuCmp (tag float))
 (attr MInst.FpuLoad16 (tag float))
+(attr MInst.FpuLoad16 (tag narrowfloat))
 (attr MInst.FpuStore16 (tag float))
+(attr MInst.FpuStore16 (tag narrowfloat))
 (attr MInst.FpuLoad32 (tag float))
 (attr MInst.FpuStore32 (tag float))
 (attr MInst.FpuLoad64 (tag float))
 (attr MInst.FpuStore64 (tag float))
 (attr MInst.FpuLoad128 (tag float))
+(attr MInst.FpuLoad128 (tag i128))
 (attr MInst.FpuStore128 (tag float))
+(attr MInst.FpuStore128 (tag i128))
 (attr MInst.FpuLoadP64 (tag float))
 (attr MInst.FpuStoreP64 (tag float))
 (attr MInst.FpuLoadP128 (tag float))
+(attr MInst.FpuLoadP128 (tag i128))
 (attr MInst.FpuStoreP128 (tag float))
+(attr MInst.FpuStoreP128 (tag i128))
 (attr MInst.FpuToInt (tag float))
 (attr MInst.IntToFpu (tag float))
 (attr MInst.FpuCSel16 (tag float))
@@ -1060,6 +1066,8 @@
 (attr MInst.VecTbl2Ext (tag vector))
 (attr MInst.VecLoadReplicate (tag vector))
 (attr MInst.VecCSel (tag vector))
+
+(attr MInst.LoadAcquire (tag atomics))
 
 (model MInst
       (type
@@ -1624,6 +1632,7 @@
 (rule (scalar_size $F64) (ScalarSize.Size64))
 
 ;; Helper for calculating the `ScalarSize` lane type from vector type
+(attr lane_size (tag vector))
 (decl lane_size (Type) ScalarSize)
 (rule 1 (lane_size (multi_lane 8 _)) (ScalarSize.Size8))
 (rule 1 (lane_size (multi_lane 16 _)) (ScalarSize.Size16))
@@ -1712,6 +1721,7 @@
 ))
 
 ;; Helper for calculating the `VectorSize` corresponding to a type
+(attr vector_size (tag vector))
 (decl vector_size (Type) VectorSize)
 (rule 1 (vector_size (multi_lane 8 8)) (VectorSize.Size8x8))
 (rule 1 (vector_size (multi_lane 8 16)) (VectorSize.Size8x16))
@@ -4429,7 +4439,7 @@
             (_ Unit (emit (MInst.VecShiftImmMod (VecShiftImmModOp.Sli) dst x tmp (vector_size ty) (max_shift (lane_type ty))))))
        dst))
 (attr fcopy_sign (veri chain))
-(attr rule fcopy_sign_vec (tag TODO))
+(attr rule fcopy_sign_vec (tag vector))
 
 ;; Helpers for generating `MInst.FpuToInt` instructions.
 
@@ -4873,7 +4883,7 @@
         (MInst.CSet tmp2 cond)
         (MInst.CSel dst (Cond.Eq) tmp1 tmp2)
         (value_reg dst))))
-(attr rule lower_icmp_i128_consumer (tag TODO))
+(attr rule lower_icmp_i128_consumer (tag i128))
 
 (decl lower_bmask (Type Type ValueRegs) ValueRegs)
 

@@ -2534,12 +2534,13 @@
        (store flags value @ (value_type $F64) address offset))
       (side_effect
        (aarch64_fpustore64 (amode $F64 address offset) flags value)))
-(rule (lower
+(attr rule store_f128 (tag i128))
+(rule store_f128 (lower
        (store flags value @ (value_type $F128) address offset))
       (side_effect
        (aarch64_fpustore128 (amode $F128 address offset) flags value)))
-
-(rule (lower
+(attr rule store_i128 (tag i128))
+(rule store_i128 (lower
        (store flags value @ (value_type $I128) address offset))
       (side_effect
        (aarch64_storep64 (pair_amode address offset) flags
@@ -2606,6 +2607,7 @@
 
 ;; extractlane with lane 0 can pass through the value unchanged; upper
 ;; bits are undefined when a narrower type is in a wider register.
+(attr extractlane (tag vector))
 (rule 2 (lower (has_type (ty_scalar_float _) (extractlane val (u8_from_uimm8 0))))
       val)
 

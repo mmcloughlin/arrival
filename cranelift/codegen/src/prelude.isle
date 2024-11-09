@@ -667,15 +667,18 @@
 (decl pure partial ty_vec64 (Type) Type)
 (extern constructor ty_vec64 ty_vec64_ctor)
 (extern extractor ty_vec64 ty_vec64)
+(attr ty_vec64 (tag vector))
 
 ;; An extractor that only matches 128-bit vector types.
 (decl ty_vec128 (Type) Type)
 (extern extractor ty_vec128 ty_vec128)
+(attr ty_vec128 (tag vector))
 
 ;; An extractor that only matches dynamic vector types with a 64-bit
 ;; base type.
 (decl ty_dyn_vec64 (Type) Type)
 (extern extractor ty_dyn_vec64 ty_dyn_vec64)
+(attr ty_dyn_vec64 (tag vector))
 
 ;; An extractor that only matches dynamic vector types with a 128-bit
 ;; base type.
