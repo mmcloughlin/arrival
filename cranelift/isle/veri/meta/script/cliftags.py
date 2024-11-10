@@ -189,6 +189,10 @@ def op_category(op):
     return CATEGORIES.get(op, None)
 
 
+ALLOW_NO_INSTRUCTIONS = {
+    "Drop",
+}
+
 def build_clif_tags(data, in_scope_proposals, ignore_categories=None):
     ignore_categories = ignore_categories or set()
     op_proposal = {op["op"]: op["proposal"] for op in data["operators"]}
@@ -211,7 +215,7 @@ def build_clif_tags(data, in_scope_proposals, ignore_categories=None):
 
             # Expect corresponding CLIF instructions
             instructions = translation["instructions"]
-            assert len(instructions) > 0, f"no instructions for {op}"
+            assert op in ALLOW_NO_INSTRUCTIONS or len(instructions) > 0, f"no instructions for {op}"
             for instruction in instructions:
                 tags = clif_tags.setdefault(instruction, set())
                 tags.add(f"wasm_proposal_{proposal}")
@@ -237,7 +241,6 @@ def main(args):
     ignore_categories = set([
         "locals",
         "globals",
-        "stack",
         "control_flow",
         "calls",
         "memory_management",

@@ -1,4 +1,8 @@
 {
+	"select": [
+		"wasm_category_stack",
+		"wasm_proposal_mvp"
+	],
 	"icmp": [
 		"wasm_category_comparison",
 		"wasm_category_loads",
