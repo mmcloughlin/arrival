@@ -57,6 +57,7 @@ enum ExpansionPredicate {
     FirstRuleNamed,
     Specified,
     Tagged(String),
+    Root(String),
     ContainsRule(String),
     Not(Box<ExpansionPredicate>),
     And(Box<ExpansionPredicate>, Box<ExpansionPredicate>),
@@ -76,6 +77,8 @@ impl FromStr for ExpansionPredicate {
             ExpansionPredicate::Specified
         } else if let Some(tag) = s.strip_prefix("tag:") {
             ExpansionPredicate::Tagged(tag.to_string())
+        } else if let Some(term) = s.strip_prefix("root:") {
+            ExpansionPredicate::Root(term.to_string())
         } else if let Some(rule) = s.strip_prefix("rule:") {
             ExpansionPredicate::ContainsRule(rule.to_string())
         } else {
@@ -283,6 +286,7 @@ impl Runner {
                 let tags = expansion.tags(&self.prog);
                 tags.contains(tag)
             }
+            ExpansionPredicate::Root(term) => self.prog.term_name(expansion.term) == term,
             ExpansionPredicate::ContainsRule(identifier) => {
                 let rule = self
                     .prog
