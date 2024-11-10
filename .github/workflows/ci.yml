@@ -67,6 +67,6 @@ jobs:
         if: github.event_name == 'push'
         with:
           name: veri-${{ matrix.arch }}
-          path: ${{ runner.workspace }}/output/${{ matrix.arch }}.veri
+          path: ${{ runner.workspace }}/output
           if-no-files-found: error
           compression-level: 9
