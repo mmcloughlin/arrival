@@ -2442,7 +2442,7 @@
 (rule (lower
        (sload16 flags address offset))
       (aarch64_sload16 (amode $I16 address offset) flags))
-(rule (lower
+(rule uload32 (lower
        (uload32 flags address offset))
       (aarch64_uload32 (amode $I32 address offset) flags))
 (rule (lower
