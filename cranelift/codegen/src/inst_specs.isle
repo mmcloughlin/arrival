@@ -507,6 +507,33 @@
 ; Loads have a large number of expansions and instantiations.
 (attr uload32 (tag slow))
 
+(spec (istore32 flags value p offset)
+    (modifies clif_store)
+    (provide
+        ; Activate the CLIF store effect
+        (:active clif_store)
+
+        ; TODO(mbm): store flags
+
+        ; Store size is of width 32.
+        (= (:size_bits clif_store) 32)
+
+        ; Address calculation.
+        (= (:addr clif_store) (bvadd p (sign_ext 64 offset)))
+
+        ; Stored value is set to the low bits of the CLIF store value.
+        (= (conv_to 32 (:value clif_store)) (extract 31 0 value))
+
+        ; HACK: Result of the store is a 1-bit vector.
+        (= result #b1)
+    )
+)
+(instantiate istore32
+    ((args (named MemFlags) (bv 64) (named Value) (named Offset32)) (ret (bv 1)))
+)
+; Stores have a large number of expansions and instantiations.
+(attr istore32 (tag slow))
+
 ;; Floating Point Instructions
 
 ; NaN Propagation: see WebAssembly Specification 2.0, section 4.3.3
