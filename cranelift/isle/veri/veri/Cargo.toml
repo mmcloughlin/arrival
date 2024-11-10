@@ -10,7 +10,8 @@ log = { workspace = true }
 env_logger = { workspace = true }
 anyhow = { workspace = true, features = ['std', 'backtrace'] }
 clap = { workspace = true, features = ['default', 'env'] }
-easy-smt = "0.2.3"
+easy-smt = { git = "https://github.com/mmcloughlin/easy-smt.git", rev = "2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef" }
+rayon = "1"
 
 [dev-dependencies]
 tempfile = { workspace = true }

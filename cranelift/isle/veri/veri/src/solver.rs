@@ -71,6 +71,13 @@ pub struct Solver<'a> {
     tmp_idx: usize,
 }
 
+impl Drop for Solver<'_> {
+    fn drop(&mut self) {
+        // Attempt clean exit.
+        let _ = self.exit();
+    }
+}
+
 impl<'a> Solver<'a> {
     pub fn new(
         smt: Context,

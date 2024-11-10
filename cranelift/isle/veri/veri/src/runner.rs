@@ -9,6 +9,7 @@ use std::{
 
 use anyhow::{bail, format_err, Error, Result};
 use cranelift_isle::{sema::TermId, trie_again::RuleSet};
+use rayon::prelude::*;
 
 use crate::{
     debug::print_expansion,
@@ -219,14 +220,21 @@ impl Runner {
         // Process expansions.
         let expansions = expander.expansions();
         log::info!("expansions: {n}", n = expansions.len());
-        for (i, expansion) in expansions.iter().enumerate() {
-            if !self.should_verify(expansion)? {
-                continue;
-            }
 
-            let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
-            self.verify_expansion(expansion, i, expansion_log_dir)?;
-        }
+        expansions
+            .par_iter()
+            .enumerate()
+            .try_for_each(|(i, expansion)| -> Result<()> {
+                // Skip?
+                if !self.should_verify(expansion)? {
+                    return Ok(());
+                }
+
+                let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
+                self.verify_expansion(expansion, i, expansion_log_dir)?;
+
+                Ok(())
+            })?;
 
         Ok(())
     }
@@ -398,8 +406,6 @@ impl Runner {
             }
             Verification::Success | Verification::Unknown => (),
         };
-
-        solver.exit()?;
 
         Ok(())
     }

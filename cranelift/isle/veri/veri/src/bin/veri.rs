@@ -31,11 +31,15 @@ struct Opts {
     #[arg(long, default_value = "10")]
     timeout: u64,
 
+    /// Number of threads to use.
+    #[arg(long, default_value = "1")]
+    num_threads: usize,
+
     /// Log directory.
     #[arg(long)]
     log_dir: Option<std::path::PathBuf>,
 
-    /// Write results to files under log directory.
+    /// Write results to files under log directory. (Use 0 to select automatically.)
     #[arg(long)]
     results_to_log_dir: bool,
 
@@ -83,6 +87,12 @@ impl From<SolverBackendOption> for SolverBackend {
 fn main() -> Result<()> {
     env_logger::builder().format_target(false).init();
     let opts = Opts::parse();
+
+    // Setup thread pool.
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(opts.num_threads)
+        .build_global()?;
+    log::info!("num theads: {}", rayon::current_num_threads());
 
     // Read ISLE inputs.
     let inputs = opts.isle_input_files()?;

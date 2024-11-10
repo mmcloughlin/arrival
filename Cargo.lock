@@ -759,6 +759,7 @@ dependencies = [
  "easy-smt",
  "env_logger",
  "log",
+ "rayon",
  "tempfile",
 ]
 
@@ -1113,8 +1114,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "easy-smt"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee5054785ce68b71f74d78f7bc7efd5533278a93562f1c4e839c271a59a48db9"
+source = "git+https://github.com/mmcloughlin/easy-smt.git?rev=2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef#2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef"
 dependencies = [
  "log",
  "unicode-segmentation",
