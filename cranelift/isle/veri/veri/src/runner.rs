@@ -55,8 +55,10 @@ impl SolverBackend {
 #[derive(Debug, Clone)]
 enum ExpansionPredicate {
     FirstRuleNamed,
+    Specified,
     Tagged(String),
     ContainsRule(String),
+    Not(Box<ExpansionPredicate>),
     And(Box<ExpansionPredicate>, Box<ExpansionPredicate>),
 }
 
@@ -66,8 +68,12 @@ impl FromStr for ExpansionPredicate {
     fn from_str(s: &str) -> Result<Self> {
         Ok(if let Some((p, q)) = s.split_once(',') {
             ExpansionPredicate::And(Box::new(p.parse()?), Box::new(q.parse()?))
+        } else if let Some(p) = s.strip_prefix("not:") {
+            ExpansionPredicate::Not(Box::new(p.parse()?))
         } else if s == "first-rule-named" {
             ExpansionPredicate::FirstRuleNamed
+        } else if s == "specified" {
+            ExpansionPredicate::Specified
         } else if let Some(tag) = s.strip_prefix("tag:") {
             ExpansionPredicate::Tagged(tag.to_string())
         } else if let Some(rule) = s.strip_prefix("rule:") {
@@ -269,6 +275,10 @@ impl Runner {
                 let rule = self.prog.rule(*rule_id);
                 rule.name.is_some()
             }
+            ExpansionPredicate::Specified => expansion
+                .terms(&self.prog)
+                .iter()
+                .all(|term_id| self.prog.specenv.has_spec(*term_id)),
             ExpansionPredicate::Tagged(tag) => {
                 let tags = expansion.tags(&self.prog);
                 tags.contains(tag)
@@ -280,6 +290,7 @@ impl Runner {
                     .ok_or(format_err!("unknown rule '{identifier}'"))?;
                 expansion.rules.contains(&rule.id)
             }
+            ExpansionPredicate::Not(p) => !self.eval_predicate(p, expansion)?,
             ExpansionPredicate::And(p, q) => {
                 self.eval_predicate(p, expansion)? && self.eval_predicate(q, expansion)?
             }
