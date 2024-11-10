@@ -1097,6 +1097,62 @@
 )
 (instantiate fcvt_from_sint fcvt)
 
+;; Can trap if invalid conversion
+;; Derived from Wasm reference interpreter
+;; https://github.com/WebAssembly/spec/blob/5d12bd74c49932deb7ab4bae3d29bf106f19d10b/interpreter/exec/i32_convert.ml#L5
+(macro (neg_min_int_times_two_as_fp w)
+    (switch w
+        (32 #x000000004f800000)
+        (64 #x43f0000000000000)
+    )
+)
+(spec (fcvt_to_uint x)
+    (modifies clif_trap)
+    (provide
+        (let (
+            (s (widthof x))
+            (d (widthof result))
+        )
+        (and
+            (=> (not clif_trap) (= result (fp.to_ubv d (to_fp_from_fp d x))))
+
+            ;; Trap if input is NaN or does not fit in the integer type
+            ;; if xf >= -.Int32.(to_float min_int) *. 2.0 || xf <= -1.0 then
+            (= clif_trap (or
+                (fp.isNaN x)
+                (fp.ge x (to_fp_from_fp s (conv_to d (neg_min_int_times_two_as_fp! d))))
+                (fp.le x (to_fp_from_fp s (conv_to d (fp_minus_one! d)))))))))
+)
+(instantiate fcvt_to_uint fcvt)
+
+(macro (min_int_as_fp w)
+    (switch w
+        (32 #x00000000cf000000)
+        (64 #xc3e0000000000000)))
+(macro (neg_min_int_as_fp w)
+    (switch w
+        (32 #x000000004f000000)
+        (64 #x43e0000000000000)))
+(spec (fcvt_to_sint x)
+    (modifies clif_trap)
+    (provide
+        (let (
+            (s (widthof x))
+            (d (widthof result))
+        )
+        (and
+            (=> (not clif_trap) (= result (fp.to_sbv d (to_fp_from_fp d x))))
+            ;; Trap if input is NaN or does not fit in the integer type
+            ;; if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
+            ;; if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
+            (= clif_trap (or
+                (fp.isNaN x)
+                (fp.ge x (to_fp_from_fp s (conv_to d (neg_min_int_as_fp! d))))
+                (fp.lt x (to_fp_from_fp s (conv_to d (min_int_as_fp! d)))))))))
+)
+(instantiate fcvt_to_sint fcvt)
+
+
 ; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
 (spec (fdemote z)
     (match

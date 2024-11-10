@@ -612,6 +612,60 @@
     )
 )
 
+(macro (FPToFixed op fbits unsigned fpcr rounding M N)
+    ; bits(M) FPToFixed(bits(N) op, integer fbits, boolean unsigned, FPCRType fpcr, FPRounding rounding)
+    ;     assert N IN {16,32,64};
+    ;     assert M IN {16,32,64};
+    ;     assert fbits >= 0;
+    ;     assert rounding != FPRounding_ODD;
+    ;     // Unpack using fpcr to determine if subnormals are flushed-to-zero
+    ;     (fptype,sign,value) = FPUnpack(op, fpcr);
+    ;     // If NaN, set cumulative flag or take exception
+    ;     if fptype == FPType_SNaN || fptype == FPType_QNaN then
+    ;         FPProcessException(FPExc_InvalidOp, fpcr);
+    ;     // Scale by fractional bits and produce integer rounded towards minus-infinity
+    ;     value = value * 2.0^fbits;
+    ;     int_result = RoundDown(value);
+    ;     error = value - Real(int_result);
+    ;     // Determine whether supplied rounding mode requires an increment
+    ;     case rounding of
+    ;         when FPRounding_TIEEVEN
+    ;             round_up = (error > 0.5 || (error == 0.5 && int_result[0] == '1'));
+    ;         when FPRounding_POSINF
+    ;             round_up = (error != 0.0);
+    ;         when FPRounding_NEGINF
+    ;             round_up = FALSE;
+    ;         when FPRounding_ZERO
+    ;             round_up = (error != 0.0 && int_result < 0);
+    ;         when FPRounding_TIEAWAY
+    ;             round_up = (error > 0.5 || (error == 0.5 && int_result >= 0));
+    ;     if round_up then int_result = int_result + 1;
+    ;     // Generate saturated result and exceptions
+    ;     (result, overflow) = SatQ(int_result, M, unsigned);
+    ;     if overflow then
+    ;         FPProcessException(FPExc_InvalidOp, fpcr);
+    ;     elsif error != 0.0 then
+    ;         FPProcessException(FPExc_Inexact, fpcr);
+    ;     return result;
+    (let
+        (
+            (result
+                (if unsigned
+                    (fp.to_ubv M (to_fp_from_fp M op))
+                    (fp.to_sbv M (to_fp_from_fp M op))))
+        )
+        (if (and
+                ;; fbits of 0 means we can use pure integer logic
+                (= 0 fbits)
+                (= rounding rounding)
+            )
+            result
+            ;; unspecified bits if assumptions not met
+            (with (unspecified) unspecified)
+        )
+    )
+)
+
 ;; FPCompare: Floating point comparison
 (macro (FPConvert op fpcr rounding M N)
     ; bits(M) FPConvert(bits(N) op, FPCRType fpcr, FPRounding rounding)

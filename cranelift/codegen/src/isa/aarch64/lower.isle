@@ -653,30 +653,30 @@
 
 ;;;; Rules for `fcvt_to_uint` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type (fits_in_32 out_ty) (fcvt_to_uint x @ (value_type $F32))))
+(rule fcvt_to_uint_i32_f32 (lower (has_type (fits_in_32 out_ty) (fcvt_to_uint x @ (value_type $F32))))
       (fpu_to_int_cvt (FpuToIntOp.F32ToU32) x $false $F32 out_ty))
 
-(rule 1 (lower (has_type $I64 (fcvt_to_uint x @ (value_type $F32))))
+(rule fcvt_to_uint_i64_f32 1 (lower (has_type $I64 (fcvt_to_uint x @ (value_type $F32))))
       (fpu_to_int_cvt (FpuToIntOp.F32ToU64) x $false $F32 $I64))
 
-(rule (lower (has_type (fits_in_32 out_ty) (fcvt_to_uint x @ (value_type $F64))))
+(rule fcvt_to_uint_i32_f64 (lower (has_type (fits_in_32 out_ty) (fcvt_to_uint x @ (value_type $F64))))
       (fpu_to_int_cvt (FpuToIntOp.F64ToU32) x $false $F64 out_ty))
 
-(rule 1 (lower (has_type $I64 (fcvt_to_uint x @ (value_type $F64))))
+(rule fcvt_to_uint_i64_f64 1 (lower (has_type $I64 (fcvt_to_uint x @ (value_type $F64))))
       (fpu_to_int_cvt (FpuToIntOp.F64ToU64) x $false $F64 $I64))
 
 ;;;; Rules for `fcvt_to_sint` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type (fits_in_32 out_ty) (fcvt_to_sint x @ (value_type $F32))))
+(rule fcvt_to_sint_i32_f32 (lower (has_type (fits_in_32 out_ty) (fcvt_to_sint x @ (value_type $F32))))
       (fpu_to_int_cvt (FpuToIntOp.F32ToI32) x $true $F32 out_ty))
 
-(rule 1 (lower (has_type $I64 (fcvt_to_sint x @ (value_type $F32))))
+(rule fcvt_to_sint_i64_f32 1 (lower (has_type $I64 (fcvt_to_sint x @ (value_type $F32))))
       (fpu_to_int_cvt (FpuToIntOp.F32ToI64) x $true $F32 $I64))
 
-(rule (lower (has_type (fits_in_32 out_ty) (fcvt_to_sint x @ (value_type $F64))))
+(rule fcvt_to_sint_i32_f64 (lower (has_type (fits_in_32 out_ty) (fcvt_to_sint x @ (value_type $F64))))
       (fpu_to_int_cvt (FpuToIntOp.F64ToI32) x $true $F64 out_ty))
 
-(rule 1 (lower (has_type $I64 (fcvt_to_sint x @ (value_type $F64))))
+(rule fcvt_to_sint_i64_f64 1 (lower (has_type $I64 (fcvt_to_sint x @ (value_type $F64))))
       (fpu_to_int_cvt (FpuToIntOp.F64ToI64) x $true $F64 $I64))
 
 ;;;; Rules for `fcvt_from_uint` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

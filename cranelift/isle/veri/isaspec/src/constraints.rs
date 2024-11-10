@@ -574,7 +574,9 @@ impl Translator {
             }
             "FPAdd" | "FPSub" | "FPMul" | "FPDiv" | "FPMin" | "FPMax" | "FPCompare" | "FPSqrt"
             | "FPRoundInt" => self.primitive(&func.name, args),
-            "FPConvert" | "FixedToFP" => self.primitive_with_types(&func.name, types, args),
+            "FPConvert" | "FixedToFP" | "FPToFixed" => {
+                self.primitive_with_types(&func.name, types, args)
+            }
             unexpected => todo!("func: {unexpected}"),
         }
     }

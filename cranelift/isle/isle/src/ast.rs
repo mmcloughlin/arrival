@@ -347,6 +347,8 @@ pub enum SpecOp {
     ToFP,
     ToFPUnsigned,
     ToFPFromFP,
+    FPToUBV,
+    FPToSBV,
     WidthOf,
 
     // Control operations

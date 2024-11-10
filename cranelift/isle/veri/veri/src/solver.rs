@@ -363,6 +363,8 @@ impl<'a> Solver<'a> {
             Expr::ToFP(w, x) => self.to_fp_from_expr(w, x, true),
             Expr::ToFPUnsigned(w, x) => self.to_fp_from_expr(w, x, false),
             Expr::ToFPFromFP(w, x) => self.to_fp_from_fp(w, x),
+            Expr::FPToUBV(w, x) => self.fp_to_bv(w, x, false),
+            Expr::FPToSBV(w, x) => self.fp_to_bv(w, x, true),
             Expr::WidthOf(x) => self.width_of(x),
             Expr::FPPositiveInfinity(x) => Ok(self.fp_value("+oo", x)?),
             Expr::FPNegativeInfinity(x) => Ok(self.fp_value("-oo", x)?),
@@ -764,6 +766,31 @@ impl<'a> Solver<'a> {
         self.smt.assert(self.smt.eq(result_as_fp, fp))?;
 
         Ok(result)
+    }
+
+    fn fp_to_bv(&mut self, w: ExprId, x: ExprId, signed: bool) -> Result<SExpr> {
+        // Destination width expression should have known integer value.
+        let width: usize = self
+            .assignment
+            .try_int_value(w)
+            .context("destination width of fp_to_bv expression should have known integer value")?
+            .try_into()
+            .expect("width should be representable as usize");
+
+        let x = self.to_fp(self.expr_atom(x), width)?;
+
+        let fp: SExpr = self.smt.list(vec![
+            self.smt.list(vec![
+                self.smt.atoms().und,
+                self.smt
+                    .atom(if signed { "fp.to_sbv" } else { "fp.to_ubv" }),
+                self.smt.numeral(width),
+            ]),
+            self.smt.atom(ROUNDING_MODE),
+            x,
+        ]);
+
+        Ok(fp)
     }
 
     fn to_fp_from_fp(&mut self, w: ExprId, xid: ExprId) -> Result<SExpr> {

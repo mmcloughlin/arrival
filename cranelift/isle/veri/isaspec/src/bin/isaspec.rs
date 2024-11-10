@@ -8,8 +8,8 @@ use clap::Parser as ClapParser;
 use cranelift_codegen::ir::types::I8;
 use cranelift_codegen::isa::aarch64::inst::{
     vreg, writable_vreg, FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm,
-    FpuRoundMode, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled, UImm5, VecALUOp,
-    VecLanesOp, VecMisc2, VectorSize, NZCV,
+    FpuRoundMode, FpuToIntOp, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled, UImm5,
+    VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
 };
 use cranelift_codegen::{
     ir::MemFlags,
@@ -202,6 +202,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "int_to_fpu.isle".into(),
             specs: vec![define_int_to_fpu()],
+        },
+        FileConfig {
+            name: "fpu_to_int.isle".into(),
+            specs: vec![define_fpu_to_int()],
         },
         FileConfig {
             name: "mov_from_vec.isle".into(),
@@ -2190,6 +2194,67 @@ fn define_int_to_fpu() -> SpecConfig {
                             op: *op,
                             rd: writable_vreg(4),
                             rn: xreg(5),
+                        }),
+                        scope: aarch64::state(),
+                        mappings: mappings.clone(),
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+// ;; Conversion: integer -> FP.
+// MInst.FpuToInt specification configuration.
+fn define_fpu_to_int() -> SpecConfig {
+    let ops: [FpuToIntOp; 8] = [
+        FpuToIntOp::F32ToU32,
+        FpuToIntOp::F32ToI32,
+        FpuToIntOp::F32ToU64,
+        FpuToIntOp::F32ToI64,
+        FpuToIntOp::F64ToU32,
+        FpuToIntOp::F64ToI32,
+        FpuToIntOp::F64ToU64,
+        FpuToIntOp::F64ToI64,
+    ];
+
+    let mut mappings = flags_mappings();
+    mappings
+        .reads
+        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
+    mappings
+        .reads
+        .insert(literal("FALSE"), Mapping::allow(spec_false()));
+    mappings
+        .reads
+        .insert(literal("TRUE"), Mapping::allow(spec_true()));
+
+    mappings.writes.insert(
+        aarch64::gpreg(4),
+        Mapping::require(spec_var("rd".to_string())),
+    );
+    mappings.reads.insert(
+        aarch64::vreg(5),
+        Mapping::require(spec_var("rn".to_string())),
+    );
+
+    SpecConfig {
+        term: "MInst.FpuToInt".to_string(),
+        args: ["op", "rd", "rn"].map(String::from).to_vec(),
+
+        cases: Cases::Match(Match {
+            on: spec_var("op".to_string()),
+            arms: ops
+                .iter()
+                .rev()
+                .map(|op| Arm {
+                    variant: format!("{op:?}"),
+                    args: Vec::new(),
+                    body: Cases::Instruction(InstConfig {
+                        opcodes: Opcodes::Instruction(Inst::FpuToInt {
+                            op: *op,
+                            rd: writable_xreg(4),
+                            rn: vreg(5),
                         }),
                         scope: aarch64::state(),
                         mappings: mappings.clone(),

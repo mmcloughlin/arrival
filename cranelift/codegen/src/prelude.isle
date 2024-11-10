@@ -839,6 +839,8 @@
 
 (decl pure trap_code_bad_conversion_to_integer () TrapCode)
 (extern constructor trap_code_bad_conversion_to_integer trap_code_bad_conversion_to_integer)
+(spec (trap_code_bad_conversion_to_integer)
+      (provide (= result (TrapCode.BadConversionToInteger))))
 
 ;;;; Helpers for tail recursion loops ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

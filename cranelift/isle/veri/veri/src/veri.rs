@@ -105,6 +105,8 @@ pub enum Expr {
     ToFP(ExprId, ExprId),
     ToFPUnsigned(ExprId, ExprId),
     ToFPFromFP(ExprId, ExprId),
+    FPToUBV(ExprId, ExprId),
+    FPToSBV(ExprId, ExprId),
 
     // Floating point.
     FPPositiveInfinity(ExprId),
@@ -211,6 +213,8 @@ impl Expr {
             | Expr::ToFP(x, y)
             | Expr::ToFPUnsigned(x, y)
             | Expr::ToFPFromFP(x, y)
+            | Expr::FPToUBV(x, y)
+            | Expr::FPToSBV(x, y)
             | Expr::BVConcat(x, y)
             | Expr::FPEq(x, y)
             | Expr::FPNe(x, y)
@@ -285,6 +289,8 @@ impl std::fmt::Display for Expr {
             Expr::ToFP(w, x) => write!(f, "to_fp({}, {})", w.index(), x.index()),
             Expr::ToFPUnsigned(w, x) => write!(f, "to_fp_unsigned({}, {})", w.index(), x.index()),
             Expr::ToFPFromFP(w, x) => write!(f, "to_fp_from_fp({}, {})", w.index(), x.index()),
+            Expr::FPToUBV(w, x) => write!(f, "fp.to_ubv({}, {})", w.index(), x.index()),
+            Expr::FPToSBV(w, x) => write!(f, "fp.to_sbv({}, {})", w.index(), x.index()),
             Expr::BV2Nat(x) => write!(f, "bv2nat({})", x.index()),
             Expr::WidthOf(x) => write!(f, "width_of({})", x.index()),
             Expr::FPPositiveInfinity(x) => write!(f, "fp.+oo({})", x.index()),
@@ -1894,6 +1900,18 @@ impl<'a> ConditionsBuilder<'a> {
                 let w = self.spec_expr(w, vars)?.try_into()?;
                 let x = self.spec_expr(x, vars)?.try_into()?;
                 Ok(self.scalar(Expr::ToFPFromFP(w, x)))
+            }
+
+            spec::ExprKind::FPToUBV(w, x) => {
+                let w = self.spec_expr(w, vars)?.try_into()?;
+                let x = self.spec_expr(x, vars)?.try_into()?;
+                Ok(self.scalar(Expr::FPToUBV(w, x)))
+            }
+
+            spec::ExprKind::FPToSBV(w, x) => {
+                let w = self.spec_expr(w, vars)?.try_into()?;
+                let x = self.spec_expr(x, vars)?.try_into()?;
+                Ok(self.scalar(Expr::FPToSBV(w, x)))
             }
 
             spec::ExprKind::WidthOf(x) => {

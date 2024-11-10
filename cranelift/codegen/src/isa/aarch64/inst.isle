@@ -2317,6 +2317,33 @@
 ;; in bits.
 (decl min_fp_value (bool u8 u8) Reg)
 (extern constructor min_fp_value min_fp_value)
+;; Floating point hex values derived from external Rust implementation
+(spec (min_fp_value signed in out)
+      (provide
+            (= result
+            (if signed
+            (switch in
+                  (#x20 (switch out
+                        (#x20 #x00000000cf000000)
+                        (#x40 #x00000000df000000)))
+                  (#x40 (switch out
+                        (#x20 #xc1e0000000000000)
+                        (#x40 #xc3e0000000000000)))
+            )
+            (switch in
+                  (#x20 (switch out
+                        (#x20 #x00000000bf800000)
+                        (#x40 #x00000000bf800000)))
+                  (#x40 (switch out
+                        (#x20 #xbff0000000000000)
+                        (#x40 #xbff0000000000000)))
+            )
+      )))
+      (require
+            (or (= in #x20) (= in #x40))
+            (or (= out #x20) (= out #x40))
+      )
+)
 
 ;; Calculate the maximum floating-point bound for a conversion to floating
 ;; point from an integer type.
@@ -2325,6 +2352,33 @@
 ;; in bits.
 (decl max_fp_value (bool u8 u8) Reg)
 (extern constructor max_fp_value max_fp_value)
+;; Floating point hex values derived from external Rust implementation
+(spec (max_fp_value signed in out)
+      (provide
+            (= result
+            (if signed
+            (switch in
+                  (#x20 (switch out
+                        (#x20 #x000000004f000000)
+                        (#x40 #x000000005f000000)))
+                  (#x40 (switch out
+                        (#x20 #x41e0000000000000)
+                        (#x40 #x43e0000000000000)))
+            )
+            (switch in
+                  (#x20 (switch out
+                        (#x20 #x000000004f800000)
+                        (#x40 #x000000005f800000)))
+                  (#x40 (switch out
+                        (#x20 #x41f0000000000000)
+                        (#x40 #x43f0000000000000)))
+            )
+      )))
+      (require
+            (or (= in #x20) (= in #x40))
+            (or (= out #x20) (= out #x40))
+      )
+)
 
 ;; Constructs an FPUOpRI.Ushr* given the size in bits of the value (or lane)
 ;; and the amount to shift by.
@@ -4458,12 +4512,13 @@
 ;; Checks that the value is not less than the minimum bound,
 ;; accepting a boolean (whether the type is signed), input type,
 ;; output type, and registers containing the source and minimum bound.
+(attr fpu_to_int_underflow_check (veri chain))
 (decl fpu_to_int_underflow_check (bool Type Type Reg Reg) Reg)
 (rule (fpu_to_int_underflow_check $true $F32 (fits_in_16 out_ty) src min)
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (ScalarSize.Size32) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                    (MInst.TrapIf (cond_br_cond (Cond.Le))
+                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
@@ -4471,7 +4526,7 @@
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (ScalarSize.Size64) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                    (MInst.TrapIf (cond_br_cond (Cond.Le))
+                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
@@ -4479,7 +4534,7 @@
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (scalar_size in_ty) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                    (MInst.TrapIf (cond_br_cond (Cond.Lt))
+                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
@@ -4487,7 +4542,7 @@
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (scalar_size in_ty) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                    (MInst.TrapIf (cond_br_cond (Cond.Le))
+                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThanOrEqual)))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))

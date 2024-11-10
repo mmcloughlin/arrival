@@ -613,7 +613,7 @@ impl Context for IsleContext<'_, '_, MInst, AArch64Backend> {
             let min = match (signed, out_bits) {
                 (true, 8) => i8::MIN as f64 - 1.,
                 (true, 16) => i16::MIN as f64 - 1.,
-                (true, 32) => i32::MIN as f64 - 1.,
+                (true, 32) => i32::MIN as f64,
                 (true, 64) => i64::MIN as f64,
 
                 (false, _) => -1.,
