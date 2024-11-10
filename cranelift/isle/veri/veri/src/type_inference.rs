@@ -172,7 +172,10 @@ impl System {
             constraints.extend(arm.constraints.iter().cloned());
 
             let mut choices = self.choices.clone();
-            choices.push(arm.choice.clone());
+            // Only record the choice if there are multiple branches.
+            if branch.arms.len() > 1 {
+                choices.push(arm.choice.clone());
+            }
 
             children.push(System {
                 constraints,
