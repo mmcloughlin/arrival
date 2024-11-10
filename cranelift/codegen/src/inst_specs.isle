@@ -1216,3 +1216,7 @@
 (instantiate fpromote
     ((args (bv 32)) (ret (bv 64)))
 )
+
+;;;; CLIF Instruction Tags ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(attr select_spectre_guard (tag spectre))
