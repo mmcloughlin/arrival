@@ -60,7 +60,7 @@ pub use crate::machinst::buffer::{
 };
 pub use crate::machinst::{
     CompiledCode, Final, MachBuffer, MachBufferFinalized, MachInst, MachInstEmit,
-    MachInstEmitState, MachLabel, RealReg, Reg, RelocDistance, TextSectionBuilder,
+    MachInstEmitState, MachLabel, RealReg, Reg, RegClass, RelocDistance, TextSectionBuilder,
     VCodeConstantData, VCodeConstants, Writable,
 };
 

@@ -5,19 +5,16 @@ use std::{io, vec};
 
 use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
-use cranelift_codegen::ir::types::I8;
-use cranelift_codegen::isa::aarch64::inst::{
-    vreg, writable_vreg, FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm,
-    FpuRoundMode, FpuToIntOp, MoveWideConst, MoveWideOp, SImm9, ScalarSize, UImm12Scaled, UImm5,
-    VecALUOp, VecLanesOp, VecMisc2, VectorSize, NZCV,
-};
 use cranelift_codegen::{
-    ir::MemFlags,
+    ir::{types::I8, MemFlags},
     isa::aarch64::inst::{
-        writable_xreg, xreg, ALUOp, ALUOp3, AMode, BitOp, Cond, ExtendOp, Imm12, Inst, IntToFpuOp,
-        OperandSize, ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm,
+        vreg, writable_vreg, writable_xreg, xreg, ALUOp, ALUOp3, AMode, BitOp, Cond, ExtendOp,
+        FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm, FpuRoundMode,
+        FpuToIntOp, Imm12, Inst, IntToFpuOp, MoveWideConst, MoveWideOp, OperandSize, SImm9,
+        ScalarSize, ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm, UImm12Scaled, UImm5, VecALUOp,
+        VecLanesOp, VecMisc2, VectorSize, NZCV,
     },
-    Reg, Writable,
+    Reg, RegClass, Writable,
 };
 use cranelift_isle::ast::SpecExpr;
 use cranelift_isle::{
@@ -1059,61 +1056,75 @@ fn define_extend() -> SpecConfig {
 }
 
 fn define_loads() -> Result<Vec<SpecConfig>> {
+    // Destination register for general-purpose loads.
+    let dst = writable_xreg(4);
+    let rd = spec_var("rd".to_string());
+
     // ULoad8
-    let uload8 = define_load("MInst.ULoad8", 8, |rd, mem, flags| Inst::ULoad8 {
+    let uload8 = define_load("MInst.ULoad8", 8, dst, &rd, |rd, mem, flags| Inst::ULoad8 {
         rd,
         mem,
         flags,
     })?;
 
     // SLoad8
-    let sload8 = define_load("MInst.SLoad8", 8, |rd, mem, flags| Inst::SLoad8 {
+    let sload8 = define_load("MInst.SLoad8", 8, dst, &rd, |rd, mem, flags| Inst::SLoad8 {
         rd,
         mem,
         flags,
     })?;
 
     // ULoad16
-    let uload16 = define_load("MInst.ULoad16", 16, |rd, mem, flags| Inst::ULoad16 {
-        rd,
-        mem,
-        flags,
+    let uload16 = define_load("MInst.ULoad16", 16, dst, &rd, |rd, mem, flags| {
+        Inst::ULoad16 { rd, mem, flags }
     })?;
 
     // SLoad16
-    let sload16 = define_load("MInst.SLoad16", 16, |rd, mem, flags| Inst::SLoad16 {
-        rd,
-        mem,
-        flags,
+    let sload16 = define_load("MInst.SLoad16", 16, dst, &rd, |rd, mem, flags| {
+        Inst::SLoad16 { rd, mem, flags }
     })?;
 
     // ULoad32
-    let uload32 = define_load("MInst.ULoad32", 32, |rd, mem, flags| Inst::ULoad32 {
-        rd,
-        mem,
-        flags,
+    let uload32 = define_load("MInst.ULoad32", 32, dst, &rd, |rd, mem, flags| {
+        Inst::ULoad32 { rd, mem, flags }
     })?;
 
     // SLoad32
-    let sload32 = define_load("MInst.SLoad32", 32, |rd, mem, flags| Inst::SLoad32 {
-        rd,
-        mem,
-        flags,
+    let sload32 = define_load("MInst.SLoad32", 32, dst, &rd, |rd, mem, flags| {
+        Inst::SLoad32 { rd, mem, flags }
     })?;
 
     // ULoad64
-    let uload64 = define_load("MInst.ULoad64", 64, |rd, mem, flags| Inst::ULoad64 {
-        rd,
-        mem,
-        flags,
+    let uload64 = define_load("MInst.ULoad64", 64, dst, &rd, |rd, mem, flags| {
+        Inst::ULoad64 { rd, mem, flags }
+    })?;
+
+    // Destination register for floating-point loads.
+    let dst = writable_vreg(4);
+    let rd = spec_fp_reg("rd");
+
+    // FpuLoad32
+    let fpu_load32 = define_load("MInst.FpuLoad32", 32, dst, &rd, |rd, mem, flags| {
+        Inst::FpuLoad32 { rd, mem, flags }
+    })?;
+
+    // FpuLoad64
+    let fpu_load64 = define_load("MInst.FpuLoad64", 64, dst, &rd, |rd, mem, flags| {
+        Inst::FpuLoad64 { rd, mem, flags }
     })?;
 
     Ok(vec![
-        uload8, sload8, uload16, sload16, uload32, sload32, uload64,
+        uload8, sload8, uload16, sload16, uload32, sload32, uload64, fpu_load32, fpu_load64,
     ])
 }
 
-fn define_load<F>(term: &str, size_bits: usize, inst: F) -> Result<SpecConfig>
+fn define_load<F>(
+    term: &str,
+    size_bits: usize,
+    dst: Writable<Reg>,
+    rd: &SpecExpr,
+    inst: F,
+) -> Result<SpecConfig>
 where
     F: Fn(Writable<Reg>, AMode, MemFlags) -> Inst,
 {
@@ -1121,10 +1132,9 @@ where
     let mut mappings = Mappings::default();
 
     // Destination register.
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
+    mappings
+        .writes
+        .insert(reg_target(dst.to_reg())?, Mapping::require(rd.clone()));
 
     // ISA load state mapped to read effect.
     let read_effect = ReadEffect::new();
@@ -1152,7 +1162,7 @@ where
     );
 
     // Enumerate AModes.
-    let arms = amode_cases(&mappings, |mem, flags| inst(writable_xreg(4), mem, flags))?;
+    let arms = amode_cases(&mappings, |mem, flags| inst(dst, mem, flags))?;
 
     Ok(SpecConfig {
         term: term.to_string(),
@@ -1165,38 +1175,63 @@ where
 }
 
 fn define_stores() -> Result<Vec<SpecConfig>> {
+    // Source register for general-purpose loads.
+    let src = xreg(4);
+    let rd = spec_as_bit_vector_width(spec_var("rd".to_string()), 64);
+
     // Store8
-    let store8 = define_store("MInst.Store8", 8, |rd, mem, flags| Inst::Store8 {
+    let store8 = define_store("MInst.Store8", 8, src, &rd, |rd, mem, flags| Inst::Store8 {
         rd,
         mem,
         flags,
     })?;
 
     // Store16
-    let store16 = define_store("MInst.Store16", 16, |rd, mem, flags| Inst::Store16 {
-        rd,
-        mem,
-        flags,
+    let store16 = define_store("MInst.Store16", 16, src, &rd, |rd, mem, flags| {
+        Inst::Store16 { rd, mem, flags }
     })?;
 
     // Store32
-    let store32 = define_store("MInst.Store32", 32, |rd, mem, flags| Inst::Store32 {
-        rd,
-        mem,
-        flags,
+    let store32 = define_store("MInst.Store32", 32, src, &rd, |rd, mem, flags| {
+        Inst::Store32 { rd, mem, flags }
     })?;
 
     // Store64
-    let store64 = define_store("MInst.Store64", 64, |rd, mem, flags| Inst::Store64 {
-        rd,
-        mem,
-        flags,
+    let store64 = define_store("MInst.Store64", 64, src, &rd, |rd, mem, flags| {
+        Inst::Store64 { rd, mem, flags }
     })?;
 
-    Ok(vec![store8, store16, store32, store64])
+    // Source register for floating-point stores.
+    let src = vreg(4);
+    let rd = spec_fp_reg("rd");
+
+    // FpuStore32
+    let fpu_store32 = define_store("MInst.FpuStore32", 32, src, &rd, |rd, mem, flags| {
+        Inst::FpuStore32 { rd, mem, flags }
+    })?;
+
+    // FpuStore64
+    let fpu_store64 = define_store("MInst.FpuStore64", 64, src, &rd, |rd, mem, flags| {
+        Inst::FpuStore64 { rd, mem, flags }
+    })?;
+
+    Ok(vec![
+        store8,
+        store16,
+        store32,
+        store64,
+        fpu_store32,
+        fpu_store64,
+    ])
 }
 
-fn define_store<F>(term: &str, size_bits: usize, inst: F) -> Result<SpecConfig>
+fn define_store<F>(
+    term: &str,
+    size_bits: usize,
+    src: Reg,
+    rd: &SpecExpr,
+    inst: F,
+) -> Result<SpecConfig>
 where
     F: Fn(Reg, AMode, MemFlags) -> Inst,
 {
@@ -1204,10 +1239,9 @@ where
     let mut mappings = Mappings::default();
 
     // Source register.
-    mappings.reads.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_as_bit_vector_width(spec_var("rd".to_string()), 64)),
-    );
+    mappings
+        .reads
+        .insert(reg_target(src)?, Mapping::require(rd.clone()));
 
     // ISA store state mapped to memory set effect.
     let set_effect = SetEffect::new();
@@ -1236,7 +1270,7 @@ where
     );
 
     // Enumerate AModes.
-    let arms = amode_cases(&mappings, |mem, flags| inst(xreg(4), mem, flags))?;
+    let arms = amode_cases(&mappings, |mem, flags| inst(src, mem, flags))?;
 
     Ok(SpecConfig {
         term: term.to_string(),
@@ -2700,4 +2734,17 @@ where
         }
     }
     Ok(())
+}
+
+// Convert a Cranelift register to the corresponding element of AArch64 state in
+// ASLp.
+fn reg_target(reg: Reg) -> Result<Target> {
+    let Some(preg) = reg.to_real_reg() else {
+        bail!("not physical register")
+    };
+    let index = preg.hw_enc().into();
+    Ok(match preg.class() {
+        RegClass::Int => aarch64::gpreg(index),
+        RegClass::Float | RegClass::Vector => aarch64::vreg(index),
+    })
 }

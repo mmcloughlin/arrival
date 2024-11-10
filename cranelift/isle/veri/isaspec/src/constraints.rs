@@ -627,12 +627,7 @@ impl Translator {
         let addr = self.expr(addr)?;
         let size_bytes = expect_lit_int_as_usize(size)?;
         let size_bits = 8 * size_bytes;
-
-        // Access flags not implemented: error on unexpected non-zero value.
-        let access = expect_lit_int_as_usize(access)?;
-        if access != 0 {
-            bail!("non-zero memory read access flags");
-        }
+        Self::check_supported_mem_access(access)?;
 
         // Memory read operation modifies read effect variables.
         let read_effect = ReadEffect::new();
@@ -652,13 +647,8 @@ impl Translator {
         let addr = self.expr(addr)?;
         let size_bytes = expect_lit_int_as_usize(size)?;
         let size_bits = 8 * size_bytes;
+        Self::check_supported_mem_access(access)?;
         let value = self.expr(value)?;
-
-        // Access flags not implemented: error on unexpected non-zero value.
-        let access = expect_lit_int_as_usize(access)?;
-        if access != 0 {
-            bail!("non-zero memory set access flags");
-        }
 
         // Memory set operation modifies set effect variables.
         let set_effect = SetEffect::new();
@@ -667,6 +657,19 @@ impl Translator {
         self.assign(&set_effect.addr, addr)?;
         self.assign(&set_effect.value, value)?;
 
+        Ok(())
+    }
+
+    fn check_supported_mem_access(access: &Expr) -> Result<()> {
+        // Should be a constant integer.
+        let access = expect_lit_int_as_usize(access)?;
+
+        // Access flags not fully implemented: error on unexpected value.
+        //
+        // First two access types: AccType_NORMAL, AccType_VEC.
+        if access > 1 {
+            bail!("unsupported memory read access type");
+        }
         Ok(())
     }
 
