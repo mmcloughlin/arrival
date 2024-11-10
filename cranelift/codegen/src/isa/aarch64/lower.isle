@@ -1968,7 +1968,7 @@
 ;; T -> I{64,32,16,8}: We can simply pass through the value: values
 ;; are always stored with high bits undefined, so we can just leave
 ;; them be.
-(rule (lower (has_type ty (ireduce src)))
+(rule ireduce (lower (has_type ty (ireduce src)))
     (if (ty_int_ref_scalar_64 ty))
     (value_regs_get src 0))
 
