@@ -297,8 +297,8 @@
         (output_pair x_lo x_hi)))
 
 ;;;; Rules for `iconcat` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(rule (lower (has_type $I128 (iconcat lo hi)))
+(attr rule iconcat_i128 (tag i128))
+(rule iconcat_i128 (lower (has_type $I128 (iconcat lo hi)))
       (output (value_regs lo hi)))
 
 ;;;; Rules for `scalar_to_vector` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -591,11 +591,13 @@
       (fmadd_series ty (u64_xor (is_fneg_neg x_res) (is_fneg_neg y_res)) (is_fneg_neg z_res) (get_fneg_value x_res) (get_fneg_value y_res) (get_fneg_value z_res))))
 
 ;; Delegate vector-based lowerings to helpers below
-(rule 1 (lower (has_type ty @ (multi_lane _ _) (fma x y z)))
+(attr rule fma (tag vector))
+(rule fma 1 (lower (has_type ty @ (multi_lane _ _) (fma x y z)))
         (lower_fmla (VecALUModOp.Fmla) x y z (vector_size ty)))
 
 ;; Lowers a fused-multiply-add operation handling various forms of the
 ;; instruction to get maximal coverage of what's available on AArch64.
+(attr lower_fmla (tag vector))
 (decl lower_fmla (VecALUModOp Value Value Value VectorSize) Reg)
 
 ;; Base case, emit the op requested.
@@ -2407,25 +2409,31 @@
 (rule (lower
        (has_type $F64 (load flags address offset)))
       (aarch64_fpuload64 (amode $F64 address offset) flags))
-(rule (lower
+(attr rule load_f128 (tag i128))
+(rule load_f128 (lower
        (has_type $F128 (load flags address offset)))
       (aarch64_fpuload128 (amode $F128 address offset) flags))
-(rule (lower
+(attr rule load_i128 (tag i128))
+(rule load_i128 (lower
        (has_type $I128 (load flags address offset)))
       (aarch64_loadp64 (pair_amode address offset) flags))
-(rule -1 (lower
+(attr rule load_i128 (tag vector))
+(rule load_ty_vec64 -1 (lower
        (has_type (ty_vec64 _)
                         (load flags address offset)))
       (aarch64_fpuload64 (amode $F64 address offset) flags))
-(rule -3 (lower
+(attr rule load_ty_vec128 (tag vector))
+(rule load_ty_vec128 -3 (lower
        (has_type (ty_vec128 _)
                         (load flags address offset)))
       (aarch64_fpuload128 (amode $I8X16 address offset) flags))
-(rule -2 (lower
+(attr rule load_ty_dyn_vec64 (tag vector))
+(rule load_ty_dyn_vec64 -2 (lower
        (has_type (ty_dyn_vec64 _)
                         (load flags address offset)))
       (aarch64_fpuload64 (amode $F64 address offset) flags))
-(rule -4 (lower
+(attr rule load_ty_dyn_vec128 (tag vector))
+(rule load_ty_dyn_vec128 -4 (lower
        (has_type (ty_dyn_vec128 _)
                         (load flags address offset)))
       (aarch64_fpuload128 (amode $I8X16 address offset) flags))
