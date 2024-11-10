@@ -35,6 +35,10 @@ struct Opts {
     #[arg(long)]
     log_dir: Option<std::path::PathBuf>,
 
+    /// Write results to files under log directory.
+    #[arg(long)]
+    results_to_log_dir: bool,
+
     /// Skip solver.
     #[arg(long, env = "ISLE_VERI_SKIP_SOLVER")]
     skip_solver: bool,
@@ -77,7 +81,7 @@ impl From<SolverBackendOption> for SolverBackend {
 }
 
 fn main() -> Result<()> {
-    let _ = env_logger::try_init();
+    env_logger::builder().format_target(false).init();
     let opts = Opts::parse();
 
     // Read ISLE inputs.
@@ -97,6 +101,7 @@ fn main() -> Result<()> {
     if let Some(log_dir) = opts.log_dir {
         runner.set_log_dir(log_dir);
     }
+    runner.set_results_to_log_dir(opts.results_to_log_dir);
     runner.skip_solver(opts.skip_solver);
     runner.debug(opts.debug);
 

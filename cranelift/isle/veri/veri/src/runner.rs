@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
+    io::Write,
     path::{Path, PathBuf},
     str::FromStr,
     time::Duration,
@@ -123,6 +124,7 @@ pub struct Runner {
     timeout: Duration,
     log_dir: PathBuf,
     skip_solver: bool,
+    results_to_log_dir: bool,
     debug: bool,
 }
 
@@ -139,6 +141,7 @@ impl Runner {
             solver_backend: SolverBackend::CVC5,
             timeout: Duration::from_secs(5),
             log_dir: PathBuf::from(LOG_DIR),
+            results_to_log_dir: false,
             skip_solver: false,
             debug: false,
         })
@@ -186,6 +189,10 @@ impl Runner {
         self.log_dir = path;
     }
 
+    pub fn set_results_to_log_dir(&mut self, enabled: bool) {
+        self.results_to_log_dir = enabled;
+    }
+
     pub fn skip_solver(&mut self, skip: bool) {
         self.skip_solver = skip;
     }
@@ -217,14 +224,8 @@ impl Runner {
                 continue;
             }
 
-            // Report.
-            println!("#{i}\t{}", self.expansion_description(expansion)?);
-            if self.debug {
-                print_expansion(&self.prog, expansion);
-            }
-
             let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
-            self.verify_expansion(expansion, expansion_log_dir)?;
+            self.verify_expansion(expansion, i, expansion_log_dir)?;
         }
 
         Ok(())
@@ -277,7 +278,25 @@ impl Runner {
         })
     }
 
-    fn verify_expansion(&self, expansion: &Expansion, log_dir: std::path::PathBuf) -> Result<()> {
+    fn verify_expansion(
+        &self,
+        expansion: &Expansion,
+        id: usize,
+        log_dir: std::path::PathBuf,
+    ) -> Result<()> {
+        // Results output.
+        let mut output: Box<dyn Write> = if self.results_to_log_dir {
+            log::info!("#{id}\t{}", self.expansion_description(expansion)?);
+            Box::new(Self::open_log_file(log_dir.clone(), "results.out")?)
+        } else {
+            Box::new(std::io::stdout())
+        };
+
+        writeln!(output, "#{id}\t{}", self.expansion_description(expansion)?)?;
+        if self.debug {
+            print_expansion(&self.prog, expansion);
+        }
+
         // Verification conditions.
         let conditions = Conditions::from_expansion(expansion, &self.prog)?;
         if self.debug {
@@ -299,11 +318,15 @@ impl Runner {
             for choice in &solution.choices {
                 match choice {
                     Choice::TermInstantiation(term_id, sig) => {
-                        println!("\t{term}{sig}", term = self.prog.term_name(*term_id));
+                        writeln!(
+                            output,
+                            "\t{term}{sig}",
+                            term = self.prog.term_name(*term_id)
+                        )?;
                     }
                 }
             }
-            println!("\t\ttype solution status = {}", solution.status);
+            writeln!(output, "\t\ttype solution status = {}", solution.status)?;
             if self.debug {
                 println!("type assignment:");
                 solution.assignment.pretty_print(&conditions);
@@ -331,6 +354,7 @@ impl Runner {
                 &conditions,
                 &solution.assignment,
                 solution_log_dir,
+                &mut output,
             )?;
         }
 
@@ -342,6 +366,7 @@ impl Runner {
         conditions: &Conditions,
         assignment: &Assignment,
         log_dir: std::path::PathBuf,
+        output: &mut dyn Write,
     ) -> Result<()> {
         // Solve.
         let binary = self.solver_backend.prog();
@@ -356,7 +381,7 @@ impl Runner {
         solver.encode()?;
 
         let applicability = solver.check_assumptions_feasibility()?;
-        println!("\t\tapplicability = {applicability}");
+        writeln!(output, "\t\tapplicability = {applicability}")?;
         match applicability {
             Applicability::Applicable => (),
             Applicability::Inapplicable => return Ok(()),
@@ -364,7 +389,7 @@ impl Runner {
         };
 
         let verification = solver.check_verification_condition()?;
-        println!("\t\tverification = {verification}");
+        writeln!(output, "\t\tverification = {verification}")?;
         match verification {
             Verification::Failure(model) => {
                 println!("model:");
