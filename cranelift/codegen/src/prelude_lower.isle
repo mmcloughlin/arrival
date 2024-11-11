@@ -377,8 +377,11 @@
 (extern constructor zero_value zero_value)
 
 ;; Match a sinkable instruction from a value operand.
+;;
+;; We do not model sinking in the verification domain.
 (decl pure partial is_sinkable_inst (Value) Inst)
 (extern constructor is_sinkable_inst is_sinkable_inst)
+(spec (is_sinkable_inst value) (match true) (provide (= result value)))
 
 ;; Match a uextend or any other instruction, "seeing through" the uextend if
 ;; present.
@@ -412,8 +415,11 @@
 ;; This is a side-effectful operation that notifies the context that the
 ;; instruction has been sunk into another instruction, and no longer needs to
 ;; be lowered.
+;;
+;; We do not model sinking in the verification domain.
 (decl sink_inst (Inst) Unit)
 (extern constructor sink_inst sink_inst)
+(spec (sink_inst inst) (provide true))
 
 ;; Constant pool emission.
 

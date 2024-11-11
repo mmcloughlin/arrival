@@ -1227,12 +1227,16 @@
       (value_regs (mov_from_vec (put_in_reg vec) lane (lane_size in)) (imm $I64 (ImmExtend.Zero) 0)))
 
 ;; Zero extensions from a load can be encoded in the load itself
-(rule (lower (has_type (fits_in_64 _) (uextend x @ (has_type in_ty (load flags address offset)))))
+(rule uextend_load (lower (has_type (fits_in_64 _) (uextend x @ (has_type in_ty (load flags address offset)))))
       (if-let inst (is_sinkable_inst x))
       (let ((_ Unit (sink_inst inst)))
             (aarch64_uload in_ty (amode in_ty address offset) flags)))
 
+; Slow verification due to large number of expansions.
+(attr rule uextend_load (tag slow))
+
 (decl aarch64_uload (Type AMode MemFlags) Reg)
+(attr aarch64_uload (veri chain))
 (rule (aarch64_uload $I8 amode flags) (aarch64_uload8 amode flags))
 (rule (aarch64_uload $I16 amode flags) (aarch64_uload16 amode flags))
 (rule (aarch64_uload $I32 amode flags) (aarch64_uload32 amode flags))
@@ -1286,12 +1290,16 @@
         (value_regs lo hi)))
 
 ;; Signed extensions from a load can be encoded in the load itself
-(rule (lower (has_type (fits_in_64 _) (sextend x @ (has_type in_ty (load flags address offset)))))
+(rule sextend_load (lower (has_type (fits_in_64 _) (sextend x @ (has_type in_ty (load flags address offset)))))
       (if-let inst (is_sinkable_inst x))
       (let ((_ Unit (sink_inst inst)))
             (aarch64_sload in_ty (amode in_ty address offset) flags)))
 
+; Slow verification due to large number of expansions.
+(attr rule sextend_load (tag slow))
+
 (decl aarch64_sload (Type AMode MemFlags) Reg)
+(attr aarch64_sload (veri chain))
 (rule (aarch64_sload $I8 amode flags) (aarch64_sload8 amode flags))
 (rule (aarch64_sload $I16 amode flags) (aarch64_sload16 amode flags))
 (rule (aarch64_sload $I32 amode flags) (aarch64_sload32 amode flags))
