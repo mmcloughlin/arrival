@@ -360,61 +360,7 @@
     ((args (bv 64)) (ret (bv 32)))
 )
 
-(spec (load flags p offset)
-    (modifies clif_load)
-    (modifies loaded_value)
-    (provide
-        ; Activate the CLIF load effect
-        (:active clif_load)
 
-        ; TODO(mbm): load flags
-
-        ; Load size is the width of the loaded value.
-        (= (:size_bits clif_load) (widthof result))
-
-        ; Address calculation.
-        (= (:addr clif_load) (bvadd p (sign_ext 64 offset)))
-
-        ; Result of the load is represented by low bits of the loaded value state register.
-        (= result (conv_to (widthof result) loaded_value))
-    )
-)
-(instantiate load
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv  8)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
-)
-; Loads have a large number of expansions and instantiations.
-(attr load (tag slow))
-
-(spec (store flags value p offset)
-    (modifies clif_store)
-    (provide
-        ; Activate the CLIF store effect
-        (:active clif_store)
-
-        ; TODO(mbm): store flags
-
-        ; Store size is the width of the stored value.
-        (= (:size_bits clif_store) (widthof value))
-
-        ; Address calculation.
-        (= (:addr clif_store) (bvadd p (sign_ext 64 offset)))
-
-        ; Stored value is set to the low bits of the CLIF store value.
-        (= (conv_to (widthof value) (:value clif_store)) value)
-
-        ; HACK: Result of the store is a 1-bit vector.
-        (= result #b1)
-    )
-)
-(instantiate store
-    ((args (named MemFlags) (bv 32) (named Value) (named Offset32)) (ret (bv 1)))
-    ((args (named MemFlags) (bv 64) (named Value) (named Offset32)) (ret (bv 1)))
-)
-; Stores have a large number of expansions and instantiations.
-(attr store (tag slow))
 
 (form extend
     ((args (bv  8)) (ret (bv  8)))
@@ -482,6 +428,36 @@
     ((args (named IntCC) (bv 64) (bv 64)) (ret (bv 8)))
 )
 
+;; Load Instructions
+
+(spec (load flags p offset)
+    (modifies clif_load)
+    (modifies loaded_value)
+    (provide
+        ; Activate the CLIF load effect
+        (:active clif_load)
+
+        ; TODO(mbm): load flags
+
+        ; Load size is the width of the loaded value.
+        (= (:size_bits clif_load) (widthof result))
+
+        ; Address calculation.
+        (= (:addr clif_load) (bvadd p (sign_ext 64 offset)))
+
+        ; Result of the load is represented by low bits of the loaded value state register.
+        (= result (conv_to (widthof result) loaded_value))
+    )
+)
+(instantiate load
+    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv  8)))
+    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
+    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+)
+; Loads have a large number of expansions and instantiations.
+(attr load (tag slow))
+
 (spec (uload32 flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
@@ -531,6 +507,37 @@
 )
 ; Loads have a large number of expansions and instantiations.
 (attr sload32 (tag slow))
+
+;; Store Instructions
+
+(spec (store flags value p offset)
+    (modifies clif_store)
+    (provide
+        ; Activate the CLIF store effect
+        (:active clif_store)
+
+        ; TODO(mbm): store flags
+
+        ; Store size is the width of the stored value.
+        (= (:size_bits clif_store) (widthof value))
+
+        ; Address calculation.
+        (= (:addr clif_store) (bvadd p (sign_ext 64 offset)))
+
+        ; Stored value is set to the low bits of the CLIF store value.
+        (= (conv_to (widthof value) (:value clif_store)) value)
+
+        ; HACK: Result of the store is a 1-bit vector.
+        (= result #b1)
+    )
+)
+(instantiate store
+    ((args (named MemFlags) (bv 32) (named Value) (named Offset32)) (ret (bv 1)))
+    ((args (named MemFlags) (bv 64) (named Value) (named Offset32)) (ret (bv 1)))
+)
+
+; Stores have a large number of expansions and instantiations.
+(attr store (tag slow))
 
 (spec (istore32 flags value p offset)
     (modifies clif_store)
