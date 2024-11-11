@@ -37,12 +37,12 @@ an indication of whether to attempt verification.  Specifically, it will run
 verification for all rule expansions such that the first expanded rule has a
 name.
 
-During development you may want to focus on a subset of expansions. The
-following command can be used to limit to all expansions that involve named rule
-`<rule>`:
+During development you may want to focus on a subset of expansions, for example
+those starting with a given rule of interest.  First add a name to the rule, and
+then the following command can be used to limit to all expansions involving it:
 
 ```
-./script/veri.sh -- --rule <rule>
+./script/veri.sh -- --filter rule:<rule>
 ```
 
 ## ISA Specifications
