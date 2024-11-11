@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-RUST_LOG=info ./script/veri.sh "$@" -- \
+RUST_LOG=info ./script/veri.sh \
+    -p release \
+    "$@" \
+    -- \
     --results-to-log-dir \
     --num-threads 0 \
     --filter include:tag:wasm_proposal_mvp \
