@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{bail, format_err, Result};
-use cranelift_isle::sema::TermId;
+use cranelift_isle::{files::Files, sema::TermId};
 
 use crate::{
     spec::Signature,
@@ -826,20 +826,43 @@ impl Assignment {
     }
 }
 
+pub struct Conflict {
+    pub x: ExprId,
+    pub reason: String,
+}
+
+impl Conflict {
+    fn new(x: ExprId, reason: String) -> Self {
+        Self { x, reason }
+    }
+
+    pub fn diagnostic(&self, conditions: &Conditions, files: &Files) -> String {
+        if let Some(pos) = conditions.pos.get(&self.x) {
+            format!(
+                "{position}: {reason}",
+                position = pos.pretty_print_line(files),
+                reason = self.reason
+            )
+        } else {
+            self.reason.clone()
+        }
+    }
+}
+
 pub enum Status {
     Solved,
-    Inapplicable,
+    Inapplicable(Conflict),
     Underconstrained,
-    TypeError(String),
+    TypeError(Conflict),
 }
 
 impl std::fmt::Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Status::Solved => write!(f, "solved"),
-            Status::Inapplicable => write!(f, "inapplicable"),
+            Status::Inapplicable(..) => write!(f, "inapplicable"),
             Status::Underconstrained => write!(f, "underconstrained"),
-            Status::TypeError(e) => write!(f, "type error {e}"),
+            Status::TypeError(..) => write!(f, "type error"),
         }
     }
 }
@@ -939,12 +962,15 @@ impl Solver {
         let existing = &self.assignment.expr_type_value[&x];
         let merged = TypeValue::merge(existing, &tv).ok_or_else(|| {
             if !existing.ty().is_compatible_with(&tv.ty()) {
-                Status::TypeError(format!(
-                    "concrete type error between types:\n\t{existing}\n\t{tv}"
+                Status::TypeError(Conflict::new(
+                    x,
+                    format!("concrete type error between types:\n\t{existing}\n\t{tv}"),
                 ))
             } else {
-                log::debug!("inapplicable set type value: {existing:?} = {tv:?}",);
-                Status::Inapplicable
+                Status::Inapplicable(Conflict::new(
+                    x,
+                    format!("inapplicable set type value: {existing:?} = {tv:?}"),
+                ))
             }
         })?;
         if merged != *existing {
@@ -1027,8 +1053,10 @@ impl Solver {
                 self.set_bit_vector_width(
                     l,
                     xw.checked_sub(rw).ok_or_else(|| {
-                        log::debug!("inapplicable concat xw - rw: {l:?} = {r:?}");
-                        Status::Inapplicable
+                        Status::Inapplicable(Conflict::new(
+                            l,
+                            format!("inapplicable concat xw - rw: {l:?} = {r:?}"),
+                        ))
                     })?,
                 )
             }
@@ -1037,8 +1065,10 @@ impl Solver {
                 self.set_bit_vector_width(
                     r,
                     xw.checked_sub(lw).ok_or_else(|| {
-                        log::debug!("inapplicable concat xw - lw: {l:?} = {r:?}");
-                        Status::Inapplicable
+                        Status::Inapplicable(Conflict::new(
+                            r,
+                            format!("inapplicable concat xw - lw: {l:?} = {r:?}"),
+                        ))
                     })?,
                 )
             }
@@ -1050,10 +1080,12 @@ impl Solver {
             | (Some(_), None, None) => Ok(false),
 
             // All known: verify correctness.
-            (Some(x), Some(y), Some(z)) => {
-                if x != y + z {
-                    log::debug!("inapplicable concat known: {l:?} = {r:?}");
-                    Err(Status::Inapplicable)
+            (Some(xw), Some(lw), Some(rw)) => {
+                if xw != lw + rw {
+                    Err(Status::Inapplicable(Conflict::new(
+                        x,
+                        format!("inapplicable concat known: {l:?} = {r:?}"),
+                    )))
                 } else {
                     Ok(false)
                 }

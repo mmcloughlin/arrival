@@ -357,12 +357,22 @@ impl Runner {
 
             match &solution.status {
                 type_inference::Status::Solved => (),
-                type_inference::Status::Inapplicable => continue,
+                type_inference::Status::Inapplicable(conflict) => {
+                    log::debug!(
+                        "inapplicable type inference: {diagnostic}",
+                        diagnostic = conflict.diagnostic(&conditions, &self.prog.files)
+                    );
+                    continue;
+                }
                 type_inference::Status::Underconstrained => {
                     bail!("underconstrained type inference")
                 }
-                type_inference::Status::TypeError(e) => {
-                    bail!("type error {e}")
+                type_inference::Status::TypeError(confict) => {
+                    return Err(conditions.error_at_expr(
+                        &self.prog,
+                        confict.x,
+                        confict.reason.clone(),
+                    ));
                 }
             }
 
