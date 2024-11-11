@@ -507,6 +507,31 @@
 ; Loads have a large number of expansions and instantiations.
 (attr uload32 (tag slow))
 
+(spec (sload32 flags p offset)
+    (modifies clif_load)
+    (modifies loaded_value)
+    (provide
+        ; Activate the CLIF load effect
+        (:active clif_load)
+
+        ; TODO(mbm): load flags
+
+        ; Load size is width 32.
+        (= (:size_bits clif_load) 32)
+
+        ; Address calculation.
+        (= (:addr clif_load) (bvadd p (sign_ext 64 offset)))
+
+        ; Result of the load is represented by low bits of the loaded value state register.
+        (= result (sign_ext (widthof result) (conv_to 32 loaded_value)))
+    )
+)
+(instantiate sload32
+    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+)
+; Loads have a large number of expansions and instantiations.
+(attr sload32 (tag slow))
+
 (spec (istore32 flags value p offset)
     (modifies clif_store)
     (provide

@@ -2461,7 +2461,7 @@
 (rule uload32 (lower
        (uload32 flags address offset))
       (aarch64_uload32 (amode $I32 address offset) flags))
-(rule (lower
+(rule sload32 (lower
        (sload32 flags address offset))
       (aarch64_sload32 (amode $I32 address offset) flags))
 
