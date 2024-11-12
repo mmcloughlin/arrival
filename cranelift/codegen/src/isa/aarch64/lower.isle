@@ -838,7 +838,8 @@
       (madd ty x y (zero_reg)))
 
 ;; `i128`.
-(rule -1 (lower (has_type $I128 (imul x y)))
+(rule imul_i128
+      -1 (lower (has_type $I128 (imul x y)))
       (let
           ;; Get the high/low registers for `x`.
           ((x_regs ValueRegs x)
@@ -864,6 +865,7 @@
            (dst_hi Reg (madd $I64 x_hi y_lo dst_hi2))
            (dst_lo Reg (madd $I64 x_lo y_lo (zero_reg))))
         (value_regs dst_lo dst_hi)))
+(attr rule imul_i128 (tag i128))
 
 ;; Case for i8x16, i16x8, and i32x4.
 (rule -2 (lower (has_type (ty_vec128 ty @ (not_i64x2)) (imul x y)))
@@ -1216,8 +1218,10 @@
 
 ;; Conversion to 128-bit needs a zero-extension of the lower bits and the upper
 ;; bits are all zero.
-(rule -1 (lower (has_type $I128 (uextend x)))
+(rule uextend_i128
+      -1 (lower (has_type $I128 (uextend x)))
       (value_regs (put_in_reg_zext64 x) (imm $I64 (ImmExtend.Zero) 0)))
+(attr rule uextend_i128 (tag i128))
 
 ;; Like above where vector extraction automatically zero-extends extending to
 ;; i128 only requires generating a 0 constant for the upper bits.
@@ -1259,10 +1263,12 @@
                            (size_from_ty out)))
 
 ;; 64-bit to 128-bit only needs to sign-extend the input to the upper bits.
-(rule -2 (lower (has_type $I128 (sextend x)))
+(rule sextend_i128
+      -2 (lower (has_type $I128 (sextend x)))
       (let ((lo Reg (put_in_reg_sext64 x))
             (hi Reg (asr_imm $I64 lo (imm_shift_from_u8 63))))
         (value_regs lo hi)))
+(attr rule sextend_i128 (tag i128))
 
 ;; Like above where vector extraction automatically zero-extends extending to
 ;; i128 only requires generating a 0 constant for the upper bits.
@@ -1449,6 +1455,7 @@
          (consumes_flags_concat
           (csel (Cond.Ne) (zero_reg) lo_lshift)
           (csel (Cond.Ne) lo_lshift maybe_hi)))))
+(attr rule lower_shl128 (tag i128))
 
 ;; Shift for vector types.
 (rule -3 (lower (has_type (ty_vec128 ty) (ishl x y)))
@@ -1560,6 +1567,7 @@
          (consumes_flags_concat
           (csel (Cond.Ne) hi_rshift maybe_lo)
           (csel (Cond.Ne) (zero_reg) hi_rshift)))))
+(attr rule lower_ushr128 (tag i128))
 
 ;;;; Rules for `sshr` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1620,6 +1628,7 @@
          (consumes_flags_concat
           (csel (Cond.Ne) hi_rshift maybe_lo)
           (csel (Cond.Ne) hi_sign hi_rshift)))))
+(attr rule lower_sshr128 (tag i128))
 
 ;;;; Rules for `rotl` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1824,6 +1833,7 @@
             (lo_clz Reg (a64_clz $I64 (value_regs_get val 0)))
             (tmp Reg (lsr_imm $I64 hi_clz (imm_shift_from_u8 6))))
         (value_regs (madd $I64 lo_clz tmp hi_clz) (imm $I64 (ImmExtend.Zero) 0))))
+(attr rule lower_clz128 (tag i128))
 
 ;;;; Rules for `ctz` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2595,12 +2605,16 @@
       x)
 
 ; I128 => SIMD&FP
-(rule 6 (lower (has_type (ty_float_or_vec _) (bitcast _ x @ (value_type $I128))))
+(rule bitcast_i128_simdfp
+      6 (lower (has_type (ty_float_or_vec _) (bitcast _ x @ (value_type $I128))))
       (mov_to_vec (mov_to_fpu (value_regs_get x 0) (ScalarSize.Size64)) (value_regs_get x 1) 1 (VectorSize.Size64x2)))
+(attr rule bitcast_i128_simdfp (tag i128))
 
 ; SIMD&FP => I128
-(rule 5 (lower (has_type $I128 (bitcast _ x @ (value_type (ty_float_or_vec _)))))
+(rule bitcast_simdfp_i128
+      5 (lower (has_type $I128 (bitcast _ x @ (value_type (ty_float_or_vec _)))))
       (value_regs (mov_from_vec x 0 (ScalarSize.Size64)) (mov_from_vec x 1 (ScalarSize.Size64))))
+(attr rule bitcast_simdfp_i128 (tag i128))
 
 ; GPR => SIMD&FP
 (rule 4 (lower (has_type (ty_float_or_vec _) (bitcast _ x @ (value_type in_ty))))

@@ -3943,6 +3943,7 @@
         (value_regs
           (alu_rrr op ty x_lo y_lo)
           (alu_rrr op ty x_hi y_hi))))
+(attr rule i128_alu_bitop (tag i128))
 
 ;; Helper for emitting `MInst.VecLoadReplicate` instructions.
 (decl ld1r (Reg VectorSize MemFlags) Reg)

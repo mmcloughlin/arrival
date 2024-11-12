@@ -653,6 +653,9 @@
 ;; An extractor that matches scalar floating-point types or vector types.
 (decl ty_float_or_vec (Type) Type)
 (extern extractor ty_float_or_vec ty_float_or_vec)
+(spec (ty_float_or_vec arg)
+      (provide (= result arg))
+      (match (or (= result 32) (= result 64) (= result 128))))
 
 ;; A pure constructor that only matches vector floating-point types.
 (decl pure partial ty_vector_float (Type) Type)
