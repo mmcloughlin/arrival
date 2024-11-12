@@ -10,6 +10,7 @@ use std::{
 use anyhow::{bail, format_err, Error, Result};
 use cranelift_isle::{sema::TermId, trie_again::RuleSet};
 use rayon::prelude::*;
+use serde::Serialize;
 
 use crate::{
     debug::print_expansion,
@@ -120,6 +121,32 @@ impl FromStr for Filter {
         };
         Ok(Filter::new(include, p.parse()?))
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Verdict {
+    Inapplicable,
+    Success,
+    Unknown,
+}
+
+#[derive(Serialize)]
+pub struct VerifyReport {
+    pub verdict: Verdict,
+}
+
+#[derive(Serialize)]
+pub struct TypeInstantationReport {
+    pub choices: Vec<String>,
+    pub verify: VerifyReport,
+}
+
+#[derive(Serialize)]
+pub struct ExpansionReport {
+    pub id: usize,
+    pub description: String,
+    pub type_instantiations: Vec<TypeInstantationReport>,
 }
 
 /// Runner orchestrates execution of the verification process over a set of
@@ -239,8 +266,13 @@ impl Runner {
                     return Ok(());
                 }
 
+                // Verify
                 let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
-                self.verify_expansion(expansion, i, expansion_log_dir)?;
+                let report = self.verify_expansion(expansion, i, expansion_log_dir.clone())?;
+
+                // Write
+                let output = Self::open_log_file(expansion_log_dir.clone(), "report.json")?;
+                serde_json::to_writer_pretty(output, &report)?;
 
                 Ok(())
             })?;
@@ -306,10 +338,12 @@ impl Runner {
         expansion: &Expansion,
         id: usize,
         log_dir: std::path::PathBuf,
-    ) -> Result<()> {
+    ) -> Result<ExpansionReport> {
+        let description = self.expansion_description(expansion)?;
+
         // Results output.
         let mut output: Box<dyn Write> = if self.results_to_log_dir {
-            log::info!("#{id}\t{}", self.expansion_description(expansion)?);
+            log::info!("#{id}\t{description}");
             Box::new(Self::open_log_file(log_dir.clone(), "results.out")?)
         } else {
             Box::new(std::io::stdout())
@@ -336,18 +370,24 @@ impl Runner {
         let type_solver = type_inference::Solver::new();
         let solutions = type_solver.solve(&system);
 
+        // Initialize report.
+        let mut report = ExpansionReport {
+            id,
+            description,
+            type_instantiations: Vec::new(),
+        };
+
         for (i, solution) in solutions.iter().enumerate() {
             // Show type assignment.
+            let mut choices = Vec::new();
             for choice in &solution.choices {
-                match choice {
+                let choice = match choice {
                     Choice::TermInstantiation(term_id, sig) => {
-                        writeln!(
-                            output,
-                            "\t{term}{sig}",
-                            term = self.prog.term_name(*term_id)
-                        )?;
+                        format!("{term}{sig}", term = self.prog.term_name(*term_id))
                     }
-                }
+                };
+                writeln!(output, "\t{choice}")?;
+                choices.push(choice);
             }
             writeln!(output, "\t\ttype solution status = {}", solution.status)?;
             if self.debug {
@@ -383,15 +423,21 @@ impl Runner {
             }
 
             let solution_log_dir = log_dir.join(format!("{:03}", i));
-            self.verify_expansion_type_instantiation(
+            let verify_report = self.verify_expansion_type_instantiation(
                 &conditions,
                 &solution.assignment,
                 solution_log_dir,
                 &mut output,
             )?;
+
+            // Append to report.
+            report.type_instantiations.push(TypeInstantationReport {
+                choices,
+                verify: verify_report,
+            });
         }
 
-        Ok(())
+        Ok(report)
     }
 
     fn verify_expansion_type_instantiation(
@@ -400,7 +446,7 @@ impl Runner {
         assignment: &Assignment,
         log_dir: std::path::PathBuf,
         output: &mut dyn Write,
-    ) -> Result<()> {
+    ) -> Result<VerifyReport> {
         // Solve.
         let binary = self.solver_backend.prog();
         let args = self.solver_backend.args(self.timeout);
@@ -417,22 +463,29 @@ impl Runner {
         writeln!(output, "\t\tapplicability = {applicability}")?;
         match applicability {
             Applicability::Applicable => (),
-            Applicability::Inapplicable => return Ok(()),
+            Applicability::Inapplicable => {
+                return Ok(VerifyReport {
+                    verdict: Verdict::Inapplicable,
+                })
+            }
             Applicability::Unknown => bail!("could not prove applicability"),
         };
 
         let verification = solver.check_verification_condition()?;
         writeln!(output, "\t\tverification = {verification}")?;
-        match verification {
+        Ok(match verification {
             Verification::Failure(model) => {
                 println!("model:");
                 conditions.print_model(&model, &self.prog)?;
                 bail!("verification failed");
             }
-            Verification::Success | Verification::Unknown => (),
-        };
-
-        Ok(())
+            Verification::Success => VerifyReport {
+                verdict: Verdict::Success,
+            },
+            Verification::Unknown => VerifyReport {
+                verdict: Verdict::Unknown,
+            },
+        })
     }
 
     /// Human-readable description of an expansion.

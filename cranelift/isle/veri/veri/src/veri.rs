@@ -492,7 +492,7 @@ impl Symbolic {
             )),
             Symbolic::Enum(e) => {
                 // Determine the enum variant by looking up the discriminant.
-                let discriminant = model
+                let discriminant: usize = model
                     .get(&e.discriminant)
                     .ok_or(format_err!("undefined discriminant in model"))?
                     .as_int()
