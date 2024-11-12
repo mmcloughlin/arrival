@@ -89,6 +89,20 @@ impl FromStr for ExpansionPredicate {
     }
 }
 
+impl std::fmt::Display for ExpansionPredicate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExpansionPredicate::FirstRuleNamed => write!(f, "first-rule-named"),
+            ExpansionPredicate::Specified => write!(f, "specified"),
+            ExpansionPredicate::Tagged(tag) => write!(f, "tag:{tag}"),
+            ExpansionPredicate::Root(term) => write!(f, "root:{term}"),
+            ExpansionPredicate::ContainsRule(rule) => write!(f, "rule:{rule}"),
+            ExpansionPredicate::Not(p) => write!(f, "not:{p}"),
+            ExpansionPredicate::And(p, q) => write!(f, "{p},{q}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Filter {
     include: bool,
@@ -121,6 +135,18 @@ impl FromStr for Filter {
             (true, s)
         };
         Ok(Filter::new(include, p.parse()?))
+    }
+}
+
+impl std::fmt::Display for Filter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let include = if self.include { "include" } else { "exclude" };
+        write!(
+            f,
+            "{include}:{predicate}",
+            include = include,
+            predicate = self.predicate
+        )
     }
 }
 
@@ -192,6 +218,7 @@ impl ExpansionReport {
 pub struct Report {
     build_profile: String,
     git_version: String,
+    filters: Vec<String>,
     solver: String,
     timeout: Duration,
     duration: Duration,
@@ -339,6 +366,7 @@ impl Runner {
         let report = Report {
             build_profile: BUILD_PROFILE.to_string(),
             git_version: GIT_VERSION.to_string(),
+            filters: self.filters.iter().map(ToString::to_string).collect(),
             solver: self.solver_backend.prog().to_string(),
             timeout: self.timeout,
             num_threads,
