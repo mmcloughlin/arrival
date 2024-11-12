@@ -19,7 +19,7 @@ use crate::{
     solver::{Applicability, Solver, Verification},
     type_inference::{self, type_constraint_system, Assignment, Choice},
     veri::Conditions,
-    BUILD_PROFILE,
+    BUILD_PROFILE, GIT_VERSION,
 };
 
 const LOG_DIR: &str = ".veriisle";
@@ -191,6 +191,7 @@ impl ExpansionReport {
 #[derive(Serialize)]
 pub struct Report {
     build_profile: String,
+    git_version: String,
     solver: String,
     timeout: Duration,
     duration: Duration,
@@ -337,6 +338,7 @@ impl Runner {
         expansion_reports.sort_by(|a, b| a.id.cmp(&b.id));
         let report = Report {
             build_profile: BUILD_PROFILE.to_string(),
+            git_version: GIT_VERSION.to_string(),
             solver: self.solver_backend.prog().to_string(),
             timeout: self.timeout,
             num_threads,
