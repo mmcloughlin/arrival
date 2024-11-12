@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeSet, HashMap},
     fs::File,
     io::Write,
     path::{Path, PathBuf},
@@ -146,8 +146,45 @@ pub struct TypeInstantationReport {
 pub struct ExpansionReport {
     pub id: usize,
     pub description: String,
+    pub rules: Vec<String>,
+    pub chained: Vec<String>,
     pub tags: Vec<String>,
     pub type_instantiations: Vec<TypeInstantationReport>,
+}
+
+impl ExpansionReport {
+    fn from_expansion(id: usize, expansion: &Expansion, prog: &Program) -> Result<Self> {
+        // Description
+        let description = expansion_description(expansion, prog)?;
+
+        // Tags
+        let mut tags: Vec<_> = expansion.tags(prog).iter().cloned().collect();
+        tags.sort();
+
+        // Rules
+        let mut rules = Vec::new();
+        let mut chained = BTreeSet::new();
+        for rule_id in &expansion.rules {
+            let rule = prog.rule(*rule_id);
+            rules.push(rule.identifier(&prog.tyenv, &prog.files));
+
+            if rule.root_term != expansion.term {
+                let root_term = prog.term_name(rule.root_term);
+                if !chained.contains(&root_term) {
+                    chained.insert(root_term);
+                }
+            }
+        }
+
+        Ok(Self {
+            id,
+            description,
+            rules,
+            chained: chained.iter().map(ToString::to_string).collect(),
+            tags,
+            type_instantiations: Vec::new(),
+        })
+    }
 }
 
 /// Runner orchestrates execution of the verification process over a set of
@@ -340,7 +377,7 @@ impl Runner {
         id: usize,
         log_dir: std::path::PathBuf,
     ) -> Result<ExpansionReport> {
-        let description = self.expansion_description(expansion)?;
+        let description = expansion_description(expansion, &self.prog)?;
 
         // Results output.
         let mut output: Box<dyn Write> = if self.results_to_log_dir {
@@ -350,7 +387,7 @@ impl Runner {
             Box::new(std::io::stdout())
         };
 
-        writeln!(output, "#{id}\t{}", self.expansion_description(expansion)?)?;
+        writeln!(output, "#{id}\t{description}")?;
         if self.debug {
             print_expansion(&self.prog, expansion);
         }
@@ -372,14 +409,7 @@ impl Runner {
         let solutions = type_solver.solve(&system);
 
         // Initialize report.
-        let mut tags: Vec<_> = expansion.tags(&self.prog).iter().cloned().collect();
-        tags.sort();
-        let mut report = ExpansionReport {
-            id,
-            description,
-            tags,
-            type_instantiations: Vec::new(),
-        };
+        let mut report = ExpansionReport::from_expansion(id, expansion, &self.prog)?;
 
         for (i, solution) in solutions.iter().enumerate() {
             // Show type assignment.
@@ -492,20 +522,20 @@ impl Runner {
         })
     }
 
-    /// Human-readable description of an expansion.
-    fn expansion_description(&self, expansion: &Expansion) -> Result<String> {
-        let rule_id = expansion
-            .rules
-            .first()
-            .ok_or(format_err!("expansion should have at least one rule"))?;
-        let rule = self.prog.rule(*rule_id);
-        Ok(rule.identifier(&self.prog.tyenv, &self.prog.files))
-    }
-
     fn open_log_file<P: AsRef<Path>>(log_dir: std::path::PathBuf, name: P) -> Result<File> {
         std::fs::create_dir_all(&log_dir)?;
         let path = log_dir.join(name);
         let file = File::create(&path)?;
         Ok(file)
     }
+}
+
+/// Human-readable description of an expansion.
+fn expansion_description(expansion: &Expansion, prog: &Program) -> Result<String> {
+    let rule_id = expansion
+        .rules
+        .first()
+        .ok_or(format_err!("expansion should have at least one rule"))?;
+    let rule = prog.rule(*rule_id);
+    Ok(rule.identifier(&prog.tyenv, &prog.files))
 }
