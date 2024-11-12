@@ -146,6 +146,7 @@ pub struct TypeInstantationReport {
 pub struct ExpansionReport {
     pub id: usize,
     pub description: String,
+    pub tags: Vec<String>,
     pub type_instantiations: Vec<TypeInstantationReport>,
 }
 
@@ -371,9 +372,12 @@ impl Runner {
         let solutions = type_solver.solve(&system);
 
         // Initialize report.
+        let mut tags: Vec<_> = expansion.tags(&self.prog).iter().cloned().collect();
+        tags.sort();
         let mut report = ExpansionReport {
             id,
             description,
+            tags,
             type_instantiations: Vec::new(),
         };
 
