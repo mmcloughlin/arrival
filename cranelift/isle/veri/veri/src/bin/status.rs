@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{format_err, Result};
 use clap::Parser;
@@ -86,6 +86,7 @@ fn status(expansions: &Vec<Expansion>, include_tag: String, skip_tags: &[String]
     let mut num_out_of_scope = 0usize;
     let mut num_specified = 0usize;
     let mut term_unspecified_counts: HashMap<TermId, isize> = HashMap::new();
+    let mut internal_constructors = HashSet::new();
     for expansion in expansions {
         total += 1;
 
@@ -101,6 +102,8 @@ fn status(expansions: &Vec<Expansion>, include_tag: String, skip_tags: &[String]
         for term_id in unspecified {
             *term_unspecified_counts.entry(term_id).or_default() += 1;
         }
+
+        internal_constructors.extend(expansion_internal_constructors(expansion, prog));
     }
 
     // Summary
@@ -123,6 +126,13 @@ fn status(expansions: &Vec<Expansion>, include_tag: String, skip_tags: &[String]
     term_unspecified_counts.sort_by_key(|(_, count)| -*count);
     for (term_id, count) in term_unspecified_counts {
         println!("{term}\t{count}", term = prog.term_name(term_id));
+    }
+
+    // Internal constructors
+    println!();
+    println!("INTERNAL CONSTRUCTORS");
+    for term_id in internal_constructors {
+        println!("{term}", term = prog.term_name(term_id));
     }
 }
 
@@ -150,5 +160,17 @@ fn unspecified_terms(expansion: &Expansion, prog: &Program) -> Vec<TermId> {
         .iter()
         .copied()
         .filter(|term_id| !prog.specenv.has_spec(*term_id))
+        .collect()
+}
+
+fn expansion_internal_constructors(expansion: &Expansion, prog: &Program) -> Vec<TermId> {
+    expansion
+        .terms(prog)
+        .iter()
+        .copied()
+        .filter(|term_id| {
+            let term = prog.term(*term_id);
+            term.has_internal_constructor()
+        })
         .collect()
 }
