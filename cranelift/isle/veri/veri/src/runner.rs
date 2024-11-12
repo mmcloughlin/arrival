@@ -152,6 +152,11 @@ pub struct ExpansionReport {
     pub type_instantiations: Vec<TypeInstantationReport>,
 }
 
+#[derive(Serialize)]
+pub struct Report {
+    expansions: Vec<ExpansionReport>,
+}
+
 impl ExpansionReport {
     fn from_expansion(id: usize, expansion: &Expansion, prog: &Program) -> Result<Self> {
         // Description
@@ -295,25 +300,33 @@ impl Runner {
         let expansions = expander.expansions();
         log::info!("expansions: {n}", n = expansions.len());
 
-        expansions
+        let mut expansion_reports = expansions
             .par_iter()
             .enumerate()
-            .try_for_each(|(i, expansion)| -> Result<()> {
+            .map(|(i, expansion)| -> Result<Option<ExpansionReport>> {
                 // Skip?
                 if !self.should_verify(expansion)? {
-                    return Ok(());
+                    return Ok(None);
                 }
 
                 // Verify
                 let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
                 let report = self.verify_expansion(expansion, i, expansion_log_dir.clone())?;
 
-                // Write
-                let output = Self::open_log_file(expansion_log_dir.clone(), "report.json")?;
-                serde_json::to_writer_pretty(output, &report)?;
+                Ok(Some(report))
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        expansion_reports.sort_by(|a, b| a.id.cmp(&b.id));
 
-                Ok(())
-            })?;
+        // Write
+        let report = Report {
+            expansions: expansion_reports,
+        };
+        let output = Self::open_log_file(self.log_dir.clone(), "report.json")?;
+        serde_json::to_writer_pretty(output, &report)?;
 
         Ok(())
     }
