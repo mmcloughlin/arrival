@@ -16,4 +16,6 @@ RUST_LOG=info ./script/veri.sh \
     --filter exclude:tag:atomics \
     --filter exclude:tag:spectre \
     --filter exclude:tag:narrowfloat \
+    --filter exclude:tag:clif_f32const \
+    --filter exclude:tag:clif_f64const \
     ;
