@@ -4,7 +4,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
     str::FromStr,
-    time::Duration,
+    time::{self, Duration},
 };
 
 use anyhow::{bail, format_err, Error, Result};
@@ -19,6 +19,7 @@ use crate::{
     solver::{Applicability, Solver, Verification},
     type_inference::{self, type_constraint_system, Assignment, Choice},
     veri::Conditions,
+    BUILD_PROFILE,
 };
 
 const LOG_DIR: &str = ".veriisle";
@@ -152,11 +153,6 @@ pub struct ExpansionReport {
     pub type_instantiations: Vec<TypeInstantationReport>,
 }
 
-#[derive(Serialize)]
-pub struct Report {
-    expansions: Vec<ExpansionReport>,
-}
-
 impl ExpansionReport {
     fn from_expansion(id: usize, expansion: &Expansion, prog: &Program) -> Result<Self> {
         // Description
@@ -190,6 +186,16 @@ impl ExpansionReport {
             type_instantiations: Vec::new(),
         })
     }
+}
+
+#[derive(Serialize)]
+pub struct Report {
+    build_profile: String,
+    solver: String,
+    timeout: Duration,
+    duration: Duration,
+    num_threads: usize,
+    expansions: Vec<ExpansionReport>,
 }
 
 /// Runner orchestrates execution of the verification process over a set of
@@ -287,6 +293,10 @@ impl Runner {
             std::fs::remove_dir_all(&self.log_dir)?;
         }
 
+        // Start timer.
+        let num_threads = rayon::current_num_threads();
+        let start = time::Instant::now();
+
         // Generate expansions.
         // TODO(mbm): don't hardcode the expansion configuration
         let chaining = Chaining::new(&self.prog, &self.term_rule_sets)?;
@@ -319,12 +329,22 @@ impl Runner {
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
-        expansion_reports.sort_by(|a, b| a.id.cmp(&b.id));
 
-        // Write
+        // End timer.
+        let duration = start.elapsed();
+
+        // Prepare report
+        expansion_reports.sort_by(|a, b| a.id.cmp(&b.id));
         let report = Report {
+            build_profile: BUILD_PROFILE.to_string(),
+            solver: self.solver_backend.prog().to_string(),
+            timeout: self.timeout,
+            num_threads,
+            duration,
             expansions: expansion_reports,
         };
+
+        // Write
         let output = Self::open_log_file(self.log_dir.clone(), "report.json")?;
         serde_json::to_writer_pretty(output, &report)?;
 

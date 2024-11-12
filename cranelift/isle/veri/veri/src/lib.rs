@@ -32,3 +32,5 @@ pub mod veri;
 
 #[cfg(test)]
 pub mod testing;
+
+include!(concat!(env!("OUT_DIR"), "/meta.rs"));
