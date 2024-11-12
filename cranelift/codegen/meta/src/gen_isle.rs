@@ -242,6 +242,7 @@ fn gen_common_isle(
                 .join(" "),
             ret_ty
         );
+        fmtln!(fmt, "(attr {} (tag clif_{}))", inst.name, inst.name);
         fmtln!(fmt, "(extractor");
         fmt.indent(|fmt| {
             fmtln!(
