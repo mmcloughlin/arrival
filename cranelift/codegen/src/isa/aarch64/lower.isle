@@ -1970,8 +1970,9 @@
         (value_regs (mov_from_vec added 0 (ScalarSize.Size8)) (imm $I64 (ImmExtend.Zero) 0))))
 (attr rule popcnt_i128 (tag i128))
 
-(rule (lower (has_type $I8X16 (popcnt x)))
+(rule popcnt_8x16 (lower (has_type $I8X16 (popcnt x)))
       (vec_cnt x (VectorSize.Size8x16)))
+(attr rule popcnt_8x16 (tag vector))
 
 ;;;; Rules for `bitselect` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2634,7 +2635,9 @@
       (if (ty_int_ref_scalar_64 out_ty))
       (if (ty_int_ref_scalar_64 in_ty))
       x)
-(rule 0 (lower (has_type $I128 (bitcast _ x @ (value_type $I128)))) x)
+
+(rule bitcast_i128 0 (lower (has_type $I128 (bitcast _ x @ (value_type $I128)))) x)
+(attr rule bitcast_i128 (tag i128))
 
 ;;; Rules for `extractlane` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
