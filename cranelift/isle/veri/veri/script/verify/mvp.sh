@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+# Clean build
+cargo clean
+cargo build --release
+
+# Eval
 RUST_LOG=info ./script/veri.sh \
     -p release \
     "$@" \
