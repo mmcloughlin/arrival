@@ -16,7 +16,7 @@ use cranelift_codegen::{
     },
     Reg, RegClass, Writable,
 };
-use cranelift_isle::ast::SpecExpr;
+use cranelift_isle::ast::{Attr, AttrKind, AttrTarget, SpecExpr};
 use cranelift_isle::{
     ast::{Def, SpecOp},
     printer,
@@ -24,7 +24,7 @@ use cranelift_isle::{
 use cranelift_isle_veri_aslp::client::Client;
 use cranelift_isle_veri_isaspec::aarch64::literal;
 use cranelift_isle_veri_isaspec::memory::SetEffect;
-use cranelift_isle_veri_isaspec::spec::spec_conv_to;
+use cranelift_isle_veri_isaspec::spec::{spec_conv_to, spec_ident};
 use cranelift_isle_veri_isaspec::{
     aarch64::{self, pstate_field},
     bits::{Bits, Segment},
@@ -89,6 +89,9 @@ fn main() -> Result<()> {
         // Generate specs.
         let mut defs = Vec::new();
         for spec_config in file_config.specs {
+            // Tag the term as generated.
+            defs.push(Def::Attr(generated_attribute(&spec_config.term)));
+            // Build and output the spec.
             let builder = Builder::new(spec_config, &client);
             let def = builder.build()?;
             defs.push(def);
@@ -100,6 +103,14 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn generated_attribute(term: &str) -> Attr {
+    Attr {
+        target: AttrTarget::Term(spec_ident(term.to_string())),
+        kinds: vec![AttrKind::Tag(spec_ident("isaspec_generated".to_string()))],
+        pos: Default::default(),
+    }
 }
 
 fn write_spec(path: &Path, defs: &Vec<Def>, width: usize) -> Result<()> {
