@@ -181,6 +181,7 @@ pub struct ExpansionReport {
     pub description: String,
     pub rules: Vec<String>,
     pub chained: Vec<String>,
+    pub terms: Vec<String>,
     pub tags: Vec<String>,
     pub type_instantiations: Vec<TypeInstantationReport>,
     pub duration: Duration,
@@ -210,11 +211,19 @@ impl ExpansionReport {
             }
         }
 
+        // Terms
+        let terms: BTreeSet<_> = expansion
+            .terms(prog)
+            .iter()
+            .map(|term_id| prog.term_name(*term_id))
+            .collect();
+
         Ok(Self {
             id,
             description,
             rules,
             chained: chained.iter().map(ToString::to_string).collect(),
+            terms: terms.iter().map(ToString::to_string).collect(),
             tags,
             type_instantiations: Vec::new(),
             duration: Default::default(),
