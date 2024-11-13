@@ -598,6 +598,8 @@
     (provide (store! clif_store flags value p offset result))
 )
 (instantiate store
+    ((args (named MemFlags) (bv  8) (named Value) (named Offset32)) (ret (bv 1)))
+    ((args (named MemFlags) (bv 16) (named Value) (named Offset32)) (ret (bv 1)))
     ((args (named MemFlags) (bv 32) (named Value) (named Offset32)) (ret (bv 1)))
     ((args (named MemFlags) (bv 64) (named Value) (named Offset32)) (ret (bv 1)))
 )
