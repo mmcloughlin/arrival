@@ -794,8 +794,10 @@
       (sub_vec x y (vector_size ty)))
 
 ;; `i128`
-(rule -1 (lower (has_type $I128 (isub x y)))
+(rule isub_i128
+      -1 (lower (has_type $I128 (isub x y)))
       (sub_i128 x y))
+(attr rule isub_i128 (tag i128))
 
 ;;;; Rules for `uadd_sat` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
