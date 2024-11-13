@@ -161,12 +161,18 @@ pub enum Verdict {
 #[derive(Serialize)]
 pub struct VerifyReport {
     pub verdict: Verdict,
+
+    pub init_time: Duration,
+    pub applicable_time: Duration,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verify_time: Option<Duration>,
 }
 
 #[derive(Serialize)]
 pub struct TypeInstantationReport {
     pub choices: Vec<String>,
     pub verify: VerifyReport,
+    pub duration: Duration,
 }
 
 #[derive(Serialize)]
@@ -177,6 +183,7 @@ pub struct ExpansionReport {
     pub chained: Vec<String>,
     pub tags: Vec<String>,
     pub type_instantiations: Vec<TypeInstantationReport>,
+    pub duration: Duration,
 }
 
 impl ExpansionReport {
@@ -210,6 +217,7 @@ impl ExpansionReport {
             chained: chained.iter().map(ToString::to_string).collect(),
             tags,
             type_instantiations: Vec::new(),
+            duration: Default::default(),
         })
     }
 }
@@ -441,6 +449,7 @@ impl Runner {
         log_dir: std::path::PathBuf,
     ) -> Result<ExpansionReport> {
         let description = expansion_description(expansion, &self.prog)?;
+        let start = time::Instant::now();
 
         // Results output.
         let mut output: Box<dyn Write> = if self.results_to_log_dir {
@@ -475,6 +484,8 @@ impl Runner {
         let mut report = ExpansionReport::from_expansion(id, expansion, &self.prog)?;
 
         for (i, solution) in solutions.iter().enumerate() {
+            let start_solution = time::Instant::now();
+
             // Show type assignment.
             let mut choices = Vec::new();
             for choice in &solution.choices {
@@ -528,11 +539,16 @@ impl Runner {
             )?;
 
             // Append to report.
+            let duration = start_solution.elapsed();
             report.type_instantiations.push(TypeInstantationReport {
                 choices,
                 verify: verify_report,
+                duration,
             });
         }
+
+        // End timer
+        report.duration = start.elapsed();
 
         Ok(report)
     }
@@ -544,6 +560,8 @@ impl Runner {
         log_dir: std::path::PathBuf,
         output: &mut dyn Write,
     ) -> Result<VerifyReport> {
+        let start = time::Instant::now();
+
         // Solve.
         let binary = self.solver_backend.prog();
         let args = self.solver_backend.args(self.timeout);
@@ -555,20 +573,32 @@ impl Runner {
 
         let mut solver = Solver::new(smt, &self.prog, conditions, assignment)?;
         solver.encode()?;
+        let init_time = start.elapsed();
 
+        // Applicability check.
+        let start = time::Instant::now();
         let applicability = solver.check_assumptions_feasibility()?;
+        let applicable_time = start.elapsed();
+
         writeln!(output, "\t\tapplicability = {applicability}")?;
         match applicability {
             Applicability::Applicable => (),
             Applicability::Inapplicable => {
                 return Ok(VerifyReport {
                     verdict: Verdict::Inapplicable,
+                    init_time,
+                    applicable_time,
+                    verify_time: None,
                 })
             }
             Applicability::Unknown => bail!("could not prove applicability"),
         };
 
+        // Verify.
+        let start = time::Instant::now();
         let verification = solver.check_verification_condition()?;
+        let verify_time = Some(start.elapsed());
+
         writeln!(output, "\t\tverification = {verification}")?;
         Ok(match verification {
             Verification::Failure(model) => {
@@ -578,9 +608,15 @@ impl Runner {
             }
             Verification::Success => VerifyReport {
                 verdict: Verdict::Success,
+                init_time,
+                applicable_time,
+                verify_time,
             },
             Verification::Unknown => VerifyReport {
                 verdict: Verdict::Unknown,
+                init_time,
+                applicable_time,
+                verify_time,
             },
         })
     }
