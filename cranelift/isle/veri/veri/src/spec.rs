@@ -674,6 +674,10 @@ impl SpecEnv {
                     spec.provides
                         .push(Positioned::new(pos, ExprKind::Eq(ret, constructor)));
                     self.term_spec.insert(term_id, spec);
+                    self.term_tags
+                        .entry(term_id)
+                        .or_default()
+                        .insert("internal_derived_spec".to_string());
                 }
             }
         }

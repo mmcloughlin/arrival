@@ -8,7 +8,10 @@ use std::{
 };
 
 use anyhow::{bail, format_err, Error, Result};
-use cranelift_isle::{sema::TermId, trie_again::RuleSet};
+use cranelift_isle::{
+    sema::{Term, TermId},
+    trie_again::RuleSet,
+};
 use rayon::prelude::*;
 use serde::Serialize;
 
@@ -232,6 +235,64 @@ impl ExpansionReport {
 }
 
 #[derive(Serialize)]
+pub struct TermMetadata {
+    pub name: String,
+    pub class: String,
+    pub has_spec: bool,
+    pub tags: Vec<String>,
+}
+
+impl TermMetadata {
+    fn from_term(term: &Term, prog: &Program) -> Self {
+        let name = prog.term_name(term.id).to_string();
+        let class = Self::classify_term(term);
+        let has_spec = prog.specenv.has_spec(term.id);
+
+        let tags_set = prog
+            .specenv
+            .term_tags
+            .get(&term.id)
+            .cloned()
+            .unwrap_or_default();
+        let mut tags: Vec<_> = tags_set.iter().cloned().collect();
+        tags.sort();
+
+        Self {
+            name,
+            class,
+            has_spec,
+            tags,
+        }
+    }
+
+    fn from_prog(prog: &Program) -> Vec<Self> {
+        let mut terms = Vec::new();
+        for term in &prog.termenv.terms {
+            terms.push(Self::from_term(term, prog));
+        }
+        terms
+    }
+
+    fn classify_term(term: &Term) -> String {
+        if term.is_enum_variant() {
+            return "enum_variant".to_string();
+        }
+
+        if term.has_external_constructor() || term.has_external_extractor() {
+            return "external".to_string();
+        }
+
+        if term.has_extractor() {
+            return "extractor".to_string();
+        }
+
+        assert!(term.has_constructor());
+
+        "constructor".to_string()
+    }
+}
+
+#[derive(Serialize)]
 pub struct Report {
     build_profile: String,
     git_version: String,
@@ -240,6 +301,7 @@ pub struct Report {
     timeout: Duration,
     duration: Duration,
     num_threads: usize,
+    terms: Vec<TermMetadata>,
     expansions: Vec<ExpansionReport>,
 }
 
@@ -380,6 +442,7 @@ impl Runner {
 
         // Prepare report
         expansion_reports.sort_by(|a, b| a.id.cmp(&b.id));
+        let terms = TermMetadata::from_prog(&self.prog);
         let report = Report {
             build_profile: BUILD_PROFILE.to_string(),
             git_version: GIT_VERSION.to_string(),
@@ -388,6 +451,7 @@ impl Runner {
             timeout: self.timeout,
             num_threads,
             duration,
+            terms,
             expansions: expansion_reports,
         };
 
