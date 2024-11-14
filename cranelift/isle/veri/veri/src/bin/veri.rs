@@ -24,11 +24,11 @@ struct Opts {
     filters: Vec<Filter>,
 
     /// Solver backend to use.
-    #[arg(long = "solver", default_value = "cvc5")]
+    #[arg(long = "solver", default_value = "cvc5", env = "ISLE_VERI_SOLVER")]
     solver_backend: SolverBackendOption,
 
     /// Per-query timeout, in seconds.
-    #[arg(long, default_value = "10")]
+    #[arg(long, default_value = "10", env = "ISLE_VERI_TIMEOUT")]
     timeout: u64,
 
     /// Number of threads to use.
