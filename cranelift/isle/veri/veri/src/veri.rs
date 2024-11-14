@@ -144,6 +144,13 @@ impl Expr {
         matches!(self, Self::Variable(_))
     }
 
+    pub fn pure(&self) -> bool {
+        match self {
+            Expr::BVConvTo(..) => false,
+            _ => true,
+        }
+    }
+
     pub fn sources(&self) -> Vec<ExprId> {
         match self {
             Expr::Const(_) | Expr::Variable(_) => Vec::new(),
@@ -2457,7 +2464,15 @@ impl<'a> ConditionsBuilder<'a> {
     }
 
     fn dedup_expr(&mut self, expr: Expr) -> ExprId {
-        let id = if let Some(id) = self.expr_map.get(&expr) {
+        // Dedupe, if pure.
+        let maybe_id = if expr.pure() {
+            self.expr_map.get(&expr)
+        } else {
+            None
+        };
+
+        // Otherwise, allocate new one.
+        let id = if let Some(id) = maybe_id {
             *id
         } else {
             let id = ExprId(self.conditions.exprs.len());
