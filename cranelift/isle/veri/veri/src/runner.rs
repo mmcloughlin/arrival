@@ -186,6 +186,9 @@ pub struct ExpansionReport {
     pub chained: Vec<String>,
     pub terms: Vec<String>,
     pub tags: Vec<String>,
+    /// Count of type instantiations that failed at type inference.
+    pub failed_type_inference: usize,
+    /// Solver reports from type instantiations.
     pub type_instantiations: Vec<TypeInstantationReport>,
     pub duration: Duration,
 }
@@ -228,6 +231,7 @@ impl ExpansionReport {
             chained: chained.iter().map(ToString::to_string).collect(),
             terms: terms.iter().map(ToString::to_string).collect(),
             tags,
+            failed_type_inference: 0,
             type_instantiations: Vec::new(),
             duration: Default::default(),
         })
@@ -583,6 +587,7 @@ impl Runner {
                         "inapplicable type inference: {diagnostic}",
                         diagnostic = conflict.diagnostic(&conditions, &self.prog.files)
                     );
+                    report.failed_type_inference += 1;
                     continue;
                 }
                 type_inference::Status::Underconstrained => {
