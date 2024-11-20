@@ -1675,35 +1675,35 @@
 
 (macro (cond_holds cc nzcv)
       (match cc
-            ; EQ	Z set	Equal
+            ; EQ	Equal.	Z==1
             ((Eq) (z_set! nzcv))
-            ; NE	Z clear	Not equal
+            ; NE	Not equal.	Z==0
             ((Ne) (z_clear! nzcv))
-            ; HS	C set	Higher or same (unsigned >= )
+            ; HS	Unsigned higher or same (or carry set).	C==1
             ((Hs) (c_set! nzcv))
-            ; LO	C clear	Lower (unsigned < )
+            ; LO	Unsigned lower (or carry clear).	C==0
             ((Lo) (c_clear! nzcv))
-            ; MI	N set	Negative
+            ; MI	Negative. The mnemonic stands for "minus".	N==1
             ((Mi) (n_set! nzcv))
-            ; PL	N clear	Positive or zero
+            ; PL	Positive or zero. The mnemonic stands for "plus".	N==0
             ((Pl) (n_clear! nzcv))
-            ; VS	V set	Overflow
+            ; VS	Signed overflow. The mnemonic stands for "V set".	V==1
             ((Vs) (v_set! nzcv))
-            ; VC	V clear	No overflow
+            ; VC	No signed overflow. The mnemonic stands for "V clear".	V==0
             ((Vc) (v_clear! nzcv))
-            ; HI	C set and Z clear	Higher (unsigned >)
+            ; HI	Unsigned higher.	(C==1) && (Z==0)
             ((Hi) (and (c_set! nzcv) (z_clear! nzcv)))
-            ; LS	C clear or Z set	Lower or same (unsigned <=)
+            ; LS	Unsigned lower or same.	(C==0) || (Z==1)
             ((Ls) (or (c_clear! nzcv) (z_set! nzcv)))
-            ; GE	N and V the same	Signed >=
+            ; GE	Signed greater than or equal.	N==V
             ((Ge) (= (:N nzcv) (:V nzcv)))
-            ; LT	N and V differ	Signed <
+            ; LT	Signed less than.	N!=V
             ((Lt) (not (= (:N nzcv) (:V nzcv))))
-            ; GT	Z clear, N and V the same	Signed >
+            ; GT	Signed greater than.	(Z==0) && (N==V)
             ((Gt) (and (z_clear! nzcv) (= (:N nzcv) (:V nzcv))))
-            ; LE	Z set, N and V differ	Signed <=
-            ((Le) (and (z_set! nzcv) (not (= (:N nzcv) (:V nzcv)))))
-            ; AL	Any	Always. This suffix is normally omitted.
+            ; LE	Signed less than or equal.	(Z==1) || (N!=V)
+            ((Le) (or (z_set! nzcv) (not (= (:N nzcv) (:V nzcv)))))
+            ; AL (or omitted)	Always executed.	None tested.
             ((Al) true)
             ((Nv) false)
       )
