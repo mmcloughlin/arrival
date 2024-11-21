@@ -1258,14 +1258,18 @@
 )
 (instantiate fcvt_to_uint fcvt)
 
-(macro (min_int_as_fp w)
-    (switch w
-        (32 #x00000000cf000000)
-        (64 #xc3e0000000000000)))
-(macro (neg_min_int_as_fp w)
-    (switch w
-        (32 #x000000004f000000)
-        (64 #x43e0000000000000)))
+(macro (min_int_as_fp w n)
+    (switch n
+        (32 (fp_i32_min! w))
+        (64 (fp_i64_min! w))
+    )
+)
+(macro (neg_min_int_as_fp w n)
+    (switch n
+        (32 (fp_minus_i32_min! w))
+        (64 (fp_minus_i64_min! w))
+    )
+)
 (spec (fcvt_to_sint x)
     (modifies clif_trap)
     (provide
@@ -1275,13 +1279,26 @@
         )
         (and
             (=> (not clif_trap) (= result (fp.to_sbv d (to_fp_from_fp d x))))
+
             ;; Trap if input is NaN or does not fit in the integer type
-            ;; if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
-            ;; if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
+            ;;
+            ;; Note f64 to i32 case takes a different form according to the reference interpreter.
+            ;;
+            ;; Reference interpreter i32_convert `trunc_f32_s`:
+            ;;      if xf >= -.Int32.(to_float min_int) || xf < Int32.(to_float min_int) then
+            ;; Reference interpreter i32_convert `trunc_f64_s`:
+            ;;      if xf >= -.Int32.(to_float min_int) || xf <= Int32.(to_float min_int) -. 1.0 then
+            ;; Reference interpreter i64_convert `trunc_f32_s`:
+            ;;      if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int) then
+            ;; Reference interpreter i64_convert `trunc_f64_s`:
+            ;;      if xf >= -.Int64.(to_float min_int) || xf < Int64.(to_float min_int) then
             (= clif_trap (or
                 (fp.isNaN x)
-                (fp.ge x (to_fp_from_fp s (conv_to d (neg_min_int_as_fp! d))))
-                (fp.lt x (to_fp_from_fp s (conv_to d (min_int_as_fp! d)))))))))
+                (fp.ge x (neg_min_int_as_fp! s d))
+                (if (and (= s 64) (= d 32))
+                    (fp.le x (fp.sub (min_int_as_fp! s d) (fp_one! s)))
+                    (fp.lt x (min_int_as_fp! s d))
+                ))))))
 )
 (instantiate fcvt_to_sint fcvt)
 

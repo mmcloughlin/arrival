@@ -2327,7 +2327,7 @@
                         (#x20 #x00000000cf000000)
                         (#x40 #x00000000df000000)))
                   (#x40 (switch out
-                        (#x20 #xc1e0000000000000)
+                        (#x20 #xc1e0000000200000)
                         (#x40 #xc3e0000000000000)))
             )
             (switch in
@@ -4519,23 +4519,25 @@
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (ScalarSize.Size32) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
+                    (MInst.TrapIf (cond_br_cond (Cond.Le))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
-(rule (fpu_to_int_underflow_check $true $F64 (fits_in_32 out_ty) src min)
+(rule fpu_to_int_underflow_check_signed_f64_fits_in_32
+      (fpu_to_int_underflow_check $true $F64 (fits_in_32 out_ty) src min)
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (ScalarSize.Size64) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
+                    (MInst.TrapIf (cond_br_cond (Cond.Le))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
+(attr rule fpu_to_int_underflow_check_signed_f64_fits_in_32 (veri priority))
 (rule -1 (fpu_to_int_underflow_check $true in_ty _out_ty src min)
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (scalar_size in_ty) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThan)))
+                    (MInst.TrapIf (cond_br_cond (Cond.Lt))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
@@ -4543,7 +4545,7 @@
       (let ((r ValueRegs
                   (with_flags (fpu_cmp (scalar_size in_ty) src min)
                    (ConsumesFlags.ConsumesFlagsReturnsReg
-                  (MInst.TrapIf (cond_br_cond (fp_cond_code (FloatCC.LessThanOrEqual)))
+                    (MInst.TrapIf (cond_br_cond (Cond.Le))
                         (trap_code_integer_overflow))
                     src))))
        (value_regs_get r 0)))
