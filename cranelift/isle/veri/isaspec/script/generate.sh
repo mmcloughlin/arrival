@@ -23,6 +23,9 @@ while getopts "la:p:o:h" opt; do
     esac
 done
 
+# Floating-point constant specs.
+cargo run --bin fpconst > "${output_path}/fp_const.isle"
+
 # Launch server
 if [[ "${launch_server}" == "true" ]]; then
     aslp-server --host "${aslp_server_host}" --port "${aslp_server_port}" &
