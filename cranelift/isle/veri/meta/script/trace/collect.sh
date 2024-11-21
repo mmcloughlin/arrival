@@ -6,7 +6,15 @@ tests_directory="$1"
 trace_directory="$2"
 
 # Build.
-cargo build --bin wasmtime --release --features 'wasmtime-cranelift/trace-log'
+cargo build \
+    --bin wasmtime \
+    --release \
+    --no-default-features \
+    --features wast \
+    --features logging \
+    --features cranelift \
+    --features threads \
+    --features 'wasmtime-cranelift/trace-log'
 
 # Run.
 for test in "${tests_directory}"/*.wast ; do
