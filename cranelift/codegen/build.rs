@@ -213,6 +213,7 @@ fn run_compilation(compilation: &IsleCompilation) -> Result<(), Errors> {
             .map_err(|e| Errors::from_io(e, "list isle compilation file paths"))?;
 
         let mut options = isle::codegen::CodegenOptions::default();
+        options.rule_trace = compilation.rule_trace;
         // Because we include!() the generated ISLE source, we cannot
         // put the global pragmas (`#![allow(...)]`) in the ISLE
         // source itself; we have to put them in the source that

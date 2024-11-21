@@ -15,6 +15,9 @@ pub struct CodegenOptions {
     /// Do not include the `#![allow(...)]` pragmas in the generated
     /// source. Useful if it must be include!()'d elsewhere.
     pub exclude_global_allow_pragmas: bool,
+
+    /// Emit trace logs when rules fire.
+    pub rule_trace: bool,
 }
 
 /// Emit Rust source code for the given type and term environments.
@@ -114,7 +117,8 @@ impl<'a> Codegen<'a> {
         self.generate_header(&mut code, options);
         self.generate_ctx_trait(&mut code);
         self.generate_internal_types(&mut code);
-        self.generate_internal_term_constructors(&mut code).unwrap();
+        self.generate_internal_term_constructors(&mut code, options)
+            .unwrap();
 
         code
     }
@@ -388,7 +392,11 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
         }
     }
 
-    fn generate_internal_term_constructors(&self, code: &mut String) -> std::fmt::Result {
+    fn generate_internal_term_constructors(
+        &self,
+        code: &mut String,
+        options: &CodegenOptions,
+    ) -> std::fmt::Result {
         for &(termid, ref ruleset) in self.terms.iter() {
             let root = crate::serialize::serialize(ruleset);
             let mut ctx = BodyContext::new(code, ruleset);
@@ -467,7 +475,7 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
             };
 
             let scope = ctx.enter_scope();
-            self.emit_block(&mut ctx, &root, sig.ret_kind, &last_expr, scope)?;
+            self.emit_block(&mut ctx, &root, sig.ret_kind, &last_expr, scope, options)?;
         }
         Ok(())
     }
@@ -508,6 +516,7 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
         ret_kind: ReturnKind,
         last_expr: &str,
         scope: StableSet<BindingId>,
+        options: &CodegenOptions,
     ) -> std::fmt::Result {
         let mut stack = Vec::new();
         ctx.begin_block()?;
@@ -650,7 +659,8 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
                                 pos.pretty_print_line(&self.files)
                             )?;
                             // Log the rule firing.
-                            writeln!(
+                            if options.rule_trace {
+                                writeln!(
                                 ctx.out,
                                 "{}#[cfg(feature = \"trace-log\")] trace!(target: \"isle_rule_trace\", \"rule: {},{}\");",
                                 &ctx.indent,
@@ -659,6 +669,7 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
                                 pos.pretty_print_line(&self.files)
                             )
                             .unwrap();
+                            }
                             write!(ctx.out, "{}", &ctx.indent)?;
                             match ret_kind {
                                 ReturnKind::Plain | ReturnKind::Option => {

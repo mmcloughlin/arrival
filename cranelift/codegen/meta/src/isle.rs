@@ -30,6 +30,7 @@ pub struct IsleCompilation {
     pub output: std::path::PathBuf,
     pub tracked_inputs: Vec<std::path::PathBuf>,
     pub untracked_inputs: Vec<std::path::PathBuf>,
+    pub rule_trace: bool,
 }
 
 impl IsleCompilation {
@@ -139,6 +140,7 @@ pub fn get_isle_compilations(
                     src_opts.join("vector.isle"),
                 ],
                 untracked_inputs: vec![clif_opt_isle],
+                rule_trace: false,
             },
             // The x86-64 instruction selector.
             IsleCompilation {
@@ -154,6 +156,7 @@ pub fn get_isle_compilations(
                     src_isa_x64.join("lower.isle"),
                 ],
                 untracked_inputs: vec![clif_lower_isle.clone()],
+                rule_trace: false,
             },
             // The aarch64 instruction selector.
             IsleCompilation {
@@ -174,6 +177,7 @@ pub fn get_isle_compilations(
                     src_isa_aarch64.join("lower_dynamic_neon.isle"),
                 ],
                 untracked_inputs: vec![clif_lower_isle.clone()],
+                rule_trace: true,
             },
             // The s390x instruction selector.
             IsleCompilation {
@@ -189,6 +193,7 @@ pub fn get_isle_compilations(
                     src_isa_s390x.join("lower.isle"),
                 ],
                 untracked_inputs: vec![clif_lower_isle.clone()],
+                rule_trace: false,
             },
             // The risc-v instruction selector.
             IsleCompilation {
@@ -205,6 +210,7 @@ pub fn get_isle_compilations(
                     src_isa_risc_v.join("lower.isle"),
                 ],
                 untracked_inputs: vec![clif_lower_isle.clone()],
+                rule_trace: false,
             },
             // The Pulley instruction selector.
             IsleCompilation {
@@ -217,6 +223,7 @@ pub fn get_isle_compilations(
                     src_isa_pulley_shared.join("lower.isle"),
                 ],
                 untracked_inputs: vec![clif_lower_isle.clone()],
+                rule_trace: false,
             },
         ],
     }
