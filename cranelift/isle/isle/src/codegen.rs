@@ -150,6 +150,7 @@ impl<'a> Codegen<'a> {
         }
 
         writeln!(code, "\nuse super::*;  // Pulls in all external types.").unwrap();
+        writeln!(code, "#[cfg(feature = \"trace-log\")]\nuse crate::trace;").unwrap();
         writeln!(code, "use std::marker::PhantomData;").unwrap();
     }
 
@@ -641,13 +642,23 @@ impl<L: Length, C> Length for ContextIterWrapper<L, C> {{
                             stack.push((Self::validate_block(ret_kind, body), "", scope));
                         }
 
-                        &ControlFlow::Return { pos, result } => {
+                        &ControlFlow::Return { pos, result, name } => {
                             writeln!(
                                 ctx.out,
                                 "{}// Rule at {}.",
                                 &ctx.indent,
                                 pos.pretty_print_line(&self.files)
                             )?;
+                            // Log the rule firing.
+                            writeln!(
+                                ctx.out,
+                                "{}#[cfg(feature = \"trace-log\")] trace!(target: \"isle_rule_trace\", \"rule: {},{}\");",
+                                &ctx.indent,
+                                name.map_or("".to_string(), |sym| self.typeenv.syms[sym.index()]
+                                    .clone()),
+                                pos.pretty_print_line(&self.files)
+                            )
+                            .unwrap();
                             write!(ctx.out, "{}", &ctx.indent)?;
                             match ret_kind {
                                 ReturnKind::Plain | ReturnKind::Option => {
