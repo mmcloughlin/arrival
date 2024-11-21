@@ -85,6 +85,7 @@ pub fn get_isle_compilations(
     let prelude_spec_isle = codegen_crate_dir.join("src").join("prelude_spec.isle");
     let inst_specs_isle = codegen_crate_dir.join("src").join("inst_specs.isle");
     let inst_tags_isle = codegen_crate_dir.join("src").join("inst_tags.isle");
+    let fpconst_isle = codegen_crate_dir.join("src").join("fpconst.isle");
     let state_isle = codegen_crate_dir.join("src").join("state.isle");
 
     // Directory for mid-end optimizations.
@@ -164,6 +165,7 @@ pub fn get_isle_compilations(
                     prelude_spec_isle.clone(),
                     inst_specs_isle.clone(),
                     inst_tags_isle.clone(),
+                    fpconst_isle.clone(),
                     state_isle.clone(),
                     src_isa_aarch64.join("inst.isle"),
                     src_isa_aarch64.join("inst_neon.isle"),

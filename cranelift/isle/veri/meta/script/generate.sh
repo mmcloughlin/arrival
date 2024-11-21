@@ -2,6 +2,9 @@
 
 set -euxo pipefail
 
+# Float constants
+cargo run --bin fpconst >"../../../codegen/src/fpconst.isle"
+
 # Wasm operators
 wasmops="data/wasmoperators.csv"
 cargo run --bin wasmoperators >"${wasmops}"
