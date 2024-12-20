@@ -7,7 +7,7 @@ use std::{
     time::{self, Duration},
 };
 
-use anyhow::{bail, format_err, Error, Result};
+use anyhow::{bail, format_err, Context as _, Error, Result};
 use cranelift_isle::{
     sema::{Term, TermId},
     trie_again::RuleSet,
@@ -609,12 +609,14 @@ impl Runner {
             }
 
             let solution_log_dir = log_dir.join(format!("{:03}", i));
-            let verify_report = self.verify_expansion_type_instantiation(
-                &conditions,
-                &solution.assignment,
-                solution_log_dir,
-                &mut output,
-            )?;
+            let verify_report = self
+                .verify_expansion_type_instantiation(
+                    &conditions,
+                    &solution.assignment,
+                    solution_log_dir,
+                    &mut output,
+                )
+                .context(format!("verify expansion: {id}"))?;
 
             // Append to report.
             let duration = start_solution.elapsed();

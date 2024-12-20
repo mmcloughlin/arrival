@@ -71,59 +71,59 @@
 
 (form
     bv_unary_8_to_64
-    ((args (bv  8)) (ret (bv  8)))
-    ((args (bv 16)) (ret (bv 16)))
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv  8)) (ret (bv  8)))
+    ((args (named Type) (bv 16)) (ret (bv 16)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 (form
     bv_binary_8_to_64
-    ((args (bv  8) (bv  8)) (ret (bv  8)))
-    ((args (bv 16) (bv 16)) (ret (bv 16)))
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv  8) (bv  8)) (ret (bv  8)))
+    ((args (named Type) (bv 16) (bv 16)) (ret (bv 16)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 (form
     bv_ternary_8_to_64
-    ((args (bv  8) (bv  8) (bv  8)) (ret (bv  8)))
-    ((args (bv 16) (bv 16) (bv 16)) (ret (bv 16)))
-    ((args (bv 32) (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv  8) (bv  8) (bv  8)) (ret (bv  8)))
+    ((args (named Type) (bv 16) (bv 16) (bv 16)) (ret (bv 16)))
+    ((args (named Type) (bv 32) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 ;;;; CLIF Instruction Specifications ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Integer Instructions
 
-(spec (iadd x y)
+(spec (iadd ty x y)
     (provide (= result (bvadd x y))))
 (instantiate iadd
-    ((args (bv 8) (bv 8)) (ret (bv 8)))
-    ((args (bv 16) (bv 16)) (ret (bv 16)))
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
-    ((args (bv 128) (bv 128)) (ret (bv 128)))
+    ((args (named Type) (bv 8) (bv 8)) (ret (bv 8)))
+    ((args (named Type) (bv 16) (bv 16)) (ret (bv 16)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 128) (bv 128)) (ret (bv 128)))
 )
 
-(spec (isub x y)
+(spec (isub ty x y)
     (provide (= result (bvsub x y))))
 (instantiate isub bv_binary_8_to_64)
 
-(spec (ineg x)
+(spec (ineg ty x)
     (provide (= result (bvneg x))))
 (instantiate ineg bv_unary_8_to_64)
 
-(spec (iabs x)
+(spec (iabs ty x)
     (provide (= result (if (bvsge x (zero_ext (widthof x) #b0)) x (bvneg x)))))
 (instantiate iabs bv_unary_8_to_64)
 
-(spec (imul x y)
+(spec (imul ty x y)
     (provide (= result (bvmul x y))))
 (instantiate imul bv_binary_8_to_64)
 
-(spec (smulhi x y)
+(spec (smulhi ty x y)
     (provide
         (let
             (
@@ -140,7 +140,7 @@
 )
 (instantiate smulhi bv_binary_8_to_64)
 
-(spec (umulhi x y)
+(spec (umulhi ty x y)
     (provide
         (let
             (
@@ -157,7 +157,7 @@
 )
 (instantiate umulhi bv_binary_8_to_64)
 
-(spec (udiv x y)
+(spec (udiv ty x y)
     (modifies clif_trap)
     (provide
         (= result (bvudiv x y))
@@ -166,7 +166,7 @@
 )
 (instantiate udiv bv_binary_8_to_64)
 
-(spec (sdiv x y)
+(spec (sdiv ty x y)
     (modifies clif_trap)
     (provide
         ; If j2 is 0, then the result is undefined.
@@ -192,7 +192,7 @@
 )
 
 (instantiate sdiv bv_binary_8_to_64)
-(spec (urem x y)
+(spec (urem ty x y)
     (modifies clif_trap)
     (provide
         ; If i2 is 0, then the result is undefined.
@@ -208,7 +208,7 @@
 )
 (instantiate urem bv_binary_8_to_64)
 
-(spec (srem x y)
+(spec (srem ty x y)
     (modifies clif_trap)
     (provide
         ; Let j1 be the signed interpretation of i1.
@@ -230,7 +230,7 @@
 
 ;; "Unsigned addition of x and y, trapping if the result overflows."
 ;; "Accepts 32 or 64-bit integers, and does not support vector types."
-(spec (uadd_overflow_trap x y trap_code)
+(spec (uadd_overflow_trap ty x y trap_code)
     (modifies clif_trap)
     (provide
         (let
@@ -256,21 +256,21 @@
 )
 
 (instantiate uadd_overflow_trap
-    ((args (bv 32) (bv 32) (named TrapCode)) (ret (bv 32)))
-    ((args (bv 64) (bv 64) (named TrapCode)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32) (named TrapCode)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64) (named TrapCode)) (ret (bv 64)))
 )
 
 
-(spec (iconst arg)
+(spec (iconst ty arg)
     (provide (= arg (zero_ext 64 result))))
 (instantiate iconst
-    ((args (bv 64)) (ret (bv 8)))
-    ((args (bv 64)) (ret (bv 16)))
-    ((args (bv 64)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 64)) (ret (bv 8)))
+    ((args (named Type) (bv 64)) (ret (bv 16)))
+    ((args (named Type) (bv 64)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
  )
 
-(spec (ishl x y)
+(spec (ishl ty x y)
     (provide
         (= result
             (bvshl
@@ -282,7 +282,7 @@
 )
 (instantiate ishl bv_binary_8_to_64)
 
-(spec (ushr x y)
+(spec (ushr ty x y)
     (provide
         (= result
             (bvlshr
@@ -294,7 +294,7 @@
 )
 (instantiate ushr bv_binary_8_to_64)
 
-(spec (sshr x y)
+(spec (sshr ty x y)
     (provide
         (= result
             (bvashr
@@ -306,100 +306,100 @@
 )
 (instantiate sshr bv_binary_8_to_64)
 
-(spec (band x y)
+(spec (band ty x y)
     (provide (= result (bvand x y))))
 (instantiate band bv_binary_8_to_64)
 
-(spec (bxor x y)
+(spec (bxor ty x y)
     (provide (= result (bvxor x y))))
 (instantiate bxor bv_binary_8_to_64)
 
-(spec (bor x y)
+(spec (bor ty x y)
     (provide (= result (bvor x y))))
 (instantiate bor bv_binary_8_to_64)
 
-(spec (bnot x)
+(spec (bnot ty x)
     (provide (= result (bvnot x))))
 (instantiate bnot bv_unary_8_to_64)
 
-(spec (rotl x y)
+(spec (rotl ty x y)
     (provide (= result (rotl x y))))
 (instantiate rotl bv_binary_8_to_64)
 
-(spec (rotr x y)
+(spec (rotr ty x y)
     (provide (= result (rotr x y))))
 (instantiate rotr bv_binary_8_to_64)
 
-(spec (bitselect c x y)
+(spec (bitselect ty c x y)
     (provide (= result (bvor (bvand c x) (bvand (bvnot c) y)))))
 (instantiate bitselect bv_ternary_8_to_64)
 
-(spec (cls x) (provide (= result (cls x))))
+(spec (cls ty x) (provide (= result (cls x))))
 (instantiate cls bv_unary_8_to_64)
 
-(spec (clz x)
+(spec (clz ty x)
     (provide (= result (clz x))))
 (instantiate clz bv_unary_8_to_64)
 
-(spec (ctz x)
+(spec (ctz ty x)
     (provide (= result (clz (rev x)))))
 (instantiate ctz bv_unary_8_to_64)
 
-(spec (popcnt x)
+(spec (popcnt ty x)
     (provide (= result (popcnt x))))
 (instantiate popcnt bv_unary_8_to_64)
 
-(spec (ireduce x)
+(spec (ireduce ty x)
     (provide (= result (conv_to (widthof result) x))))
 (instantiate ireduce
-    ((args (bv 16)) (ret (bv  8)))
-    ((args (bv 32)) (ret (bv  8)))
-    ((args (bv 64)) (ret (bv  8)))
-    ((args (bv 32)) (ret (bv 16)))
-    ((args (bv 64)) (ret (bv 16)))
-    ((args (bv 64)) (ret (bv 32)))
+    ((args (named Type) (bv 16)) (ret (bv  8)))
+    ((args (named Type) (bv 32)) (ret (bv  8)))
+    ((args (named Type) (bv 64)) (ret (bv  8)))
+    ((args (named Type) (bv 32)) (ret (bv 16)))
+    ((args (named Type) (bv 64)) (ret (bv 16)))
+    ((args (named Type) (bv 64)) (ret (bv 32)))
 )
 
 
 
 (form extend
-    ((args (bv  8)) (ret (bv  8)))
-    ((args (bv  8)) (ret (bv 16)))
-    ((args (bv  8)) (ret (bv 32)))
-    ((args (bv  8)) (ret (bv 64)))
-    ((args (bv 16)) (ret (bv 16)))
-    ((args (bv 16)) (ret (bv 32)))
-    ((args (bv 16)) (ret (bv 64)))
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 32)) (ret (bv 64)))
+    ((args (named Type) (bv  8)) (ret (bv  8)))
+    ((args (named Type) (bv  8)) (ret (bv 16)))
+    ((args (named Type) (bv  8)) (ret (bv 32)))
+    ((args (named Type) (bv  8)) (ret (bv 64)))
+    ((args (named Type) (bv 16)) (ret (bv 16)))
+    ((args (named Type) (bv 16)) (ret (bv 32)))
+    ((args (named Type) (bv 16)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 32)) (ret (bv 64)))
     ;; Note: (bv 64) -> (bv 64) not accepted in clif
 )
 
-(spec (uextend x)
+(spec (uextend ty x)
     (provide (= result (zero_ext (widthof result) x))))
 (instantiate uextend extend)
 
-(spec (sextend x)
+(spec (sextend ty x)
     (provide (= result (sign_ext (widthof result) x))))
 (instantiate sextend extend)
 
-(spec (smin x y)
+(spec (smin ty x y)
     (provide (= result (if (bvsle x y) x y))))
 (instantiate smin bv_binary_8_to_64)
 
-(spec (umin x y)
+(spec (umin ty x y)
     (provide (= result (if (bvule x y) x y))))
 (instantiate umin bv_binary_8_to_64)
 
-(spec (smax x y)
+(spec (smax ty x y)
     (provide (= result (if (bvsge x y) x y))))
 (instantiate smax bv_binary_8_to_64)
 
-(spec (umax x y)
+(spec (umax ty x y)
     (provide (= result (if (bvuge x y) x y))))
 (instantiate umax bv_binary_8_to_64)
 
-(spec (icmp cc x y)
+(spec (icmp ty cc x y)
     (provide
         (= result
             (if
@@ -422,10 +422,10 @@
     )
 )
 (instantiate icmp
-    ((args (named IntCC) (bv  8) (bv  8)) (ret (bv 8)))
-    ((args (named IntCC) (bv 16) (bv 16)) (ret (bv 8)))
-    ((args (named IntCC) (bv 32) (bv 32)) (ret (bv 8)))
-    ((args (named IntCC) (bv 64) (bv 64)) (ret (bv 8)))
+    ((args (named Type) (named IntCC) (bv  8) (bv  8)) (ret (bv 8)))
+    ((args (named Type) (named IntCC) (bv 16) (bv 16)) (ret (bv 8)))
+    ((args (named Type) (named IntCC) (bv 32) (bv 32)) (ret (bv 8)))
+    ((args (named Type) (named IntCC) (bv 64) (bv 64)) (ret (bv 8)))
 )
 
 ;; Load Instructions
@@ -445,7 +445,7 @@
 )
 
 ; Load from memory
-(spec (load flags p offset)
+(spec (load ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide
@@ -457,10 +457,10 @@
     )
 )
 (instantiate load
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv  8)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv  8)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Unsigned N-bit load
@@ -475,36 +475,36 @@
 )
 
 ; Unsigned 8-bit load
-(spec (uload8 flags p offset)
+(spec (uload8 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (uloadN! clif_load 8 p offset loaded_value result))
 )
 (instantiate uload8
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Unsigned 16-bit load
-(spec (uload16 flags p offset)
+(spec (uload16 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (uloadN! clif_load 16 p offset loaded_value result))
 )
 (instantiate uload16
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Unsigned 32-bit load
-(spec (uload32 flags p offset)
+(spec (uload32 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (uloadN! clif_load 32 p offset loaded_value result))
 )
 (instantiate uload32
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Signed N-bit load
@@ -519,36 +519,36 @@
 )
 
 ; Signed 8-bit load
-(spec (sload8 flags p offset)
+(spec (sload8 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (sloadN! clif_load 8 p offset loaded_value result))
 )
 (instantiate sload8
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 16)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Signed 16-bit load
-(spec (sload16 flags p offset)
+(spec (sload16 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (sloadN! clif_load 16 p offset loaded_value result))
 )
 (instantiate sload16
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Signed 32-bit load
-(spec (sload32 flags p offset)
+(spec (sload32 ty flags p offset)
     (modifies clif_load)
     (modifies loaded_value)
     (provide (sloadN! clif_load 32 p offset loaded_value result))
 )
 (instantiate sload32
-    ((args (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (named Value) (named Offset32)) (ret (bv 64)))
 )
 
 ; Loads have a large number of expansions and instantiations.
@@ -688,7 +688,7 @@
         (bvxor x (fp_sign_bit_set! (widthof x)))))
 
 ; fcmp: floating-point compare.
-(spec (fcmp c x y)
+(spec (fcmp ty c x y)
     (provide
         ;; Restrict to operations used from Wasm for now
         (or (= c (FloatCC.Equal))
@@ -714,14 +714,14 @@
     )
 )
 (instantiate fcmp
-    ((args (named FloatCC) (bv 32) (bv 32)) (ret (bv 8)))
-    ((args (named FloatCC) (bv 64) (bv 64)) (ret (bv 8)))
+    ((args (named Type) (named FloatCC) (bv 32) (bv 32)) (ret (bv 8)))
+    ((args (named Type) (named FloatCC) (bv 64) (bv 64)) (ret (bv 8)))
 )
 
 ; fadd: floating-point addition.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fadd x y)
+(spec (fadd ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -759,14 +759,14 @@
     )
 )
 (instantiate fadd
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 ; fsub: floating-point subtraction.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fsub x y)
+(spec (fsub ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -806,14 +806,14 @@
     )
 )
 (instantiate fsub
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 ; fmul: floating-point multiplication.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fmul x y)
+(spec (fmul ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -853,14 +853,14 @@
     )
 )
 (instantiate fmul
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 ; fdiv: floating-point division.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fdiv x y)
+(spec (fdiv ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -903,15 +903,15 @@
     )
 )
 (instantiate fdiv
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 
 ; fmin: floating-point minimum.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fmin x y)
+(spec (fmin ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -935,14 +935,14 @@
     )
 )
 (instantiate fmin
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 ; fmax: floating-point minimum.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fmax x y)
+(spec (fmax ty x y)
     (provide
         (= result
             ; If either z1 or z2 is a NaN, then return an element of nans{z1,z2}.
@@ -966,15 +966,15 @@
     )
 )
 (instantiate fmax
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
 
 ; fabs: floating-point absolute value.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fabs x)
+(spec (fabs ty x)
     (provide
         (= result
             ; If z is a NaN, then return z with positive sign.
@@ -996,15 +996,15 @@
     )
 )
 (instantiate fabs
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 
 ; fneg: floating-point negation.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fneg x)
+(spec (fneg ty x)
     (provide
         (= result
             ; If z is a NaN, then return z with negated sign.
@@ -1018,15 +1018,15 @@
     )
 )
 (instantiate fneg
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 
 ; sqrt: floating-point square root.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (sqrt x)
+(spec (sqrt ty x)
     (provide
         (= result
             ; If z is a NaN, then return an element of nans{z}.
@@ -1051,14 +1051,14 @@
     )
 )
 (instantiate sqrt
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 ; ceil: floating-point ceiling.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (ceil x)
+(spec (ceil ty x)
     (provide
         (= result
             ; If z is a NaN, then return an element of nans{z}.
@@ -1080,14 +1080,14 @@
     )
 )
 (instantiate ceil
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 ; floor: floating-point floor.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (floor x)
+(spec (floor ty x)
     (provide
         (= result
             ; If z is a NaN, then return an element of nans{z}.
@@ -1109,14 +1109,14 @@
     )
 )
 (instantiate floor
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 ; trunc: floating-point truncate.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (trunc x)
+(spec (trunc ty x)
     (provide
         (= result
             ; If z is a NaN, then return an element of nans{z}.
@@ -1141,13 +1141,13 @@
     )
 )
 (instantiate trunc
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 ; nearest: floating-point nearest.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (nearest x)
+(spec (nearest ty x)
     (provide
         (= result
             ; If z is a NaN, then return an element of nans{z}.
@@ -1172,14 +1172,14 @@
     )
 )
 (instantiate nearest
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64)))
 )
 
 ; fcopysign: floating-point copysign.
 ;
 ; Specification derived from WebAssembly Specification prose (Floating Point Numerics, section 4.3.3).
-(spec (fcopysign x y)
+(spec (fcopysign ty x y)
     (provide
         (= result
             ; If z1 and z2 have the same sign, then return z1.
@@ -1194,11 +1194,11 @@
     )
 )
 (instantiate fcopysign
-    ((args (bv 32) (bv 32)) (ret (bv 32)))
-    ((args (bv 64) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (bv 32) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 64) (bv 64)) (ret (bv 64)))
 )
 
-(spec (bitcast flags x)
+(spec (bitcast ty flags x)
     (provide (= result x))
 )
 ; I32ReinterpretF32
@@ -1206,24 +1206,24 @@
 ; F32ReinterpretI32
 ; F64ReinterpretI64
 (instantiate bitcast
-    ((args (named MemFlags) (bv 32)) (ret (bv 32)))
-    ((args (named MemFlags) (bv 64)) (ret (bv 64)))
+    ((args (named Type) (named MemFlags) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (named MemFlags) (bv 64)) (ret (bv 64)))
 )
 
 (form fcvt
-    ((args (bv 32)) (ret (bv 32)))
-    ((args (bv 32)) (ret (bv 64)))
-    ((args (bv 64)) (ret (bv 32)))
-    ((args (bv 64)) (ret (bv 64))))
+    ((args (named Type) (bv 32)) (ret (bv 32)))
+    ((args (named Type) (bv 32)) (ret (bv 64)))
+    ((args (named Type) (bv 64)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 64))))
 
-(spec (fcvt_from_uint x)
+(spec (fcvt_from_uint ty x)
     (provide
         (let ((N (widthof result)))
             (= result (to_fp_unsigned N (conv_to N (zero_ext 64 x))))))
 )
 (instantiate fcvt_from_uint fcvt)
 
-(spec (fcvt_from_sint x)
+(spec (fcvt_from_sint ty x)
     (provide
         (let ((N (widthof result)))
             (= result (to_fp N (conv_to N (sign_ext 64 x))))))
@@ -1239,7 +1239,7 @@
         (64 #x43f0000000000000)
     )
 )
-(spec (fcvt_to_uint x)
+(spec (fcvt_to_uint ty x)
     (modifies clif_trap)
     (provide
         (let (
@@ -1270,7 +1270,7 @@
         (64 (fp_minus_i64_min! w))
     )
 )
-(spec (fcvt_to_sint x)
+(spec (fcvt_to_sint ty x)
     (modifies clif_trap)
     (provide
         (let (
@@ -1304,7 +1304,7 @@
 
 
 ; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
-(spec (fdemote z)
+(spec (fdemote ty z)
     (match
         ;; Demote only can return bv-32 as written
         (= (widthof result) 32))
@@ -1336,11 +1336,11 @@
     )
 )
 (instantiate fdemote
-    ((args (bv 64)) (ret (bv 32)))
+    ((args (named Type) (bv 64)) (ret (bv 32)))
 )
 
 ; Specification derived from WebAssembly Specification prose (Conversions, section 4.3.4).
-(spec (fpromote z)
+(spec (fpromote ty z)
     (match
         ;; Promote only can return bv-32 as written
         (= (widthof result) 64))
@@ -1364,7 +1364,7 @@
     )
 )
 (instantiate fpromote
-    ((args (bv 32)) (ret (bv 64)))
+    ((args (named Type) (bv 32)) (ret (bv 64)))
 )
 
 ;;;; CLIF Instruction Tags ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

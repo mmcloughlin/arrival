@@ -220,14 +220,13 @@ fn gen_common_isle(
             continue;
         }
 
+        let has_ty_param = !inst.format.has_value_list && inst.value_results.len() >= 1;
+
         fmtln!(
             fmt,
             "(decl {} ({}{}) {})",
             inst.name,
-            match isle_target {
-                IsleTarget::Lower => "",
-                IsleTarget::Opt => "Type ",
-            },
+            if has_ty_param { "Type " } else { "" },
             inst.operands_in
                 .iter()
                 .map(|o| {
@@ -249,10 +248,7 @@ fn gen_common_isle(
                 fmt,
                 "({} {}{})",
                 inst.name,
-                match isle_target {
-                    IsleTarget::Lower => "",
-                    IsleTarget::Opt => "ty ",
-                },
+                if has_ty_param { "ty " } else { "" },
                 inst.operands_in
                     .iter()
                     .map(|o| { o.name })
@@ -261,11 +257,8 @@ fn gen_common_isle(
             );
 
             let mut s = format!(
-                "(inst_data{} (InstructionData.{} (Opcode.{})",
-                match isle_target {
-                    IsleTarget::Lower => "",
-                    IsleTarget::Opt => " ty",
-                },
+                "(inst_data {} (InstructionData.{} (Opcode.{})",
+                if has_ty_param { "ty" } else { "_" },
                 inst.format.name,
                 inst.camel_name
             );

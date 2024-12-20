@@ -178,7 +178,7 @@ fn build_isle(
         if let Err(e) = run_compilation(compilation) {
             had_error = true;
             eprintln!("Error building ISLE files:");
-            eprintln!("{e:?}");
+            eprintln!("{e}");
             #[cfg(not(feature = "isle-errors"))]
             {
                 eprintln!("To see a more detailed error report, run: ");

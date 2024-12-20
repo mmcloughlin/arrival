@@ -19,7 +19,7 @@
       (emit_side_effect (pulley_br_if c then else)))
 
 ;; Conditional branches on `icmp`s.
-(rule (lower_branch (brif (maybe_uextend (icmp cc a b @ (value_type $I32))) _ _)
+(rule (lower_branch (brif (maybe_uextend (icmp _ cc a b @ (value_type $I32))) _ _)
                     (two_targets then else))
       (emit_side_effect (lower_brif_of_icmp32 cc a b then else)))
 
@@ -61,7 +61,7 @@
 
 ;;;; Rules for `get_stack_pointer` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (get_stack_pointer))
+(rule (lower (get_stack_pointer _))
       (pulley_get_sp))
 
 ;;;; Rules for `return` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,28 +88,28 @@
 
 ;;;; Rules for `iconst` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type ty (iconst (u64_from_imm64 n))))
+(rule (lower (has_type ty (iconst _ (u64_from_imm64 n))))
       (imm ty n))
 
 ;;;; Rules for `iadd` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type $I8 (iadd a b)))
+(rule (lower (has_type $I8 (iadd _ a b)))
       (pulley_xadd32 a b))
 
-(rule (lower (has_type $I16 (iadd a b)))
+(rule (lower (has_type $I16 (iadd _ a b)))
       (pulley_xadd32 a b))
 
-(rule (lower (has_type $I32 (iadd a b)))
+(rule (lower (has_type $I32 (iadd _ a b)))
       (pulley_xadd32 a b))
 
-(rule (lower (has_type $I64 (iadd a b)))
+(rule (lower (has_type $I64 (iadd _ a b)))
       (pulley_xadd64 a b))
 
 ;;;; Rules for `icmp` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule 1 (lower (icmp cc a b @ (value_type $I64)))
+(rule 1 (lower (icmp _ cc a b @ (value_type $I64)))
       (lower_icmp $I64 cc a b))
-(rule (lower (icmp cc a b @ (value_type (fits_in_32 _))))
+(rule (lower (icmp _ cc a b @ (value_type (fits_in_32 _))))
       (lower_icmp $I32 cc a b))
 
 (decl lower_icmp (Type IntCC Value Value) XReg)
@@ -163,7 +163,7 @@
 
 ;;;; Rules for `load` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (has_type ty (load flags addr (offset32 offset))))
+(rule (lower (has_type ty (load _ flags addr (offset32 offset))))
       (pulley_load (Amode.RegOffset addr (i32_as_i64 offset))
                    ty
                    flags

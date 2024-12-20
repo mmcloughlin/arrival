@@ -309,8 +309,9 @@
 (decl first_result (Value) Inst)
 (extern extractor first_result first_result)
 
-;; Extract the `InstructionData` for an `Inst`.
-(decl inst_data (InstructionData) Inst)
+;; Extract the `InstructionData` and `Type` for an `Inst`. The extracted type is
+;; the value type of the first result when present, or the invalid type otherwise.
+(decl inst_data (Type InstructionData) Inst)
 (extern extractor infallible inst_data inst_data)
 
 ;; Extract the type of the instruction's first result.
@@ -341,7 +342,7 @@
 ;; Extract a constant `u64` from a value defined by an `iconst`.
 (decl u64_from_iconst (u64) Value)
 (extractor (u64_from_iconst x)
-           (def_inst (iconst (u64_from_imm64 x))))
+           (def_inst (iconst _ (u64_from_imm64 x))))
 (spec (u64_from_iconst arg) (provide (= arg (zero_ext 64 result))))
 
 ;; Extract a constant `i32` from a value defined by an `iconst`.
