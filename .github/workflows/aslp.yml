@@ -19,6 +19,10 @@ on:
       - 'cranelift/codegen/src/isa/aarch64/spec/*.isle'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
