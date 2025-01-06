@@ -294,6 +294,11 @@ impl Printable for SpecExpr {
                     .into_iter()
                     .chain(args.iter().map(Printable::to_doc)),
             ),
+            SpecExpr::Struct { fields, pos: _ } => sexp(
+                Vec::from([RcDoc::text("struct")])
+                    .into_iter()
+                    .chain(fields.iter().map(Printable::to_doc)),
+            ),
         }
     }
 }
@@ -397,6 +402,12 @@ impl Printable for Arm {
             ),
             self.body.to_doc(),
         ])
+    }
+}
+
+impl Printable for FieldInit {
+    fn to_doc(&self) -> RcDoc<()> {
+        sexp(vec![self.name.to_doc(), self.value.to_doc()])
     }
 }
 

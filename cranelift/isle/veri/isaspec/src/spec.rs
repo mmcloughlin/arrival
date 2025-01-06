@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::{bail, Result};
 
-use cranelift_isle::ast::{Arm, Ident, ModelType, SpecExpr, SpecOp};
+use cranelift_isle::ast::{Arm, FieldInit, Ident, ModelType, SpecExpr, SpecOp};
 use cranelift_isle::lexer::Pos;
 
 pub fn spec_const_int(val: i128) -> SpecExpr {
@@ -365,6 +365,19 @@ pub fn substitute(expr: SpecExpr, substitutions: &HashMap<String, SpecExpr>) -> 
             args: args
                 .into_iter()
                 .map(|arg| substitute(arg, substitutions))
+                .collect::<Result<_>>()?,
+            pos,
+        },
+        SpecExpr::Struct { fields, pos } => SpecExpr::Struct {
+            fields: fields
+                .into_iter()
+                .map(|f| {
+                    Ok(FieldInit {
+                        name: f.name,
+                        value: Box::new(substitute(*f.value, substitutions)?),
+                        pos: f.pos,
+                    })
+                })
                 .collect::<Result<_>>()?,
             pos,
         },

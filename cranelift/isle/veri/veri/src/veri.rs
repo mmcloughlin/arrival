@@ -2051,6 +2051,17 @@ impl<'a> ConditionsBuilder<'a> {
 
                 Ok(self.new_enum(type_id, discriminant, variants)?)
             }
+            Constructor::Struct { fields } => Ok(Symbolic::Struct(
+                fields
+                    .iter()
+                    .map(|f| {
+                        Ok(SymbolicField {
+                            name: f.name.0.clone(),
+                            value: self.spec_expr(&f.value, vars)?,
+                        })
+                    })
+                    .collect::<Result<_>>()?,
+            )),
         }
     }
 

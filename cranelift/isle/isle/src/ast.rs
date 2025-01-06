@@ -225,6 +225,11 @@ pub enum SpecExpr {
         args: Vec<SpecExpr>,
         pos: Pos,
     },
+    /// Construct struct value.
+    Struct {
+        fields: Vec<FieldInit>,
+        pos: Pos,
+    },
 }
 
 impl SpecExpr {
@@ -243,7 +248,8 @@ impl SpecExpr {
             | &Self::With { pos, .. }
             | &Self::Macro { pos, .. }
             | &Self::Pair { pos, .. }
-            | &Self::Enum { pos, .. } => pos,
+            | &Self::Enum { pos, .. }
+            | &Self::Struct { pos, .. } => pos,
         }
     }
 }
@@ -362,6 +368,14 @@ pub struct Arm {
     pub variant: Ident,
     pub args: Vec<Ident>,
     pub body: SpecExpr,
+    pub pos: Pos,
+}
+
+/// Field initializer in a struct constructor.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FieldInit {
+    pub name: Ident,
+    pub value: Box<SpecExpr>,
     pub pos: Pos,
 }
 

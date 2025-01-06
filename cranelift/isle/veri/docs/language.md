@@ -149,6 +149,9 @@ expression `(?<variant> <x>)` evaluates to true if the enum-valued expression
 `(<enum>.<variant> <fields...>)` constructs an enum value with the given variant
 and (optional) fields.
 
+**Struct Constructor:**
+`(struct (<field> <value>) ...)` constructs a struct value with the given fields.
+
 **Match:**
 the match operator pattern matches on enum types.
 

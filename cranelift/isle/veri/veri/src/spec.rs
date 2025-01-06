@@ -423,6 +423,11 @@ impl ExprKind {
                 variant: variant.clone(),
                 args: exprs_from_ast(args),
             }),
+            ast::SpecExpr::Struct { fields, pos: _ } => {
+                ExprKind::Constructor(Constructor::Struct {
+                    fields: fields.iter().map(FieldInit::from_ast).collect(),
+                })
+            }
             ast::SpecExpr::Macro { name, args, pos: _ } => {
                 ExprKind::Macro(name.clone(), exprs_from_ast(args))
             }
@@ -448,6 +453,9 @@ pub enum Constructor {
         variant: Ident,
         args: Vec<Expr>,
     },
+    Struct {
+        fields: Vec<FieldInit>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -455,6 +463,21 @@ pub struct Arm {
     pub variant: Ident,
     pub args: Vec<Ident>,
     pub body: Expr,
+}
+
+#[derive(Debug, Clone)]
+pub struct FieldInit {
+    pub name: Ident,
+    pub value: Expr,
+}
+
+impl FieldInit {
+    fn from_ast(field: &ast::FieldInit) -> Self {
+        Self {
+            name: field.name.clone(),
+            value: expr_from_ast(&field.value),
+        }
+    }
 }
 
 // QUESTION(mbm): should we make the result explicit in the spec syntax?

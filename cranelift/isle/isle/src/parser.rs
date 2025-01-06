@@ -555,6 +555,14 @@ impl<'a> Parser<'a> {
                 }
                 self.expect_rparen()?;
                 Ok(SpecExpr::Match { x, arms, pos })
+            } else if self.eat_sym_str("struct")? {
+                let mut fields = Vec::new();
+                while !(self.is_rparen()) {
+                    let field = self.parse_field_init()?;
+                    fields.push(field);
+                }
+                self.expect_rparen()?;
+                Ok(SpecExpr::Struct { fields, pos })
             } else if self.eat_sym_str("as")? {
                 let x = Box::new(self.parse_spec_expr()?);
                 let ty = self.parse_model_type()?;
@@ -721,6 +729,15 @@ impl<'a> Parser<'a> {
             body,
             pos,
         })
+    }
+
+    fn parse_field_init(&mut self) -> Result<FieldInit> {
+        self.expect_lparen()?;
+        let pos = self.pos();
+        let name = self.parse_ident()?;
+        let value = Box::new(self.parse_spec_expr()?);
+        self.expect_rparen()?;
+        Ok(FieldInit { name, value, pos })
     }
 
     fn parse_spec_bit_vector(&mut self) -> Result<(u128, usize)> {
