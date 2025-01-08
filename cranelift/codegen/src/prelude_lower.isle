@@ -118,7 +118,7 @@
 
 ;; Get a temporary register for writing.
 (decl temp_writable_reg (Type) WritableReg)
-(spec (temp_writable_reg ty) (provide (= ty (widthof result))))
+(spec (temp_writable_reg ty) (provide (= (:bits ty) (widthof result))))
 (extern constructor temp_writable_reg temp_writable_reg)
 
 ;; Get a temporary register for reading.
@@ -325,7 +325,7 @@
 (spec (has_type ty arg)
       (provide
             (= result arg)
-            (= ty (widthof arg))
+            (= (:bits ty) (widthof arg))
       )
 )
 (extractor (has_type ty inst)
@@ -1254,7 +1254,7 @@
 (spec (safe_divisor_from_imm64 ty arg)
       (match
             (let (
-                  (minus1 (zero_ext 64 (bvones! ty)))
+                  (minus1 (zero_ext 64 (bvones! (:bits ty))))
                   (zero (bvzero! 64))
                   (bits (bvand arg minus1))
             )
@@ -1263,7 +1263,7 @@
                   (not (= bits zero)))))
       (provide
             (let (
-                  (minus1 (zero_ext 64 (bvones! ty)))
+                  (minus1 (zero_ext 64 (bvones! (:bits ty))))
                   (bits (bvand arg minus1))
             )
             (= result bits))))

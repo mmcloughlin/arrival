@@ -49,7 +49,7 @@
 
 ;; `cranelift-entity`-based identifiers.
 (type Type (primitive Type))
-(model Type (type Int))
+(model Type (type (struct (bits Int))))
 (type Value (primitive Value))
 (model Value (type (bv)))
 (type ValueList (primitive ValueList))
@@ -61,7 +61,7 @@
 ;; Extract the type of a `Value`.
 (decl value_type (Type) Value)
 (extern extractor infallible value_type value_type)
-(spec (value_type arg) (provide (= arg (widthof result))))
+(spec (value_type ty) (provide (= (:bits ty) (widthof result))))
 
 ;; Extractor that matches a `u32` only if non-negative.
 (decl u32_nonnegative (u32) u32)
@@ -272,7 +272,7 @@
 
 (decl pure i64_sextend_imm64 (Type Imm64) i64)
 (extern constructor i64_sextend_imm64 i64_sextend_imm64)
-(spec (i64_sextend_imm64 ty a) (provide (= result (sign_ext 64 (conv_to ty a)))))
+(spec (i64_sextend_imm64 ty a) (provide (= result (sign_ext 64 (conv_to (:bits ty) a)))))
 
 (decl pure u64_uextend_imm64 (Type Imm64) u64)
 (extern constructor u64_uextend_imm64 u64_uextend_imm64)
@@ -393,26 +393,26 @@
 ;;;; `cranelift_codegen::ir::Type` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (extern const $I8 Type)
-(model I8 (const 8))
+(model I8 (const (struct (bits 8))))
 (extern const $I16 Type)
-(model I16 (const 16))
+(model I16 (const (struct (bits 16))))
 (extern const $I32 Type)
-(model I32 (const 32))
+(model I32 (const (struct (bits 32))))
 (extern const $I64 Type)
-(model I64 (const 64))
+(model I64 (const (struct (bits 64))))
 (extern const $I128 Type)
-(model I128 (const 128))
+(model I128 (const (struct (bits 128))))
 
 (extern const $F16 Type)
 (extern const $F32 Type)
-(model F32 (const 32))
+(model F32 (const (struct (bits 32))))
 (extern const $F64 Type)
-(model F64 (const 64))
+(model F64 (const (struct (bits 64))))
 (extern const $F128 Type)
 
 (extern const $I8X8 Type)
 (extern const $I8X16 Type)
-(model I8X16 (const 128))
+(model I8X16 (const (struct (bits 128))))
 (extern const $I16X4 Type)
 (extern const $I16X8 Type)
 (extern const $I32X2 Type)
@@ -442,7 +442,7 @@
 (extern constructor ty_smax ty_smax)
 
 ;; Get the bit width of a given type.
-(spec (ty_bits x) (provide (= result (int2bv 8 x))))
+(spec (ty_bits ty) (provide (= result (int2bv 8 (:bits ty)))))
 (decl pure ty_bits (Type) u8)
 (extern constructor ty_bits ty_bits)
 
@@ -562,17 +562,17 @@
 
 ;; An extractor that only matches types that can fit in 16 bits.
 (decl fits_in_16 (Type) Type)
-(spec (fits_in_16 arg)
-      (provide (= result arg))
-      (match (<= result 16)))
+(spec (fits_in_16 ty)
+      (provide (= result ty))
+      (match (<= (:bits result) 16)))
 (extern extractor fits_in_16 fits_in_16)
 
 ;; An extractor that only matches types that can fit in 32 bits.
 (decl fits_in_32 (Type) Type)
 (extern extractor fits_in_32 fits_in_32)
-(spec (fits_in_32 arg)
-      (provide (= result arg))
-      (match (<= result 32)))
+(spec (fits_in_32 ty)
+      (provide (= result ty))
+      (match (<= (:bits result) 32)))
 
 ;; An extractor that only matches types that can fit in 32 bits.
 (decl lane_fits_in_32 (Type) Type)
@@ -580,9 +580,9 @@
 
 ;; An extractor that only matches types that can fit in 64 bits.
 (decl fits_in_64 (Type) Type)
-(spec (fits_in_64 arg)
-      (provide (= result arg))
-      (match (<= result 64)))
+(spec (fits_in_64 ty)
+      (provide (= result ty))
+      (match (<= (:bits result) 64)))
 (extern extractor fits_in_64 fits_in_64)
 
 ;; An extractor that only matches types that fit in exactly 32 bits.
@@ -599,19 +599,19 @@
       (provide (= result ty))
       (match
             (or
-                  (= ty 8)
-                  (= ty 16)
-                  (= ty 32)
-                  (= ty 64))))
+                  (= (:bits ty) 8)
+                  (= (:bits ty) 16)
+                  (= (:bits ty) 32)
+                  (= (:bits ty) 64))))
 (decl pure partial ty_int_ref_scalar_64 (Type) Type)
 (extern constructor ty_int_ref_scalar_64 ty_int_ref_scalar_64)
 (extern extractor ty_int_ref_scalar_64 ty_int_ref_scalar_64_extract)
 
 ;; An extractor that matches 32- and 64-bit types only.
 (decl ty_32_or_64 (Type) Type)
-(spec (ty_32_or_64 arg)
-      (provide (= result arg))
-      (match (or (= result 32) (= result 64))))
+(spec (ty_32_or_64 ty)
+      (provide (= result ty))
+      (match (or (= (:bits result) 32) (= (:bits result) 64))))
 (extern extractor ty_32_or_64 ty_32_or_64)
 
 ;; An extractor that matches 8- and 16-bit types only.
@@ -646,16 +646,16 @@
 ;; An extractor that only matches scalar floating-point types--F32 or F64.
 (decl ty_scalar_float (Type) Type)
 (extern extractor ty_scalar_float ty_scalar_float)
-(spec (ty_scalar_float arg)
-      (provide (= result arg))
-      (match (or (= result 32) (= result 64))))
+(spec (ty_scalar_float ty)
+      (provide (= result ty))
+      (match (or (= (:bits result) 32) (= (:bits result) 64))))
 
 ;; An extractor that matches scalar floating-point types or vector types.
 (decl ty_float_or_vec (Type) Type)
 (extern extractor ty_float_or_vec ty_float_or_vec)
-(spec (ty_float_or_vec arg)
-      (provide (= result arg))
-      (match (or (= result 32) (= result 64) (= result 128))))
+(spec (ty_float_or_vec ty)
+      (provide (= result ty))
+      (match (or (= (:bits result) 32) (= (:bits result) 64) (= (:bits result) 128))))
 
 ;; A pure constructor that only matches vector floating-point types.
 (decl pure partial ty_vector_float (Type) Type)

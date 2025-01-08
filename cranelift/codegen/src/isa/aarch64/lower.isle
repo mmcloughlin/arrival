@@ -1497,7 +1497,7 @@
 
 (decl shift_mask (Type) ImmLogic)
 (extern constructor shift_mask shift_mask)
-(spec (shift_mask ty) (provide (= result (shift_mask! 64 ty))))
+(spec (shift_mask ty) (provide (= result (shift_mask! 64 (:bits ty)))))
 
 ;; 32/64-bit shift base cases.
 (rule do_shift_32 (do_shift op $I32 x y) (alu_rrr op $I32 x (value_regs_get y 0)))
@@ -1677,7 +1677,7 @@
 
 (spec (negate_imm_shift ty x)
    (provide
-     (= result (bvand (bvsub (int2bv 6 ty) x) (bvsub (int2bv 6 ty) #b000001)))))
+     (= result (bvand (bvsub (int2bv 6 (:bits ty)) x) (bvsub (int2bv 6 (:bits ty)) #b000001)))))
 
 (decl negate_imm_shift (Type ImmShift) ImmShift)
 (extern constructor negate_imm_shift negate_imm_shift)
@@ -1745,7 +1745,7 @@
             (val_lshift Reg (lsl $I32 val neg_amt)))
         (orr $I32 val_lshift val_rshift)))
 
-(spec (rotr_mask x) (provide (= (bvsub (int2bv 64 x) #x0000000000000001) result)))
+(spec (rotr_mask ty) (provide (= (bvsub (int2bv 64 (:bits ty)) #x0000000000000001) result)))
 (decl rotr_mask (Type) ImmLogic)
 (extern constructor rotr_mask rotr_mask)
 
@@ -1766,7 +1766,7 @@
 
 (spec (rotr_opposite_amount ty x)
    (provide
-    (= (bvsub (int2bv 6 ty) (bvand x (bvsub (int2bv 6 ty) #b000001))) result)))
+    (= (bvsub (int2bv 6 (:bits ty)) (bvand x (bvsub (int2bv 6 (:bits ty)) #b000001))) result)))
 
 (decl rotr_opposite_amount (Type ImmShift) ImmShift)
 (extern constructor rotr_opposite_amount rotr_opposite_amount)

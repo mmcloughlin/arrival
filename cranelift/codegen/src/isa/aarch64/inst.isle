@@ -1590,9 +1590,9 @@
 (decl operand_size (Type) OperandSize)
 (spec (operand_size ty)
       (provide
-            (= result (if (<= ty 32) (OperandSize.Size32) (OperandSize.Size64))))
+            (= result (if (<= (:bits ty) 32) (OperandSize.Size32) (OperandSize.Size64))))
       (require
-            (or (= ty 8) (= ty 16) (= ty 32) (= ty 64))))
+            (or (= (:bits ty) 8) (= (:bits ty) 16) (= (:bits ty) 32) (= (:bits ty) 64))))
 (rule 1 (operand_size (fits_in_32 _ty)) (OperandSize.Size32))
 (rule (operand_size (fits_in_64 _ty)) (OperandSize.Size64))
 
@@ -1612,7 +1612,7 @@
 (decl scalar_size (Type) ScalarSize)
 (spec (scalar_size ty)
       (provide (= result
-            (switch ty
+            (switch (:bits ty)
                   (8   (ScalarSize.Size8))
                   (16  (ScalarSize.Size16))
                   (32  (ScalarSize.Size32))
@@ -2166,7 +2166,7 @@
       (provide
             (let
                   (
-                        (nlow (bvand n (low_bits_mask! 64 ty)))
+                        (nlow (bvand n (low_bits_mask! 64 (:bits ty))))
                   )
                   (equals_move_wide_value! nlow result)
             )
@@ -2174,7 +2174,7 @@
       (match
             (let
                   (
-                        (nlow (bvand n (low_bits_mask! 64 ty)))
+                        (nlow (bvand n (low_bits_mask! 64 (:bits ty))))
                   )
                   (or
                         (= nlow (bvand nlow #x000000000000ffff))
@@ -2193,7 +2193,7 @@
             (let
                   (
                         (n (bvnot n_inverted))
-                        (nlow (bvand n (low_bits_mask! 64 ty)))
+                        (nlow (bvand n (low_bits_mask! 64 (:bits ty))))
                   )
                   (equals_move_wide_value! nlow result)
             )
@@ -2202,7 +2202,7 @@
             (let
                   (
                         (n (bvnot n_inverted))
-                        (nlow (bvand n (low_bits_mask! 64 ty)))
+                        (nlow (bvand n (low_bits_mask! 64 (:bits ty))))
                   )
                   (or
                         (= nlow (bvand nlow #x000000000000ffff))
@@ -2219,14 +2219,14 @@
 ; REVIEW(mbm): actually specify the requirements of logical immediates?
 (spec (imm_logic_from_u64 ty n)
       (provide (= result n))
-      (match (or (= ty 32) (= ty 64)))
+      (match (or (= (:bits ty) 32) (= (:bits ty) 64)))
 )
 
 (decl pure partial imm_size_from_type (Type) u16)
 (extern constructor imm_size_from_type imm_size_from_type)
 (spec (imm_size_from_type ty)
-      (match (or (= ty 32) (= ty 64)))
-      (provide (= result (int2bv 16 ty)))
+      (match (or (= (:bits ty) 32) (= (:bits ty) 64)))
+      (provide (= result (int2bv 16 (:bits ty))))
 )
 
 (decl pure partial imm_logic_from_imm64 (Type Imm64) ImmLogic)
@@ -2234,20 +2234,20 @@
 ; REVIEW(mbm): actually specify the requirements of logical immediates?
 (spec (imm_logic_from_imm64 ty imm64)
       (provide (= result imm64))
-      (match (or (= ty 32) (= ty 64))))
+      (match (or (= (:bits ty) 32) (= (:bits ty) 64))))
 
 (decl pure partial imm_shift_from_imm64 (Type Imm64) ImmShift)
 (extern constructor imm_shift_from_imm64 imm_shift_from_imm64)
 (spec (imm_shift_from_imm64 ty v)
       (provide
             (let
-                  ((imm_value (bvand v (shift_mask! 64 ty))))
+                  ((imm_value (bvand v (shift_mask! 64 (:bits ty)))))
                   (= result (extract 5 0 imm_value))
             )
       )
       (match
             (let
-                  ((imm_value (bvand v (shift_mask! 64 ty))))
+                  ((imm_value (bvand v (shift_mask! 64 (:bits ty)))))
                   (bvult imm_value (int2bv 64 64))
             )
       )
@@ -2299,7 +2299,7 @@
 
 (spec (u64_into_imm_logic ty a)
       (provide (= result a))
-      (require (or (= ty 32) (= ty 64))))
+      (require (or (= (:bits ty) 32) (= (:bits ty) 64))))
 (decl u64_into_imm_logic (Type u64) ImmLogic)
 (extern constructor u64_into_imm_logic u64_into_imm_logic)
 
@@ -2361,7 +2361,7 @@
                   ; imm & (ty - 1)
                   (bvand
                         (extract 7 0 imm)
-                        (bvsub (int2bv 8 ty) #x01)
+                        (bvsub (int2bv 8 (:bits ty)) #x01)
                   )
             )
       )
@@ -2369,7 +2369,7 @@
             ; imm < 64
             (bvult imm #x0000000000000040)
             ; ty <= 255
-            (<= ty 255)
+            (<= (:bits ty) 255)
       )
 )
 (extern constructor lshl_from_imm64 lshl_from_imm64)
@@ -2384,7 +2384,11 @@
 (extern extractor integral_ty integral_ty)
 (spec (integral_ty ty)
       (provide (= result ty))
-      (match (or (= result 8) (= result 16) (= result 32) (= result 64))))
+      (match (or
+            (= (:bits result) 8)
+            (= (:bits result) 16)
+            (= (:bits result) 32)
+            (= (:bits result) 64))))
 
 (decl valid_atomic_transaction (Type) Type)
 (extern extractor valid_atomic_transaction valid_atomic_transaction)
@@ -3708,8 +3712,8 @@
 (spec (load_constant64_full ty extend value)
       (provide
             (= result (match extend
-                  ((Sign) (sign_ext 64 (conv_to ty value)))
-                  ((Zero) (zero_ext 64 (conv_to ty value)))
+                  ((Sign) (sign_ext 64 (conv_to (:bits ty) value)))
+                  ((Zero) (zero_ext 64 (conv_to (:bits ty) value)))
             ))
       )
 )
@@ -3771,9 +3775,13 @@
 (decl size_from_ty (Type) OperandSize)
 (spec (size_from_ty ty)
       (provide
-            (= result (if (<= ty 32) (OperandSize.Size32) (OperandSize.Size64))))
+            (= result (if (<= (:bits ty) 32) (OperandSize.Size32) (OperandSize.Size64))))
       (require
-            (or (= ty 8) (= ty 16) (= ty 32) (= ty 64))))
+            (or
+                  (= (:bits ty) 8)
+                  (= (:bits ty) 16)
+                  (= (:bits ty) 32)
+                  (= (:bits ty) 64))))
 (rule 1 (size_from_ty (fits_in_32 _ty)) (OperandSize.Size32))
 (rule (size_from_ty $I64) (OperandSize.Size64))
 
@@ -4039,7 +4047,7 @@
       (match
             (let
                   (
-                        (scale (bits2bytes! (int2bv 64 ty)))
+                        (scale (bits2bytes! (int2bv 64 (:bits ty))))
                         (limit (bvmul (int2bv 64 4095) scale))
                   )
                   (and
@@ -4050,7 +4058,7 @@
             )
       )
       (provide
-            (= result (extract 11 0 (bvudiv value (bits2bytes! (int2bv 64 ty)))))
+            (= result (extract 11 0 (bvudiv value (bits2bytes! (int2bv 64 (:bits ty))))))
       )
 )
 

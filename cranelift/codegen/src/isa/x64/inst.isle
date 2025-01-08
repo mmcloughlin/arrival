@@ -797,7 +797,7 @@
 (decl operand_size_of_type_32_64 (Type) OperandSize)
 (spec (operand_size_of_type_32_64 ty)
       (provide
-            (= result (if (= ty 64) (OperandSize.Size64) (OperandSize.Size32)))
+            (= result (if (= (:bits ty) 64) (OperandSize.Size64) (OperandSize.Size32)))
       )
 )
 (extern constructor operand_size_of_type_32_64 operand_size_of_type_32_64)

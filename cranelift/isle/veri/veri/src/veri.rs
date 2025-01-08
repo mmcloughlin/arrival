@@ -628,14 +628,6 @@ impl From<ExprId> for Symbolic {
     }
 }
 
-impl TryFrom<Symbolic> for ExprId {
-    type Error = Error;
-
-    fn try_from(v: Symbolic) -> Result<Self, Self::Error> {
-        v.as_scalar().ok_or(format_err!("should be scalar value"))
-    }
-}
-
 impl std::fmt::Display for Symbolic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -1010,7 +1002,7 @@ impl<'a> ConditionsBuilder<'a> {
 
         // Equals.
         for (a, b) in self.expansion.equalities() {
-            let eq = self.bindings_equal(a, b);
+            let eq = self.bindings_equal(a, b)?;
             self.conditions.assumptions.push(eq);
         }
 
@@ -1045,12 +1037,12 @@ impl<'a> ConditionsBuilder<'a> {
         if let Some(conds) = self.state_modification_conds.get(name) {
             let modified = self.any(conds.clone());
             let not_modified = self.dedup_expr(Expr::Not(modified));
-            default = self.scalar(Expr::Imp(not_modified, default.try_into()?));
+            default = self.scalar(Expr::Imp(not_modified, self.as_scalar(default)?));
         }
 
         // The expression should define an assumption about the state variable,
         // so should be a scalar boolean.
-        self.conditions.assumptions.push(default.try_into()?);
+        self.conditions.assumptions.push(self.as_scalar(default)?);
 
         Ok(())
     }
@@ -1135,7 +1127,7 @@ impl<'a> ConditionsBuilder<'a> {
         let value = self.spec_typed_value(val, ty)?.into();
 
         // Destination binding equals constant value.
-        let eq = self.values_equal(self.binding_value[&id].clone(), value);
+        let eq = self.values_equal(self.binding_value[&id].clone(), value)?;
         Ok(eq)
     }
 
@@ -1159,7 +1151,7 @@ impl<'a> ConditionsBuilder<'a> {
         let value = self.spec_expr_no_vars(spec_value)?;
 
         // Destination binding equals constant value.
-        let eq = self.values_equal(self.binding_value[&id].clone(), value);
+        let eq = self.values_equal(self.binding_value[&id].clone(), value)?;
         Ok(eq)
     }
 
@@ -1293,15 +1285,15 @@ impl<'a> ConditionsBuilder<'a> {
         // Requires.
         let mut requires: Vec<ExprId> = Vec::new();
         for require in &term_spec.requires {
-            let require = self.spec_expr(require, &vars)?.try_into()?;
-            requires.push(require);
+            let require = self.spec_expr(require, &vars)?;
+            requires.push(self.as_scalar(require)?);
         }
 
         // Matches.
         let mut matches: Vec<ExprId> = Vec::new();
         for m in &term_spec.matches {
-            let m = self.spec_expr(m, &vars)?.try_into()?;
-            matches.push(m);
+            let m = self.spec_expr(m, &vars)?;
+            matches.push(self.as_scalar(m)?);
         }
 
         // Outputs: only in scope for provides.
@@ -1312,8 +1304,8 @@ impl<'a> ConditionsBuilder<'a> {
         // Provides.
         let mut provides: Vec<ExprId> = Vec::new();
         for provide in &term_spec.provides {
-            let provide = self.spec_expr(provide, &vars)?.try_into()?;
-            provides.push(provide);
+            let provide = self.spec_expr(provide, &vars)?;
+            provides.push(self.as_scalar(provide)?);
         }
 
         // Partial function.
@@ -1433,7 +1425,7 @@ impl<'a> ConditionsBuilder<'a> {
         let field = variant.try_field_by_name(field_name)?;
 
         let discriminator = self.discriminator(&e, variant);
-        let eq = self.values_equal(v, field.value.clone());
+        let eq = self.values_equal(v, field.value.clone())?;
         let constraint = self.dedup_expr(Expr::Imp(discriminator, eq));
         self.conditions.assumptions.push(constraint);
 
@@ -1454,7 +1446,7 @@ impl<'a> ConditionsBuilder<'a> {
         self.conditions.assumptions.push(opt.some);
 
         // Assumption: option value is equal to this binding.
-        let eq = self.values_equal(inner, (*opt.inner).clone());
+        let eq = self.values_equal(inner, (*opt.inner).clone())?;
         self.conditions.assumptions.push(eq);
 
         Ok(())
@@ -1472,7 +1464,7 @@ impl<'a> ConditionsBuilder<'a> {
 
         // Assumption: if the option is some, then the inner value
         // equals this binding.
-        let eq = self.values_equal(v, (*opt.inner).clone());
+        let eq = self.values_equal(v, (*opt.inner).clone())?;
         let constraint = self.dedup_expr(Expr::Imp(opt.some, eq));
         self.conditions.assumptions.push(constraint);
 
@@ -1490,7 +1482,7 @@ impl<'a> ConditionsBuilder<'a> {
         let v = self.binding_value[&id].clone();
 
         // Assumption: indexed field should equal this binding.
-        let eq = self.values_equal(v, fields[field.index()].clone());
+        let eq = self.values_equal(v, fields[field.index()].clone())?;
         self.conditions.assumptions.push(eq);
 
         Ok(())
@@ -1569,16 +1561,16 @@ impl<'a> ConditionsBuilder<'a> {
     fn spec_expr_kind(&mut self, expr: &spec::ExprKind, vars: &Variables) -> Result<Symbolic> {
         macro_rules! unary_expr {
             ($expr:path, $x:ident) => {{
-                let $x = self.spec_expr($x, vars)?.try_into()?;
-                Ok(self.scalar($expr($x)))
+                let $x = self.spec_expr($x, vars)?;
+                Ok(self.scalar($expr(self.as_scalar($x)?)))
             }};
         }
 
         macro_rules! binary_expr {
             ($expr:path, $x:ident, $y:ident) => {{
-                let $x = self.spec_expr($x, vars)?.try_into()?;
-                let $y = self.spec_expr($y, vars)?.try_into()?;
-                Ok(self.scalar($expr($x, $y)))
+                let $x = self.spec_expr($x, vars)?;
+                let $y = self.spec_expr($y, vars)?;
+                Ok(self.scalar($expr(self.as_scalar($x)?, self.as_scalar($y)?)))
             }};
         }
 
@@ -1586,7 +1578,10 @@ impl<'a> ConditionsBuilder<'a> {
             ($expr:path, $xs:ident) => {{
                 let exprs: Vec<ExprId> = $xs
                     .iter()
-                    .map(|x| self.spec_expr(x, vars)?.try_into())
+                    .map(|x| {
+                        let x = self.spec_expr(x, vars)?;
+                        self.as_scalar(x)
+                    })
                     .collect::<Result<Vec<_>>>()?;
                 Ok(Symbolic::Scalar(
                     exprs
@@ -1626,7 +1621,7 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::Eq(x, y) => {
                 let x = self.spec_expr(x, vars)?;
                 let y = self.spec_expr(y, vars)?;
-                Ok(self.values_equal(x, y).into())
+                Ok(self.values_equal(x, y)?.into())
             }
 
             spec::ExprKind::Lt(x, y) => binary_expr!(Expr::Lt, x, y),
@@ -1665,10 +1660,10 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::BVRotr(x, y) => binary_expr!(Expr::BVRotr, x, y),
 
             spec::ExprKind::Conditional(c, t, e) => {
-                let c = self.spec_expr(c, vars)?.try_into()?;
+                let c = self.spec_expr(c, vars)?;
                 let t = self.spec_expr(t, vars)?;
                 let e = self.spec_expr(e, vars)?;
-                self.conditional(c, t, e)
+                self.conditional(self.as_scalar(c)?, t, e)
             }
 
             spec::ExprKind::Switch(on, arms) => self.spec_switch(on, arms, vars),
@@ -1686,8 +1681,8 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::BVConvTo(w, x) => binary_expr!(Expr::BVConvTo, w, x),
 
             spec::ExprKind::BVExtract(h, l, x) => {
-                let x = self.spec_expr(x, vars)?.try_into()?;
-                Ok(self.scalar(Expr::BVExtract(*h, *l, x)))
+                let x = self.spec_expr(x, vars)?;
+                Ok(self.scalar(Expr::BVExtract(*h, *l, self.as_scalar(x)?)))
             }
 
             spec::ExprKind::BVConcat(xs) => variadic_expr!(Expr::BVConcat, xs),
@@ -1883,7 +1878,7 @@ impl<'a> ConditionsBuilder<'a> {
             .iter()
             .map(|(value, then)| {
                 let value = self.spec_expr(value, vars)?;
-                let cond = self.values_equal(on.clone(), value);
+                let cond = self.values_equal(on.clone(), value)?;
                 Ok((cond, self.spec_expr(then, vars)?))
             })
             .collect::<Result<Vec<_>>>()?;
@@ -2021,16 +2016,19 @@ impl<'a> ConditionsBuilder<'a> {
         })
     }
 
-    fn bindings_equal(&mut self, a: BindingId, b: BindingId) -> ExprId {
+    fn bindings_equal(&mut self, a: BindingId, b: BindingId) -> Result<ExprId> {
         // TODO(mbm): can this be done without clones?
         let a = self.binding_value[&a].clone();
         let b = self.binding_value[&b].clone();
         self.values_equal(a, b)
     }
 
-    fn values_equal(&mut self, a: Symbolic, b: Symbolic) -> ExprId {
+    fn values_equal(&mut self, a: Symbolic, b: Symbolic) -> Result<ExprId> {
+        if std::mem::discriminant(&a) != std::mem::discriminant(&b) {
+            return Err(self.error("equality on different symbolic types"));
+        }
         match (a, b) {
-            (Symbolic::Scalar(u), Symbolic::Scalar(v)) => self.exprs_equal(u, v),
+            (Symbolic::Scalar(u), Symbolic::Scalar(v)) => Ok(self.exprs_equal(u, v)),
 
             (Symbolic::Struct(us), Symbolic::Struct(vs)) => {
                 // Field-wise equality.
@@ -2041,10 +2039,10 @@ impl<'a> ConditionsBuilder<'a> {
                         assert_eq!(fu.name, fv.name, "field name mismatch");
                         self.values_equal(fu.value, fv.value)
                     })
-                    .collect();
+                    .collect::<Result<_>>()?;
 
                 // All fields must be equal.
-                self.all(fields_eq)
+                Ok(self.all(fields_eq))
             }
 
             (Symbolic::Enum(u), Symbolic::Enum(v)) => {
@@ -2054,26 +2052,30 @@ impl<'a> ConditionsBuilder<'a> {
 
                 // Variant equality conditions.
                 assert_eq!(u.variants.len(), v.variants.len(), "variant count mismatch");
-                let variants_eq = zip(&u.variants, &v.variants).map(|(uv, vv)| {
-                    assert_eq!(uv.name, vv.name, "variant name mismatch");
-                    let ud = self.discriminator(&u, uv);
-                    let eq = self.values_equal(uv.value.clone(), vv.value.clone());
-                    self.dedup_expr(Expr::Imp(ud, eq))
-                });
+                let variants_eq = zip(&u.variants, &v.variants)
+                    .map(|(uv, vv)| {
+                        assert_eq!(uv.name, vv.name, "variant name mismatch");
+                        let ud = self.discriminator(&u, uv);
+                        let eq = self.values_equal(uv.value.clone(), vv.value.clone())?;
+                        Ok(self.dedup_expr(Expr::Imp(ud, eq)))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
                 equalities.extend(variants_eq);
 
                 // Combine discriminant and variant conditions.
-                self.all(equalities)
+                Ok(self.all(equalities))
             }
 
             (Symbolic::Tuple(us), Symbolic::Tuple(vs)) => {
                 // Field-wise equality.
                 // TODO(mbm): can we expect that tuples are the same length?
                 assert_eq!(us.len(), vs.len(), "tuple length mismatch");
-                let fields_eq = zip(us, vs).map(|(u, v)| self.values_equal(u, v)).collect();
+                let fields_eq = zip(us, vs)
+                    .map(|(u, v)| self.values_equal(u, v))
+                    .collect::<Result<_>>()?;
 
                 // All fields must be equal.
-                self.all(fields_eq)
+                Ok(self.all(fields_eq))
             }
 
             ref c => todo!("values equal: {c:?}"),
@@ -2246,6 +2248,10 @@ impl<'a> ConditionsBuilder<'a> {
 
     fn scalar(&mut self, expr: Expr) -> Symbolic {
         Symbolic::Scalar(self.dedup_expr(expr))
+    }
+
+    fn as_scalar(&self, v: Symbolic) -> Result<ExprId> {
+        v.as_scalar().ok_or(self.error("expected scalar value"))
     }
 
     fn dedup_expr(&mut self, expr: Expr) -> ExprId {
