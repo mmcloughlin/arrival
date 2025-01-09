@@ -48,9 +48,9 @@ pub enum Type {
 impl Type {
     pub fn is_concrete(&self) -> bool {
         match self {
-            Self::Unspecified => true,
-            Self::Unknown | Self::BitVector(Width::Unknown) => false,
-            Self::BitVector(Width::Bits(_)) | Self::Int | Self::Bool | Self::Unit => true,
+            Type::Unspecified => true,
+            Type::Unknown | Type::BitVector(Width::Unknown) => false,
+            Type::BitVector(Width::Bits(_)) | Type::Int | Type::Bool | Type::Unit => true,
         }
     }
 
@@ -78,13 +78,13 @@ impl Type {
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Unspecified => write!(f, "\u{2a33}"),
-            Self::Unknown => write!(f, "unk"),
-            Self::BitVector(Width::Bits(w)) => write!(f, "bv {w}"),
-            Self::BitVector(Width::Unknown) => write!(f, "bv _"),
-            Self::Int => write!(f, "int"),
-            Self::Bool => write!(f, "bool"),
-            Self::Unit => write!(f, "unit"),
+            Type::Unspecified => write!(f, "\u{2a33}"),
+            Type::Unknown => write!(f, "unk"),
+            Type::BitVector(Width::Bits(w)) => write!(f, "bv {w}"),
+            Type::BitVector(Width::Unknown) => write!(f, "bv _"),
+            Type::Int => write!(f, "int"),
+            Type::Bool => write!(f, "bool"),
+            Type::Unit => write!(f, "unit"),
         }
     }
 }
@@ -358,10 +358,10 @@ pub enum Const {
 impl Const {
     pub fn ty(&self) -> Type {
         match self {
-            Self::Bool(_) => Type::Bool,
-            Self::Int(_) => Type::Int,
-            Self::BitVector(w, _) => Type::BitVector(Width::Bits(*w)),
-            Self::Unspecified => Type::Unspecified,
+            Const::Bool(_) => Type::Bool,
+            Const::Int(_) => Type::Int,
+            Const::BitVector(w, _) => Type::BitVector(Width::Bits(*w)),
+            Const::Unspecified => Type::Unspecified,
         }
     }
 
@@ -383,16 +383,16 @@ impl Const {
 impl std::fmt::Display for Const {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Bool(b) => write!(f, "{b}"),
-            Self::Int(v) => write!(f, "{v}"),
-            Self::BitVector(bits, v) => {
+            Const::Bool(b) => write!(f, "{b}"),
+            Const::Int(v) => write!(f, "{v}"),
+            Const::BitVector(bits, v) => {
                 if bits % 4 == 0 {
                     write!(f, "#x{v:0>nibbles$x}", nibbles = bits / 4)
                 } else {
                     write!(f, "#b{v:0>bits$b}")
                 }
             }
-            Self::Unspecified => write!(f, "\u{2a33}"),
+            Const::Unspecified => write!(f, "\u{2a33}"),
         }
     }
 }

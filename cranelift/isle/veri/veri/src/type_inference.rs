@@ -108,14 +108,18 @@ pub enum Constraint {
 impl std::fmt::Display for Constraint {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::Type { x, ty } => write!(f, "type({}) = {ty}", x.index()),
-            Self::SameType { x, y } => write!(f, "type({}) == type({})", x.index(), y.index()),
-            Self::Identical { x, y } => write!(f, "{} == {}", x.index(), y.index()),
-            Self::WidthOf { x, w } => write!(f, "{} = width_of({})", w.index(), x.index()),
-            Self::Concat { x, l, r } => write!(f, "{} = {}:{}", x.index(), l.index(), r.index()),
-            Self::Value { x, c } => write!(f, "{} = value({c})", x.index()),
-            Self::Implies { c, then } => write!(f, "{} => {then}", c.index()),
-            Self::Clause { literals } => write!(
+            Constraint::Type { x, ty } => write!(f, "type({}) = {ty}", x.index()),
+            Constraint::SameType { x, y } => {
+                write!(f, "type({}) == type({})", x.index(), y.index())
+            }
+            Constraint::Identical { x, y } => write!(f, "{} == {}", x.index(), y.index()),
+            Constraint::WidthOf { x, w } => write!(f, "{} = width_of({})", w.index(), x.index()),
+            Constraint::Concat { x, l, r } => {
+                write!(f, "{} = {}:{}", x.index(), l.index(), r.index())
+            }
+            Constraint::Value { x, c } => write!(f, "{} = value({c})", x.index()),
+            Constraint::Implies { c, then } => write!(f, "{} => {then}", c.index()),
+            Constraint::Clause { literals } => write!(
                 f,
                 "clause({})",
                 literals
