@@ -1116,7 +1116,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "easy-smt"
 version = "0.2.3"
-source = "git+https://github.com/mmcloughlin/easy-smt.git?rev=2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef#2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef"
+source = "git+https://github.com/elliottt/easy-smt.git?rev=4314c77609dbd80b1aaacf41308a4da46d0288cc#4314c77609dbd80b1aaacf41308a4da46d0288cc"
 dependencies = [
  "log",
  "unicode-segmentation",

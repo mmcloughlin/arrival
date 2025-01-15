@@ -12,7 +12,7 @@ anyhow = { workspace = true, features = ['std', 'backtrace'] }
 clap = { workspace = true, features = ['default', 'env'] }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
-easy-smt = { git = "https://github.com/mmcloughlin/easy-smt.git", rev = "2e8f6364a74ee77607fc9ea2d9ed0f12a24abaef" }
+easy-smt = { git = "https://github.com/elliottt/easy-smt.git", rev = "4314c77609dbd80b1aaacf41308a4da46d0288cc" }
 rayon = "1"
 
 [dev-dependencies]
