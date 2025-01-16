@@ -1167,7 +1167,7 @@ mod tests {
             TypeValue::Type(Type::Unknown),
             TypeValue::Type(Type::BitVector(Width::Unknown)),
             TypeValue::Type(Type::BitVector(Width::Bits(64))),
-            TypeValue::Value(Const::BitVector(64, 42)),
+            TypeValue::Value(Const::BitVector(64, 42u8.into())),
         ]);
     }
 
@@ -1205,11 +1205,11 @@ mod tests {
             // BitVectors
             TypeValue::Type(Type::BitVector(Width::Unknown)),
             TypeValue::Type(Type::BitVector(Width::Bits(32))),
-            TypeValue::Value(Const::BitVector(32, 42)),
-            TypeValue::Value(Const::BitVector(32, 43)),
+            TypeValue::Value(Const::BitVector(32, 42u8.into())),
+            TypeValue::Value(Const::BitVector(32, 43u8.into())),
             TypeValue::Type(Type::BitVector(Width::Bits(64))),
-            TypeValue::Value(Const::BitVector(64, 42)),
-            TypeValue::Value(Const::BitVector(64, 43)),
+            TypeValue::Value(Const::BitVector(64, 42u8.into())),
+            TypeValue::Value(Const::BitVector(64, 43u8.into())),
             // Int
             TypeValue::Type(Type::Int),
             TypeValue::Value(Const::Int(42)),

@@ -2,6 +2,8 @@ use std::{cmp::Ordering, iter::zip};
 
 use anyhow::{bail, format_err, Context as _, Error, Result};
 use easy_smt::{Context, Response, SExpr, SExprData};
+use num_bigint::BigUint;
+use num_traits::Num as _;
 
 use crate::{
     program::Program,
@@ -415,7 +417,7 @@ impl<'a> Solver<'a> {
             Const::Bool(true) => self.smt.true_(),
             Const::Bool(false) => self.smt.false_(),
             Const::Int(v) => self.smt.numeral(v),
-            Const::BitVector(w, v) => self.smt.binary(w, v),
+            Const::BitVector(w, ref v) => self.smt.atom(format!("#b{v:0>w$b}")),
             Const::Unspecified => unimplemented!("constant of unspecified type"),
         }
     }
@@ -853,9 +855,12 @@ impl<'a> Solver<'a> {
         } else if atom == "false" {
             Ok(Const::Bool(false))
         } else if let Some(x) = atom.strip_prefix("#x") {
-            Ok(Const::BitVector(x.len() * 4, u128::from_str_radix(x, 16)?))
+            Ok(Const::BitVector(
+                x.len() * 4,
+                BigUint::from_str_radix(x, 16)?,
+            ))
         } else if let Some(x) = atom.strip_prefix("#b") {
-            Ok(Const::BitVector(x.len(), u128::from_str_radix(x, 2)?))
+            Ok(Const::BitVector(x.len(), BigUint::from_str_radix(x, 2)?))
         } else if atom.starts_with(|c: char| c.is_ascii_digit()) {
             Ok(Const::Int(atom.parse()?))
         } else {

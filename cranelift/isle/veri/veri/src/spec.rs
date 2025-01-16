@@ -241,7 +241,7 @@ impl ExprKind {
             ast::SpecExpr::ConstInt { val, pos: _ } => ExprKind::Const(Const::Int(*val)),
             ast::SpecExpr::ConstBool { val, pos: _ } => ExprKind::Const(Const::Bool(*val)),
             ast::SpecExpr::ConstBitVec { val, width, pos: _ } => {
-                ExprKind::Const(Const::BitVector(*width, *val))
+                ExprKind::Const(Const::BitVector(*width, (*val).into()))
             }
             ast::SpecExpr::Var { var, pos: _ } => ExprKind::Var(var.clone()),
             ast::SpecExpr::As { x, ty, pos: _ } => {

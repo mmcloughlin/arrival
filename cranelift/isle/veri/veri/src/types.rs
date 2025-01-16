@@ -6,6 +6,7 @@ use cranelift_isle::{
     lexer::Pos,
     sema::{self, Sym, TypeEnv, TypeId, VariantId},
 };
+use num_bigint::BigUint;
 
 /// Width of a bit vector.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -351,7 +352,7 @@ impl std::fmt::Display for Compound {
 pub enum Const {
     Bool(bool),
     Int(i128),
-    BitVector(usize, u128),
+    BitVector(usize, BigUint),
     Unspecified,
 }
 
