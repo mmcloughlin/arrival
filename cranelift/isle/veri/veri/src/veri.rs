@@ -431,6 +431,17 @@ impl std::fmt::Display for SymbolicVariant {
     }
 }
 
+/// Inline spec expression macro.
+///
+/// Note that at this stage the spec expressions are preserved as
+/// [`spec::Expr`]. Generation of [`Expr`] objects from them is deferred until
+/// macro expansion.
+#[derive(Debug, Clone)]
+pub struct Macro {
+    pub params: Vec<Ident>,
+    pub body: spec::Expr,
+}
+
 #[derive(Debug, Clone)]
 pub enum Symbolic {
     Scalar(ExprId),
@@ -438,6 +449,7 @@ pub enum Symbolic {
     Enum(SymbolicEnum),
     Option(SymbolicOption),
     Tuple(Vec<Symbolic>),
+    Macro(Macro),
 }
 
 impl Symbolic {
@@ -532,6 +544,7 @@ impl Symbolic {
                     .map(|s| s.eval(model))
                     .collect::<Result<_>>()?,
             )),
+            Symbolic::Macro(_) => bail!("cannot evaluate macro"),
         }
     }
 
@@ -664,6 +677,7 @@ impl std::fmt::Display for Symbolic {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
+            Symbolic::Macro(_) => write!(f, "macro"),
         }
     }
 }
@@ -930,9 +944,12 @@ impl Variables {
         Self(HashMap::new())
     }
 
-    fn get(&self, name: &String) -> Result<&Symbolic> {
-        self.0
-            .get(name)
+    fn get(&self, name: &String) -> Option<&Symbolic> {
+        self.0.get(name)
+    }
+
+    fn expect(&self, name: &String) -> Result<&Symbolic> {
+        self.get(name)
             .ok_or(format_err!("undefined variable {name}"))
     }
 
@@ -1029,7 +1046,7 @@ impl<'a> ConditionsBuilder<'a> {
         // the state variable itself.
         let mut vars = Variables::new();
         let name = &state.name.0;
-        vars.set(name.clone(), self.conditions.state.get(name)?.clone())?;
+        vars.set(name.clone(), self.conditions.state.expect(name)?.clone())?;
         let mut default = self.spec_expr(&state.default, &vars)?;
 
         // Other specs may have declared conditions under which they modify the
@@ -1595,7 +1612,7 @@ impl<'a> ConditionsBuilder<'a> {
 
         match expr {
             spec::ExprKind::Var(v) => {
-                let v = vars.get(&v.0)?;
+                let v = vars.expect(&v.0)?;
                 Ok(v.clone())
             }
 
@@ -1674,7 +1691,7 @@ impl<'a> ConditionsBuilder<'a> {
 
             spec::ExprKind::With(decls, body) => self.spec_with(decls, body, vars),
 
-            spec::ExprKind::Macro(ident, args) => self.spec_macro(ident, args, vars),
+            spec::ExprKind::Expand(ident, args) => self.spec_expand(ident, args, vars),
 
             spec::ExprKind::BVZeroExt(w, x) => binary_expr!(Expr::BVZeroExt, w, x),
             spec::ExprKind::BVSignExt(w, x) => binary_expr!(Expr::BVSignExt, w, x),
@@ -1732,6 +1749,11 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::FPIsNaN(x) => unary_expr!(Expr::FPIsNaN, x),
             spec::ExprKind::FPIsNegative(x) => unary_expr!(Expr::FPIsNegative, x),
             spec::ExprKind::FPIsPositive(x) => unary_expr!(Expr::FPIsPositive, x),
+
+            spec::ExprKind::Macro(params, body) => Ok(Symbolic::Macro(Macro {
+                params: params.clone(),
+                body: body.clone(),
+            })),
         }
     }
 
@@ -1978,36 +2000,46 @@ impl<'a> ConditionsBuilder<'a> {
         self.spec_expr(body, &with_vars)
     }
 
-    fn spec_macro(
+    fn spec_expand(
         &mut self,
         name: &Ident,
         args: &[spec::Expr],
         vars: &Variables,
     ) -> Result<Symbolic> {
         // Lookup macro.
-        let macro_defn = self
-            .prog
-            .specenv
-            .macros
-            .get(&name.0)
-            .ok_or(self.error(format!("unknown macro {name}", name = name.0)))?;
+        //
+        // Could be an inline macro in a local variable, or a macro defined at global scope.
+        let (params, body) = if let Some(v) = vars.get(&name.0) {
+            let Symbolic::Macro(m) = v else {
+                bail!("variable {name} is not a macro", name = name.0);
+            };
+            (&m.params, &m.body)
+        } else {
+            let defn = self
+                .prog
+                .specenv
+                .macros
+                .get(&name.0)
+                .ok_or(self.error(format!("unknown macro {name}", name = name.0)))?;
+            (&defn.params, &defn.body)
+        };
 
         // Build macro expansion scope.
         // QUESTION(mbm): should macros be able to access global state?
         let mut macro_vars = Variables::new();
-        if macro_defn.params.len() != args.len() {
+        if params.len() != args.len() {
             bail!(
                 "incorrect number of arguments for macro {name}",
                 name = name.0
             );
         }
-        for (param, arg) in zip(&macro_defn.params, args) {
+        for (param, arg) in zip(params, args) {
             let arg = self.spec_expr(arg, vars)?;
             macro_vars.set(param.0.clone(), arg)?;
         }
 
         // Evaluate macro body.
-        self.spec_expr(&macro_defn.body, &macro_vars)
+        self.spec_expr(&body, &macro_vars)
     }
 
     fn conditional(&mut self, c: ExprId, t: Symbolic, e: Symbolic) -> Result<Symbolic> {

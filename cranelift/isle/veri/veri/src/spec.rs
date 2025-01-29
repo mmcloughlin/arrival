@@ -164,8 +164,10 @@ pub enum ExprKind {
     Let(Vec<(Ident, Expr)>, Expr),
     // With scope.
     With(Vec<Ident>, Expr),
+    // Macro definition.
+    Macro(Vec<Ident>, Expr),
     // Macro expansion.
-    Macro(Ident, Vec<Expr>),
+    Expand(Ident, Vec<Expr>),
 }
 
 macro_rules! unary_expr {
@@ -428,8 +430,13 @@ impl ExprKind {
                     fields: fields.iter().map(FieldInit::from_ast).collect(),
                 })
             }
-            ast::SpecExpr::Macro { name, args, pos: _ } => {
-                ExprKind::Macro(name.clone(), exprs_from_ast(args))
+            ast::SpecExpr::Macro {
+                params,
+                body,
+                pos: _,
+            } => ExprKind::Macro(params.clone(), expr_from_ast(body)),
+            ast::SpecExpr::Expand { name, args, pos: _ } => {
+                ExprKind::Expand(name.clone(), exprs_from_ast(args))
             }
         }
     }

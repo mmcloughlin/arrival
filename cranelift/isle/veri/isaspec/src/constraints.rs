@@ -674,7 +674,7 @@ impl Translator {
     }
 
     fn primitive(&mut self, name: &str, args: &[Expr]) -> Result<SpecExpr> {
-        Ok(SpecExpr::Macro {
+        Ok(SpecExpr::Expand {
             name: spec_ident(name.to_string()),
             args: args
                 .iter()
@@ -691,7 +691,7 @@ impl Translator {
         args: &[Expr],
     ) -> Result<SpecExpr> {
         let all_args = args.iter().chain(types);
-        Ok(SpecExpr::Macro {
+        Ok(SpecExpr::Expand {
             name: spec_ident(name.to_string()),
             args: all_args.map(|arg| self.expr(arg)).collect::<Result<_>>()?,
             pos: Pos::default(),

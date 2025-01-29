@@ -289,7 +289,16 @@ impl Printable for SpecExpr {
                 sexp(decls.iter().map(Printable::to_doc)),
                 body.to_doc(),
             ]),
-            SpecExpr::Macro { name, args, pos: _ } => sexp(
+            SpecExpr::Macro {
+                params,
+                body,
+                pos: _,
+            } => sexp(vec![
+                RcDoc::text("macro"),
+                sexp(params.iter().map(Printable::to_doc)),
+                body.to_doc(),
+            ]),
+            SpecExpr::Expand { name, args, pos: _ } => sexp(
                 Vec::from([RcDoc::text(format!("{}!", name.0))])
                     .into_iter()
                     .chain(args.iter().map(Printable::to_doc)),

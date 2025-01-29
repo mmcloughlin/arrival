@@ -206,8 +206,16 @@ pub enum SpecExpr {
         body: Box<SpecExpr>,
         pos: Pos,
     },
-    /// Macro expansion.
+    /// Inline macro definition, or lambda.
     Macro {
+        /// Parameter names.
+        params: Vec<Ident>,
+        /// Macro expansion.
+        body: Box<SpecExpr>,
+        pos: Pos,
+    },
+    /// Macro expansion.
+    Expand {
         name: Ident,
         args: Vec<SpecExpr>,
         pos: Pos,
@@ -247,6 +255,7 @@ impl SpecExpr {
             | &Self::Let { pos, .. }
             | &Self::With { pos, .. }
             | &Self::Macro { pos, .. }
+            | &Self::Expand { pos, .. }
             | &Self::Pair { pos, .. }
             | &Self::Enum { pos, .. }
             | &Self::Struct { pos, .. } => pos,

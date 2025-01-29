@@ -563,6 +563,16 @@ impl<'a> Parser<'a> {
                 }
                 self.expect_rparen()?;
                 Ok(SpecExpr::Struct { fields, pos })
+            } else if self.eat_sym_str("macro")? {
+                self.expect_lparen()?;
+                let mut params = vec![];
+                while !self.is_rparen() {
+                    params.push(self.parse_ident()?);
+                }
+                self.expect_rparen()?;
+                let body = Box::new(self.parse_spec_expr()?);
+                self.expect_rparen()?;
+                Ok(SpecExpr::Macro { params, body, pos })
             } else if self.eat_sym_str("as")? {
                 let x = Box::new(self.parse_spec_expr()?);
                 let ty = self.parse_model_type()?;
@@ -583,7 +593,7 @@ impl<'a> Parser<'a> {
                         args.push(self.parse_spec_expr()?);
                     }
                     self.expect_rparen()?;
-                    Ok(SpecExpr::Macro { name, args, pos })
+                    Ok(SpecExpr::Expand { name, args, pos })
                 } else if let Ok(op) = self.parse_spec_op(sym.as_str()) {
                     let mut args: Vec<SpecExpr> = vec![];
                     while !self.is_rparen() {

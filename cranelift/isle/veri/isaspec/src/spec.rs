@@ -263,6 +263,9 @@ pub fn substitute(expr: SpecExpr, substitutions: &HashMap<String, SpecExpr>) -> 
             expr
         }
 
+        // Inline macro introduces a new scope.
+        SpecExpr::Macro { .. } => expr,
+
         // Scopes require care to ensure we are not replacing introduced variables.
         SpecExpr::Match { x, arms, pos } => SpecExpr::Match {
             x: Box::new(substitute(*x, substitutions)?),
@@ -360,7 +363,7 @@ pub fn substitute(expr: SpecExpr, substitutions: &HashMap<String, SpecExpr>) -> 
                 .collect::<Result<_>>()?,
             pos,
         },
-        SpecExpr::Macro { name, args, pos } => SpecExpr::Macro {
+        SpecExpr::Expand { name, args, pos } => SpecExpr::Expand {
             name,
             args: args
                 .into_iter()
