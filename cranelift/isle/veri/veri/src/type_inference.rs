@@ -376,6 +376,11 @@ impl<'a> SystemBuilder<'a> {
 
                 self.same_type(x, *y);
             }
+            Expr::Add(y, z) | Expr::Sub(y, z) | Expr::Mul(y, z) => {
+                self.integer(x);
+                self.integer(*y);
+                self.integer(*z);
+            }
             Expr::BVAdd(y, z)
             | Expr::BVSub(y, z)
             | Expr::BVMul(y, z)

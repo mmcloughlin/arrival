@@ -312,6 +312,10 @@ impl<'a> Solver<'a> {
                 }
             }
 
+            Expr::Add(x, y) => Ok(self.smt.plus(self.expr_atom(x), self.expr_atom(y))),
+            Expr::Sub(x, y) => Ok(self.smt.sub(self.expr_atom(x), self.expr_atom(y))),
+            Expr::Mul(x, y) => Ok(self.smt.times(self.expr_atom(x), self.expr_atom(y))),
+
             Expr::BVNeg(x) => Ok(self.smt.bvneg(self.expr_atom(x))),
             Expr::BVAdd(x, y) => Ok(self.smt.bvadd(self.expr_atom(x), self.expr_atom(y))),
             Expr::BVOr(x, y) => Ok(self.smt.bvor(self.expr_atom(x), self.expr_atom(y))),

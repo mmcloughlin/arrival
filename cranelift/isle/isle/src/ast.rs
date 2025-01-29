@@ -273,6 +273,11 @@ pub enum SpecOp {
     Not,
     Imp,
 
+    // Integer arithmetic operations
+    Add,
+    Sub,
+    Mul,
+
     // Integer comparisons
     Lt,
     Lte,

@@ -76,6 +76,11 @@ pub enum ExprKind {
 
     BVSaddo(Expr, Expr),
 
+    // Integer arithmetic
+    Add(Expr, Expr),
+    Sub(Expr, Expr),
+    Mul(Expr, Expr),
+
     // Bitvector operations
 
     // Unary operators
@@ -276,6 +281,9 @@ impl ExprKind {
                 SpecOp::Gt => binary_expr!(ExprKind::Gt, args, pos),
                 SpecOp::Gte => binary_expr!(ExprKind::Gte, args, pos),
                 SpecOp::Imp => binary_expr!(ExprKind::Imp, args, pos),
+                SpecOp::Add => binary_expr!(ExprKind::Add, args, pos),
+                SpecOp::Sub => binary_expr!(ExprKind::Sub, args, pos),
+                SpecOp::Mul => binary_expr!(ExprKind::Mul, args, pos),
                 SpecOp::BVAnd => binary_expr!(ExprKind::BVAnd, args, pos),
                 SpecOp::BVOr => binary_expr!(ExprKind::BVOr, args, pos),
                 SpecOp::BVXor => binary_expr!(ExprKind::BVXor, args, pos),

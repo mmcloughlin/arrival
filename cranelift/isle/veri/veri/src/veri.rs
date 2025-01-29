@@ -64,6 +64,9 @@ pub enum Expr {
     Popcnt(ExprId),
 
     // Binary.
+    Add(ExprId, ExprId),
+    Sub(ExprId, ExprId),
+    Mul(ExprId, ExprId),
     BVAdd(ExprId, ExprId),
     BVSub(ExprId, ExprId),
     BVMul(ExprId, ExprId),
@@ -189,6 +192,9 @@ impl Expr {
             | Expr::Eq(x, y)
             | Expr::Lt(x, y)
             | Expr::Lte(x, y)
+            | Expr::Add(x, y)
+            | Expr::Sub(x, y)
+            | Expr::Mul(x, y)
             | Expr::BVUgt(x, y)
             | Expr::BVUge(x, y)
             | Expr::BVUlt(x, y)
@@ -254,6 +260,9 @@ impl std::fmt::Display for Expr {
             Expr::Eq(x, y) => write!(f, "{} == {}", x.index(), y.index()),
             Expr::Lt(x, y) => write!(f, "{} < {}", x.index(), y.index()),
             Expr::Lte(x, y) => write!(f, "{} <= {}", x.index(), y.index()),
+            Expr::Add(x, y) => write!(f, "{} + {}", x.index(), y.index()),
+            Expr::Sub(x, y) => write!(f, "{} - {}", x.index(), y.index()),
+            Expr::Mul(x, y) => write!(f, "{} * {}", x.index(), y.index()),
             Expr::BVUgt(x, y) => write!(f, "bvugt({}, {})", x.index(), y.index()),
             Expr::BVUge(x, y) => write!(f, "bvuge({}, {})", x.index(), y.index()),
             Expr::BVUlt(x, y) => write!(f, "bvult({}, {})", x.index(), y.index()),
@@ -1660,6 +1669,9 @@ impl<'a> ConditionsBuilder<'a> {
             spec::ExprKind::Clz(x) => unary_expr!(Expr::Clz, x),
             spec::ExprKind::Rev(x) => unary_expr!(Expr::Rev, x),
             spec::ExprKind::Popcnt(x) => unary_expr!(Expr::Popcnt, x),
+            spec::ExprKind::Add(x, y) => binary_expr!(Expr::Add, x, y),
+            spec::ExprKind::Sub(x, y) => binary_expr!(Expr::Sub, x, y),
+            spec::ExprKind::Mul(x, y) => binary_expr!(Expr::Mul, x, y),
             spec::ExprKind::BVAdd(x, y) => binary_expr!(Expr::BVAdd, x, y),
             spec::ExprKind::BVSub(x, y) => binary_expr!(Expr::BVSub, x, y),
             spec::ExprKind::BVMul(x, y) => binary_expr!(Expr::BVMul, x, y),
