@@ -326,14 +326,14 @@ pub struct Runner {
 }
 
 impl Runner {
-    pub fn from_files(inputs: &Vec<PathBuf>) -> Result<Self> {
+    pub fn from_files(inputs: &Vec<PathBuf>, root_term: &str) -> Result<Self> {
         let expand_internal_extractors = false;
         let prog = Program::from_files(inputs, expand_internal_extractors)?;
         let term_rule_sets: HashMap<_, _> = prog.build_trie()?.into_iter().collect();
         Ok(Self {
             prog,
             term_rule_sets,
-            root_term: "lower".to_string(),
+            root_term: root_term.to_string(),
             filters: Vec::new(),
             solver_backend: SolverBackend::CVC5,
             timeout: Duration::from_secs(5),

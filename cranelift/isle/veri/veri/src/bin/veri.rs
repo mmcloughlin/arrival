@@ -96,7 +96,12 @@ fn main() -> Result<()> {
 
     // Read ISLE inputs.
     let inputs = opts.isle_input_files()?;
-    let mut runner = Runner::from_files(&inputs)?;
+    let root_term = if opts.name != "opt" {
+        "lower"
+    } else {
+        "simplify"
+    };
+    let mut runner = Runner::from_files(&inputs, root_term)?;
 
     // Configure runner.
     if !opts.filters.is_empty() {

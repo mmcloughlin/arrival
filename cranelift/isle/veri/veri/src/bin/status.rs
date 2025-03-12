@@ -52,6 +52,11 @@ fn main() -> Result<()> {
 
     // Read ISLE inputs.
     let inputs = opts.isle_input_files()?;
+    let root_term = if opts.name != "opt" {
+        "lower"
+    } else {
+        "simplify"
+    };
     let expand_internal_extractors = false;
     let prog = Program::from_files(&inputs, expand_internal_extractors)?;
     let term_rule_sets: HashMap<_, _> = prog.build_trie()?.into_iter().collect();
@@ -59,7 +64,7 @@ fn main() -> Result<()> {
     // Generate expansions.
     let chaining = Chaining::new(&prog, &term_rule_sets)?;
     let mut expander = Expander::new(&prog, &term_rule_sets, chaining);
-    expander.add_root_term_name("lower")?;
+    expander.add_root_term_name(root_term)?;
     expander.set_prune_infeasible(true);
     expander.expand();
 
