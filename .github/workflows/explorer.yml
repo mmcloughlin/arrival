@@ -42,10 +42,10 @@ jobs:
       - name: Upload artifact
         if: github.event_name != 'pull_request'
         id: upload
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ runner.temp }}/explorer
       - name: Deploy to GitHub Pages
         if: steps.upload.outcome == 'success'
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
