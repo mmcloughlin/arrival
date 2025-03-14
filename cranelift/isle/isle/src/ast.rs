@@ -323,6 +323,7 @@ pub enum SpecOp {
     ZeroExt,
     SignExt,
     Concat,
+    Replicate,
 
     // Floating point (IEEE 754-2008)
     FPEq,

@@ -124,6 +124,7 @@ pub enum ExprKind {
 
     // Concatenate bitvectors.
     BVConcat(Vec<Expr>),
+    BVReplicate(Expr, usize),
 
     // Convert between integers and bitvector.
     Int2BV(Expr, Expr),
@@ -314,6 +315,20 @@ impl ExprKind {
                 SpecOp::SignExt => binary_expr!(ExprKind::BVSignExt, args, pos),
                 SpecOp::ConvTo => binary_expr!(ExprKind::BVConvTo, args, pos),
                 SpecOp::Concat => variadic_expr!(ExprKind::BVConcat, args, pos),
+                SpecOp::Replicate => {
+                    // TODO(mbm): return error instead of assert
+                    assert_eq!(
+                        args.len(),
+                        2,
+                        "Unexpected number of args for extract operator at {pos:?}",
+                    );
+                    let repeat = spec_expr_to_usize(&args[1]).unwrap();
+                    assert!(
+                        repeat > 0,
+                        "Unexpected repeat count for replicate operator at {pos:?}",
+                    );
+                    ExprKind::BVReplicate(expr_from_ast(&args[0]), repeat)
+                }
                 SpecOp::Extract => {
                     // TODO(mbm): return error instead of assert
                     assert_eq!(

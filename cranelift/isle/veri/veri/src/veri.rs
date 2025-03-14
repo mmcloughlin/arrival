@@ -1715,6 +1715,11 @@ impl<'a> ConditionsBuilder<'a> {
             }
 
             spec::ExprKind::BVConcat(xs) => variadic_expr!(Expr::BVConcat, xs),
+            spec::ExprKind::BVReplicate(x, n) => {
+                let x = self.spec_expr(x, vars)?;
+                let r = self.replicate(self.as_scalar(x)?, *n)?;
+                Ok(Symbolic::Scalar(r))
+            }
             spec::ExprKind::Int2BV(w, x) => binary_expr!(Expr::Int2BV, w, x),
             spec::ExprKind::BV2Nat(x) => unary_expr!(Expr::BV2Nat, x),
             spec::ExprKind::ToFP(w, x) => binary_expr!(Expr::ToFP, w, x),
@@ -2052,6 +2057,19 @@ impl<'a> ConditionsBuilder<'a> {
 
         // Evaluate macro body.
         self.spec_expr(&body, &macro_vars)
+    }
+
+    fn replicate(&mut self, x: ExprId, n: usize) -> Result<ExprId> {
+        match n {
+            0 => bail!("cannot replicate zero times"),
+            1 => Ok(x),
+            _ => {
+                let h = n / 2;
+                let l = self.replicate(x, h)?;
+                let r = self.replicate(x, n - h)?;
+                Ok(self.dedup_expr(Expr::BVConcat(l, r)))
+            }
+        }
     }
 
     fn conditional(&mut self, c: ExprId, t: Symbolic, e: Symbolic) -> Result<Symbolic> {

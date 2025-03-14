@@ -357,6 +357,7 @@ impl Printable for SpecOp {
             SpecOp::ZeroExt => "zero_ext",
             SpecOp::SignExt => "sign_ext",
             SpecOp::Concat => "concat",
+            SpecOp::Replicate => "replicate",
             SpecOp::ConvTo => "conv_to",
             SpecOp::Int2BV => "int2bv",
             SpecOp::BV2Nat => "bv2nat",

@@ -677,6 +677,7 @@ impl<'a> Parser<'a> {
             "zero_ext" => Ok(SpecOp::ZeroExt),
             "sign_ext" => Ok(SpecOp::SignExt),
             "concat" => Ok(SpecOp::Concat),
+            "replicate" => Ok(SpecOp::Replicate),
             "conv_to" => Ok(SpecOp::ConvTo),
             "int2bv" => Ok(SpecOp::Int2BV),
             "bv2nat" => Ok(SpecOp::BV2Nat),
