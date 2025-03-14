@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{format_err, Result};
-use clap::{Parser, ValueEnum};
+use clap::{ArgAction, Parser, ValueEnum};
 use cranelift_codegen_meta::{generate_isle, isle::get_isle_compilations};
 use cranelift_isle_veri::runner::{Filter, Runner, SolverBackend};
 
@@ -22,6 +22,10 @@ struct Opts {
     /// Filter expansions.
     #[arg(long = "filter", value_name = "FILTER")]
     filters: Vec<Filter>,
+
+    /// Don't skip expansions tagged TODO.
+    #[arg(long = "no-skip-todo", action = ArgAction::SetFalse)]
+    skip_todo: bool,
 
     /// Solver backend to use.
     #[arg(long = "solver", default_value = "cvc5", env = "ISLE_VERI_SOLVER")]
@@ -109,7 +113,9 @@ fn main() -> Result<()> {
     } else {
         runner.include_first_rule_named();
     }
-    runner.skip_tag("TODO");
+    if opts.skip_todo {
+        runner.skip_tag("TODO");
+    }
 
     runner.set_solver_backend(opts.solver_backend.into());
     runner.set_timeout(Duration::from_secs(opts.timeout));
