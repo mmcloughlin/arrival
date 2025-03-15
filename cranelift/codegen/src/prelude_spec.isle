@@ -1,5 +1,10 @@
 ;;;; Common spec macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Generic helpers
+
+; unspecified value.
+(macro (unspecified) (with (x) x))
+
 ;; Boolean helpers
 
 ; Exclusive or

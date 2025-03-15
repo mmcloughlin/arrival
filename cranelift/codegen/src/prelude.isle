@@ -113,6 +113,7 @@
 (decl pure u16_as_u32 (u16) u32)
 (extern constructor u16_as_u32 u16_as_u32)
 (convert u16 u32 u16_as_u32)
+(spec (u16_as_u32 n) (provide (= result (zero_ext 32 n))))
 
 (decl pure u16_as_u64 (u16) u64)
 (extern constructor u16_as_u64 u16_as_u64)
@@ -146,6 +147,7 @@
 (decl pure u32_as_u64 (u32) u64)
 (extern constructor u32_as_u64 u32_as_u64)
 (convert u32 u64 u32_as_u64)
+(spec (u32_as_u64 n) (provide (= result (zero_ext 64 n))))
 
 (decl pure i32_as_i64 (i32) i64)
 (extern constructor i32_as_i64 i32_as_i64)
@@ -168,9 +170,17 @@
 
 (decl u64_as_u32 (u32) u64)
 (extern extractor u64_as_u32 u64_as_u32)
+(spec (u64_as_u32 arg)
+      (match (= result (bvand result #x00000000ffffffff)))
+      (provide (= result (zero_ext 64 arg)))
+)
 
 (decl u32_as_u16 (u16) u32)
 (extern extractor u32_as_u16 u32_as_u16)
+(spec (u32_as_u16 arg)
+      (match (= result (bvand result #x0000ffff)))
+      (provide (= result (zero_ext 32 arg)))
+)
 
 (decl pure u64_as_i32 (u64) i32)
 (extern constructor u64_as_i32 u64_as_i32)
@@ -750,10 +760,12 @@
 ;; Extract a `u32` from an `Ieee32`.
 (decl u32_from_ieee32 (u32) Ieee32)
 (extern extractor infallible u32_from_ieee32 u32_from_ieee32)
+(spec (u32_from_ieee32 arg) (provide (= result arg)))
 
 ;; Extract a `u64` from an `Ieee64`.
 (decl u64_from_ieee64 (u64) Ieee64)
 (extern extractor infallible u64_from_ieee64 u64_from_ieee64)
+(spec (u64_from_ieee64 arg) (provide (= result arg)))
 
 ;; Match a multi-lane type, extracting (# bits per lane, # lanes) from the given
 ;; type. Will only match when there is more than one lane.

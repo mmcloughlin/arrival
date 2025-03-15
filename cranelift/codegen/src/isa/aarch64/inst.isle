@@ -1376,7 +1376,23 @@
 (macro (v_clear nzcv) (= (:V nzcv) #b0))
 
 (type ASIMDFPModImm (primitive ASIMDFPModImm))
+(model ASIMDFPModImm (type
+      (struct
+            (imm (bv 8))
+            (size (named ScalarSize))
+      )
+))
+
 (type ASIMDMovModImm (primitive ASIMDMovModImm))
+(model ASIMDMovModImm (type
+      (struct
+            (imm (bv 8))
+            ; TODO: shift: u8,
+            ; TODO: is_64bit: bool,
+            ; TODO: shift_ones: bool,
+      )
+))
+
 (type SImm7Scaled (primitive SImm7Scaled))
 
 (type BoxCallInfo (primitive BoxCallInfo))
@@ -1532,6 +1548,9 @@
         ;; for [crate::isa::aarch64::abi](the ABI module) for more details.
         (SlotOffset
          (off i64))))
+
+; TODO: handle loads from function's constant pool
+(attr AMode.Const (tag amode_const))
 
 ; Type instantiations for register addressing modes.
 ;
@@ -2138,6 +2157,7 @@
 
 (decl pure use_fp16 () bool)
 (extern constructor use_fp16 use_fp16)
+(spec (use_fp16) (provide (not result)))
 
 ;; Extractor helpers for various immediate constants ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3005,7 +3025,7 @@
 ;; Helper for emitting `MInst.MovToFpu` instructions.
 (decl mov_to_fpu (Reg ScalarSize) Reg)
 (attr mov_to_fpu (veri chain))
-(rule (mov_to_fpu x size)
+(rule mov_to_fpu_base_case (mov_to_fpu x size)
       (let ((dst WritableReg (temp_writable_reg $I8X16))
             (_ Unit (emit (MInst.MovToFpu dst x size))))
         dst))
@@ -4093,15 +4113,19 @@
 (decl constant_f16 (u16) Reg)
 (rule 3 (constant_f16 n)
         (if-let $false (use_fp16))
-        (constant_f32 n))
-(rule 2 (constant_f16 0)
+        (lower_constant_f32 n))
+(rule 0 (constant_f16 n) (lower_constant_f16 n))
+
+(decl lower_constant_f16 (u16) Reg)
+(attr lower_constant_f16 (veri chain))
+(rule 2 (lower_constant_f16 0)
         (vec_dup_imm (asimd_mov_mod_imm_zero (ScalarSize.Size32))
                      $false
                      (VectorSize.Size32x2)))
-(rule 1 (constant_f16 n)
+(rule lower_constant_f16_fpu_move_fp_imm 1 (lower_constant_f16 n)
         (if-let imm (asimd_fp_mod_imm_from_u64 n (ScalarSize.Size16)))
         (fpu_move_fp_imm imm (ScalarSize.Size16)))
-(rule (constant_f16 n)
+(rule lower_constant_f16_mov_to_fpu (lower_constant_f16 n)
       (mov_to_fpu (imm $I16 (ImmExtend.Zero) n) (ScalarSize.Size16)))
 
 ;; Lower a constant f32.
@@ -4110,17 +4134,22 @@
 ;; because this function is also used to load wider constants (that have zeros
 ;; in their most significant bits).
 (decl constant_f32 (u32) Reg)
-(rule 3 (constant_f32 0)
+(attr constant_f32 (veri chain))
+(rule constant_f32_lower_constant_f16 1 (constant_f32 (u32_as_u16 n))
+        (if-let $true (use_fp16))
+        (lower_constant_f16 n))
+(rule constant_f32_base_case 0 (constant_f32 n) (lower_constant_f32 n))
+
+(decl lower_constant_f32 (u32) Reg)
+(attr lower_constant_f32 (veri chain))
+(rule 3 (lower_constant_f32 0)
         (vec_dup_imm (asimd_mov_mod_imm_zero (ScalarSize.Size32))
                      $false
                      (VectorSize.Size32x2)))
-(rule 2 (constant_f32 n)
+(rule lower_constant_f32_fpu_move_fp_imm 2 (lower_constant_f32 n)
         (if-let imm (asimd_fp_mod_imm_from_u64 n (ScalarSize.Size32)))
         (fpu_move_fp_imm imm (ScalarSize.Size32)))
-(rule 1 (constant_f32 (u32_as_u16 n))
-        (if-let $true (use_fp16))
-        (constant_f16 n))
-(rule (constant_f32 n)
+(rule (lower_constant_f32 n)
       (mov_to_fpu (imm $I32 (ImmExtend.Zero) n) (ScalarSize.Size32)))
 
 ;; Lower a constant f64.
@@ -4131,6 +4160,7 @@
 ;; TODO: Treat as half of a 128 bit vector and consider replicated patterns.
 ;; Scalar MOVI might also be an option.
 (decl constant_f64 (u64) Reg)
+(attr constant_f64 (veri chain))
 (rule 4 (constant_f64 0)
         (vec_dup_imm (asimd_mov_mod_imm_zero (ScalarSize.Size32))
                      $false
@@ -4148,6 +4178,10 @@
 ;; Tests whether the low 32 bits in the input are all zero.
 (decl u64_low32_bits_unset (u64) u64)
 (extern extractor u64_low32_bits_unset u64_low32_bits_unset)
+(spec (u64_low32_bits_unset n)
+      (match (bv_is_zero! (bvand result #x00000000ffffffff)))
+      (provide (= n result))
+)
 
 ;; Lower a constant f128.
 (decl constant_f128 (u128) Reg)
@@ -5119,6 +5153,7 @@
 ;; Helper for creating a zero value `ASIMDMovModImm` immediate.
 (decl asimd_mov_mod_imm_zero (ScalarSize) ASIMDMovModImm)
 (extern constructor asimd_mov_mod_imm_zero asimd_mov_mod_imm_zero)
+(spec (asimd_mov_mod_imm_zero size) (provide (= (:imm result) #x00)))
 
 ;; Helper for fallibly creating an `ASIMDMovModImm` immediate from its parts.
 (decl pure partial asimd_mov_mod_imm_from_u64 (u64 ScalarSize) ASIMDMovModImm)
@@ -5127,6 +5162,88 @@
 ;; Helper for fallibly creating an `ASIMDFPModImm` immediate from its parts.
 (decl pure partial asimd_fp_mod_imm_from_u64 (u64 ScalarSize) ASIMDFPModImm)
 (extern constructor asimd_fp_mod_imm_from_u64 asimd_fp_mod_imm_from_u64)
+
+; Compute the 32-bit value that corresponds to an 8-bit ASIMDFPModImm encoding.
+(macro (asimd_fp_mod_imm_value32 imm)
+      (let (
+            ;  let imm = imm as u32;
+            (v       (zero_ext 32 imm))
+            ;  let b0_5 = imm & 0b111111;
+            (b0_5    (bvand v #x0000003f))
+            ;  let b6 = (imm >> 6) & 1;
+            (b6      (bvand (bvlshr_int! v 6) #x00000001))
+            ;  let b6_inv = b6 ^ 1;
+            (b6_inv  (bvxor b6 #x00000001))
+            ;  let b7 = (imm >> 7) & 1;
+            (b7      (bvand (bvlshr_int! v 7) #x00000001))
+      )
+      ;  b0_5 << 19 | (b6 * 0b11111) << 25 | b6_inv << 30 | b7 << 31
+      (bvor (bvshl_int! b0_5 19)
+      (bvor (bvshl_int! (bvmul b6 #x0000001f) 25)
+      (bvor (bvshl_int! b6_inv 30)
+            (bvshl_int! b7 31))))))
+
+; Compute the 64-bit value that corresponds to an 8-bit ASIMDFPModImm encoding.
+(macro (asimd_fp_mod_imm_value64 imm)
+      (let (
+            ; let imm = imm as u64;
+            (v       (zero_ext 64 imm))
+            ; let b0_5 = imm & 0b111111;
+            (b0_5    (bvand v #x000000000000003f))
+            ; let b6 = (imm >> 6) & 1;
+            (b6      (bvand (bvlshr_int! v 6) #x0000000000000001))
+            ; let b6_inv = b6 ^ 1;
+            (b6_inv  (bvxor b6 #x0000000000000001))
+            ; let b7 = (imm >> 7) & 1;
+            (b7      (bvand (bvlshr_int! v 7) #x0000000000000001))
+      )
+      ; b0_5 << 48 | (b6 * 0b11111111) << 54 | b6_inv << 62 | b7 << 63
+      (bvor (bvshl_int! b0_5 48)
+      (bvor (bvshl_int! (bvmul b6 #x00000000000000ff) 54)
+      (bvor (bvshl_int! b6_inv 62)
+            (bvshl_int! b7 63))))))
+
+(spec (asimd_fp_mod_imm_from_u64 value size)
+      (provide
+            (= (:size result) size)
+            (= (:imm result)
+                  (switch size
+                  ((ScalarSize.Size32)
+                        (let (
+                              (v    (extract 31 0 value))
+                              (b0_5 (bvand (bvlshr_int! v 19) #x0000003f))
+                              (b6   (bvand (bvlshr_int! v 19) #x00000040))
+                              (b7   (bvand (bvlshr_int! v 24) #x00000080))
+                              (imm  (extract 7 0 (bvor b0_5 (bvor b6 b7))))
+                        )
+                        imm))
+                  ((ScalarSize.Size64)
+                        (let (
+                              (b0_5 (bvand (bvlshr_int! value 48) #x000000000000003f))
+                              (b6   (bvand (bvlshr_int! value 48) #x0000000000000040))
+                              (b7   (bvand (bvlshr_int! value 56) #x0000000000000080))
+                              (imm  (extract 7 0 (bvor b0_5 (bvor b6 b7))))
+                        )
+                        imm)))))
+      (match
+            (switch size
+            ((ScalarSize.Size32)
+                  (let (
+                        (v    (extract 31 0 value))
+                        (b0_5 (bvand (bvlshr_int! v 19) #x0000003f))
+                        (b6   (bvand (bvlshr_int! v 19) #x00000040))
+                        (b7   (bvand (bvlshr_int! v 24) #x00000080))
+                        (imm  (extract 7 0 (bvor b0_5 (bvor b6 b7))))
+                  )
+                  (= v (asimd_fp_mod_imm_value32! imm))))
+            ((ScalarSize.Size64)
+                  (let (
+                        (b0_5 (bvand (bvlshr_int! value 48) #x000000000000003f))
+                        (b6   (bvand (bvlshr_int! value 48) #x0000000000000040))
+                        (b7   (bvand (bvlshr_int! value 56) #x0000000000000080))
+                        (imm  (extract 7 0 (bvor b0_5 (bvor b6 b7))))
+                  )
+                  (= value (asimd_fp_mod_imm_value64! imm)))))))
 
 ;; Helper for creating a `VecDupFPImm` instruction
 (decl vec_dup_fp_imm (ASIMDFPModImm VectorSize) Reg)

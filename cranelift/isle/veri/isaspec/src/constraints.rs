@@ -456,6 +456,16 @@ impl Translator {
                 let y = self.expr(y)?;
                 Ok(spec_binary(SpecOp::Concat, x, y))
             }
+            "replicate_bits" => {
+                let (x, n) = expect_binary(args)?;
+                let x = self.expr(x)?;
+                let n = expect_lit_int_as_usize(n)?;
+                Ok(spec_binary(
+                    SpecOp::Replicate,
+                    x,
+                    spec_const_int(n.try_into()?),
+                ))
+            }
             "not_bits" => {
                 let x = expect_unary(args)?;
                 let x = self.expr(x)?;

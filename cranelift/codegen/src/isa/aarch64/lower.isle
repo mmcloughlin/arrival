@@ -67,12 +67,14 @@
 
 ;;;; Rules for `f32const` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (f32const _ (u32_from_ieee32 n)))
+(rule f32const
+      (lower (f32const _ (u32_from_ieee32 n)))
       (constant_f32 n))
 
 ;;;; Rules for `f64const` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(rule (lower (f64const _ (u64_from_ieee64 n)))
+(rule f64const
+      (lower (f64const _ (u64_from_ieee64 n)))
       (constant_f64 n))
 
 ;;;; Rules for `f128const` ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

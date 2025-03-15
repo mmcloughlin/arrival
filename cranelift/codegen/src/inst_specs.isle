@@ -2,6 +2,9 @@
 
 (model Imm64 (type (bv 64)))
 
+(model Ieee32 (type (bv 32)))
+(model Ieee64 (type (bv 64)))
+
 ; REVIEW(mbm): do we need to model MemFlags?
 (model MemFlags (type
     (struct
@@ -686,6 +689,14 @@
 (macro (nan_neg x)
     (conv_to (widthof x)
         (bvxor x (fp_sign_bit_set! (widthof x)))))
+
+; f32const: single-precision floating-point constant.
+(spec (f32const ty x) (provide (= result x)))
+(instantiate f32const ((args (named Type) (bv 32)) (ret (bv 32))))
+
+; f64const: double-precision floating-point constant.
+(spec (f64const ty x) (provide (= result x)))
+(instantiate f64const ((args (named Type) (bv 64)) (ret (bv 64))))
 
 ; fcmp: floating-point compare.
 (spec (fcmp ty c x y)

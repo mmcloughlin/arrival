@@ -11,4 +11,5 @@ RUST_LOG=info ./script/veri.sh "$@" -- \
     --filter exclude:tag:i128 \
     --filter exclude:tag:atomics \
     --filter exclude:tag:narrowfloat \
+    --filter exclude:tag:amode_const \
     ;

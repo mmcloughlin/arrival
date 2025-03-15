@@ -5,13 +5,14 @@ use std::{io, vec};
 
 use anyhow::{bail, Result};
 use clap::Parser as ClapParser;
+use cranelift_codegen::isa::aarch64::inst::ASIMDMovModImm;
 use cranelift_codegen::{
     ir::{types::I8, MemFlags},
     isa::aarch64::inst::{
-        vreg, writable_vreg, writable_xreg, xreg, ALUOp, ALUOp3, AMode, BitOp, Cond, ExtendOp,
-        FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm, FpuRoundMode,
-        FpuToIntOp, Imm12, Inst, IntToFpuOp, MoveWideConst, MoveWideOp, OperandSize, SImm9,
-        ScalarSize, ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm, UImm12Scaled, UImm5, VecALUOp,
+        vreg, writable_vreg, writable_xreg, xreg, ALUOp, ALUOp3, AMode, ASIMDFPModImm, BitOp, Cond,
+        ExtendOp, FPULeftShiftImm, FPUOp1, FPUOp2, FPUOpRI, FPUOpRIMod, FPURightShiftImm,
+        FpuRoundMode, FpuToIntOp, Imm12, Inst, IntToFpuOp, MoveWideConst, MoveWideOp, OperandSize,
+        SImm9, ScalarSize, ShiftOp, ShiftOpAndAmt, ShiftOpShiftImm, UImm12Scaled, UImm5, VecALUOp,
         VecLanesOp, VecMisc2, VectorSize, NZCV,
     },
     Reg, RegClass, Writable,
@@ -180,6 +181,10 @@ fn define() -> Result<Vec<FileConfig>> {
             specs: define_conds()?,
         },
         FileConfig {
+            name: "fpu_move_imm.isle".into(),
+            specs: vec![define_fpu_move_imm()],
+        },
+        FileConfig {
             name: "fpu_cmp.isle".into(),
             specs: vec![define_fpu_cmp()],
         },
@@ -218,6 +223,10 @@ fn define() -> Result<Vec<FileConfig>> {
         FileConfig {
             name: "mov_from_vec.isle".into(),
             specs: vec![define_mov_from_vec()],
+        },
+        FileConfig {
+            name: "vec_dup_imm.isle".into(),
+            specs: vec![define_vec_dup_imm()?],
         },
         FileConfig {
             name: "vec_rrr.isle".into(),
@@ -2093,6 +2102,81 @@ fn is_fpu_op1_size_supported(fpu_op1: FPUOp1, size: ScalarSize) -> bool {
     }
 }
 
+fn define_fpu_move_imm() -> SpecConfig {
+    // ScalarSize
+    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+
+    // Execution scope: define opcode template fields.
+    let mut scope = aarch64::state();
+    let imm_bits = Target::Var("bits".to_string());
+    scope.global(imm_bits.clone());
+
+    // Mappings
+    let mut mappings = flags_mappings();
+    mappings.writes.insert(
+        aarch64::vreg(4),
+        Mapping::require(spec_var("rd".to_string())),
+    );
+    mappings.reads.insert(
+        imm_bits.clone(),
+        MappingBuilder::var("imm").field("imm").build(),
+    );
+
+    SpecConfig {
+        term: "MInst.FpuMoveFPImm".to_string(),
+        args: ["rd", "imm", "size"].map(String::from).to_vec(),
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| Arm {
+                    variant: format!("{size:?}"),
+                    args: Vec::new(),
+                    body: Cases::Instruction({
+                        InstConfig {
+                            opcodes: Opcodes::Template(
+                                fpu_move_imm_template(*size, writable_vreg(4)).unwrap(),
+                            ),
+                            scope: scope.clone(),
+                            mappings: mappings.clone(),
+                        }
+                    }),
+                })
+                .collect(),
+        }),
+    }
+}
+
+fn fpu_move_imm_template(size: ScalarSize, rd: Writable<Reg>) -> Result<Bits> {
+    // Assemble a base instruction with a placeholder for the imm12 field.
+    let placeholder = ASIMDFPModImm { imm: 0, size };
+    let base = Inst::FpuMoveFPImm {
+        rd,
+        imm: placeholder,
+        size,
+    };
+    let opcode = aarch64::opcode(&base);
+    let bits = Bits::from_u32(opcode);
+    // Splice in symbolic immediate fields.
+    let imm = Bits {
+        segments: vec![Segment::Symbolic("bits".to_string(), 8)],
+    };
+    let template = Bits::splice(&bits, &imm, 13)?;
+
+    // Verify template against the assembler.
+    verify_opcode_template(&template, |assignment: &HashMap<String, u32>| {
+        let bits = assignment.get("bits").unwrap();
+        let imm = ASIMDFPModImm {
+            imm: (*bits).try_into().unwrap(),
+            size,
+        };
+        Ok(Inst::FpuMoveFPImm { rd, imm, size })
+    })?;
+
+    Ok(template)
+}
+
 fn define_fpu_cmp() -> SpecConfig {
     // ScalarSize
     let sizes = [ScalarSize::Size32, ScalarSize::Size64];
@@ -2542,6 +2626,135 @@ fn define_mov_from_vec() -> SpecConfig {
                 .collect(),
         }),
     }
+}
+
+// MInst.VecDupImm specification configuration.
+//
+// Note this specification only handles the 8-bit immediate field of ASIMDMovModImm.
+// This is sufficient to handle the limited uses of VecDupImm right now.
+//
+// TODO: handle all ASIMDMovModImm parameters
+fn define_vec_dup_imm() -> Result<SpecConfig> {
+    // VectorSize
+    let sizes = [VectorSize::Size32x2];
+
+    // Invert
+    let inverts = [false, true];
+
+    // Execution scope: define opcode template fields.
+    let mut scope = aarch64::state();
+    let abc_bits = Target::Var("abc".to_string());
+    let defgh_bits = Target::Var("defgh".to_string());
+    scope.global(abc_bits.clone());
+    scope.global(defgh_bits.clone());
+
+    // Mappings
+    let mut mappings = flags_mappings();
+    mappings.writes.insert(
+        aarch64::vreg(4),
+        Mapping::require(spec_var("rd".to_string())),
+    );
+    let imm = spec_field("imm".to_string(), spec_var("imm".to_string()));
+    mappings.reads.insert(
+        abc_bits.clone(),
+        Mapping::require(spec_extract(7, 5, imm.clone())),
+    );
+    mappings.reads.insert(
+        defgh_bits.clone(),
+        Mapping::require(spec_extract(4, 0, imm.clone())),
+    );
+
+    Ok(SpecConfig {
+        term: "MInst.VecDupImm".to_string(),
+        args: ["rd", "imm", "invert", "size"].map(String::from).to_vec(),
+        cases: Cases::Match(Match {
+            on: spec_var("size".to_string()),
+            arms: sizes
+                .iter()
+                .rev()
+                .map(|size| {
+                    Ok(Arm {
+                        variant: format!("{size:?}"),
+                        args: Vec::new(),
+                        body: Cases::Cases(
+                            inverts
+                                .iter()
+                                .map(|invert| {
+                                    Ok(Case {
+                                        conds: vec![spec_eq_bool(
+                                            spec_var("invert".to_string()),
+                                            *invert,
+                                        )],
+                                        cases: Cases::Instruction(InstConfig {
+                                            opcodes: Opcodes::Template(vec_dup_imm_template(
+                                                writable_vreg(4),
+                                                *invert,
+                                                *size,
+                                            )?),
+                                            scope: scope.clone(),
+                                            mappings: mappings.clone(),
+                                        }),
+                                    })
+                                })
+                                .collect::<Result<_>>()?,
+                        ),
+                    })
+                })
+                .collect::<Result<_>>()?,
+        }),
+    })
+}
+
+fn vec_dup_imm_template(rd: Writable<Reg>, invert: bool, size: VectorSize) -> Result<Bits> {
+    // Assemble a base instruction with a placeholder for the immediate field.
+    // TODO: handle all ASIMDMovModImm parameters shift, is_64bit, and shift_ones.
+    let placeholder = ASIMDMovModImm {
+        imm: 0,
+        shift: 0,
+        is_64bit: false,
+        shift_ones: false,
+    };
+    let base = Inst::VecDupImm {
+        rd,
+        imm: placeholder,
+        invert,
+        size,
+    };
+    let opcode = aarch64::opcode(&base);
+    let bits = Bits::from_u32(opcode);
+
+    // Splice in symbolic immediate fields.
+    let abc = Bits {
+        segments: vec![Segment::Symbolic("abc".to_string(), 3)],
+    };
+    let template = Bits::splice(&bits, &abc, 16)?;
+
+    let defgh = Bits {
+        segments: vec![Segment::Symbolic("defgh".to_string(), 5)],
+    };
+    let template = Bits::splice(&template, &defgh, 5)?;
+
+    // Verify template against the assembler.
+    verify_opcode_template(&template, |assignment: &HashMap<String, u32>| {
+        let abc = assignment.get("abc").unwrap();
+        let defgh = assignment.get("defgh").unwrap();
+        let bits = (abc << 5) | defgh;
+
+        let imm = ASIMDMovModImm {
+            imm: bits.try_into().unwrap(),
+            shift: 0,
+            is_64bit: false,
+            shift_ones: false,
+        };
+        Ok(Inst::VecDupImm {
+            rd,
+            imm,
+            invert,
+            size,
+        })
+    })?;
+
+    Ok(template)
 }
 
 // MInst.VecRRR specification configuration.
