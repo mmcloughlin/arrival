@@ -300,6 +300,7 @@ impl TermMetadata {
 pub struct Report {
     build_profile: String,
     git_version: String,
+    args: Vec<String>,
     filters: Vec<String>,
     solver: String,
     timeout: Duration,
@@ -450,6 +451,7 @@ impl Runner {
         let report = Report {
             build_profile: BUILD_PROFILE.to_string(),
             git_version: GIT_VERSION.to_string(),
+            args: std::env::args().collect(),
             filters: self.filters.iter().map(ToString::to_string).collect(),
             solver: self.solver_backend.prog().to_string(),
             timeout: self.timeout,
