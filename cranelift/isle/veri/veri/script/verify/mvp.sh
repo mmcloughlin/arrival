@@ -12,6 +12,7 @@ RUST_LOG=info ./script/veri.sh \
     "$@" \
     -- \
     --results-to-log-dir \
+    --timeout 30 \
     --num-threads 0 \
     --no-skip-todo \
     --filter include:tag:wasm_proposal_mvp \
