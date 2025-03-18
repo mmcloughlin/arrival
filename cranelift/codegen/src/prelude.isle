@@ -479,7 +479,7 @@
 ;; Get the byte width of a given type.
 (decl pure ty_bytes (Type) u16)
 (extern constructor ty_bytes ty_bytes)
-(spec (ty_bytes arg) (provide (= result (bits2bytes! (int2bv 16 arg)))))
+(spec (ty_bytes ty) (provide (= result (bits2bytes! (int2bv 16 (:bits ty))))))
 
 ;; Get the type of each lane in the given type.
 (decl pure lane_type (Type) Type)
