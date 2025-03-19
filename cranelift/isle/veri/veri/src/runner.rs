@@ -27,6 +27,7 @@ use crate::{
 
 const LOG_DIR: &str = ".veriisle";
 
+#[derive(Debug, Clone, Copy)]
 pub enum SolverBackend {
     Z3,
     CVC5,
@@ -38,6 +39,10 @@ impl SolverBackend {
             SolverBackend::Z3 => "z3",
             SolverBackend::CVC5 => "cvc5",
         }
+    }
+
+    fn all() -> Vec<Self> {
+        vec![SolverBackend::Z3, SolverBackend::CVC5]
     }
 
     fn args(&self, timeout: Duration) -> Vec<String> {
@@ -57,8 +62,26 @@ impl SolverBackend {
     }
 }
 
+impl std::fmt::Display for SolverBackend {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.prog())
+    }
+}
+
+impl FromStr for SolverBackend {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(match s {
+            "z3" => SolverBackend::Z3,
+            "cvc5" => SolverBackend::CVC5,
+            _ => bail!("unknown solver backend"),
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
-enum ExpansionPredicate {
+pub enum ExpansionPredicate {
     FirstRuleNamed,
     Specified,
     Tagged(String),
@@ -153,6 +176,47 @@ impl std::fmt::Display for Filter {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct SolverRule {
+    predicate: ExpansionPredicate,
+    solver_backend: SolverBackend,
+}
+
+impl SolverRule {
+    /// Build a rule that selects the solver backend for expansions with an
+    /// explicit `solver_<name>` tag.
+    fn solver_tag(solver_backend: SolverBackend) -> Self {
+        let tag = format!("solver_{}", solver_backend);
+        Self {
+            predicate: ExpansionPredicate::Tagged(tag),
+            solver_backend,
+        }
+    }
+
+    /// Build rules for explicit selection of all solver backends.
+    fn solver_tag_rules() -> Vec<Self> {
+        SolverBackend::all()
+            .iter()
+            .map(|backend| Self::solver_tag(*backend))
+            .collect()
+    }
+}
+
+impl FromStr for SolverRule {
+    type Err = Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        if let Some((backend, predicate)) = s.split_once('=') {
+            Ok(Self {
+                predicate: predicate.parse()?,
+                solver_backend: backend.parse()?,
+            })
+        } else {
+            bail!("invalid solver rule")
+        }
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Verdict {
@@ -186,6 +250,7 @@ pub struct ExpansionReport {
     pub chained: Vec<String>,
     pub terms: Vec<String>,
     pub tags: Vec<String>,
+    pub solver: String,
     /// Count of type instantiations that failed at type inference.
     pub failed_type_inference: usize,
     /// Solver reports from type instantiations.
@@ -231,6 +296,7 @@ impl ExpansionReport {
             chained: chained.iter().map(ToString::to_string).collect(),
             terms: terms.iter().map(ToString::to_string).collect(),
             tags,
+            solver: Default::default(),
             failed_type_inference: 0,
             type_instantiations: Vec::new(),
             duration: Default::default(),
@@ -302,7 +368,7 @@ pub struct Report {
     git_version: String,
     args: Vec<String>,
     filters: Vec<String>,
-    solver: String,
+    default_solver: String,
     timeout: Duration,
     duration: Duration,
     num_threads: usize,
@@ -318,7 +384,8 @@ pub struct Runner {
 
     root_term: String,
     filters: Vec<Filter>,
-    solver_backend: SolverBackend,
+    default_solver_backend: SolverBackend,
+    solver_rules: Vec<SolverRule>,
     timeout: Duration,
     log_dir: PathBuf,
     skip_solver: bool,
@@ -336,7 +403,8 @@ impl Runner {
             term_rule_sets,
             root_term: root_term.to_string(),
             filters: Vec::new(),
-            solver_backend: SolverBackend::CVC5,
+            default_solver_backend: SolverBackend::CVC5,
+            solver_rules: SolverRule::solver_tag_rules(),
             timeout: Duration::from_secs(5),
             log_dir: PathBuf::from(LOG_DIR),
             results_to_log_dir: false,
@@ -375,8 +443,16 @@ impl Runner {
         Ok(())
     }
 
-    pub fn set_solver_backend(&mut self, backend: SolverBackend) {
-        self.solver_backend = backend;
+    // Configure the default solver to use if no solver rules apply.
+    pub fn set_default_solver_backend(&mut self, solver_backend: SolverBackend) {
+        self.default_solver_backend = solver_backend;
+    }
+
+    // Use the given solver backend for expansions that satisfy the given
+    // predicate.  If multiple rules match, the earlier one is used. If none
+    // match, the default is used.
+    pub fn add_solver_rule(&mut self, solver_rule: SolverRule) {
+        self.solver_rules.push(solver_rule);
     }
 
     pub fn set_timeout(&mut self, timeout: Duration) {
@@ -453,7 +529,7 @@ impl Runner {
             git_version: GIT_VERSION.to_string(),
             args: std::env::args().collect(),
             filters: self.filters.iter().map(ToString::to_string).collect(),
-            solver: self.solver_backend.prog().to_string(),
+            default_solver: self.default_solver_backend.prog().to_string(),
             timeout: self.timeout,
             num_threads,
             duration,
@@ -562,6 +638,10 @@ impl Runner {
         // Initialize report.
         let mut report = ExpansionReport::from_expansion(id, expansion, &self.prog)?;
 
+        // Select solver.
+        let solver_backend = self.select_solver_backend(expansion)?;
+        report.solver = solver_backend.to_string();
+
         for (i, solution) in solutions.iter().enumerate() {
             let start_solution = time::Instant::now();
 
@@ -615,6 +695,7 @@ impl Runner {
                 .verify_expansion_type_instantiation(
                     &conditions,
                     &solution.assignment,
+                    solver_backend,
                     solution_log_dir,
                     &mut output,
                 )
@@ -635,18 +716,28 @@ impl Runner {
         Ok(report)
     }
 
+    fn select_solver_backend(&self, expansion: &Expansion) -> Result<SolverBackend> {
+        for solver_rule in &self.solver_rules {
+            if self.eval_predicate(&solver_rule.predicate, expansion)? {
+                return Ok(solver_rule.solver_backend);
+            }
+        }
+        Ok(self.default_solver_backend)
+    }
+
     fn verify_expansion_type_instantiation(
         &self,
         conditions: &Conditions,
         assignment: &Assignment,
+        solver_backend: SolverBackend,
         log_dir: std::path::PathBuf,
         output: &mut dyn Write,
     ) -> Result<VerifyReport> {
         let start = time::Instant::now();
 
         // Solve.
-        let binary = self.solver_backend.prog();
-        let args = self.solver_backend.args(self.timeout);
+        let binary = solver_backend.prog();
+        let args = solver_backend.args(self.timeout);
         let replay_file = Self::open_log_file(log_dir, "solver.smt2")?;
         let smt = easy_smt::ContextBuilder::new()
             .solver(binary, &args)

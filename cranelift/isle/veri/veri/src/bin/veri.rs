@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use anyhow::{format_err, Result};
-use clap::{ArgAction, Parser, ValueEnum};
+use clap::{ArgAction, Parser};
 use cranelift_codegen_meta::{generate_isle, isle::get_isle_compilations};
-use cranelift_isle_veri::runner::{Filter, Runner, SolverBackend};
+use cranelift_isle_veri::runner::{Filter, Runner, SolverBackend, SolverRule};
 
 #[derive(Parser)]
 struct Opts {
@@ -29,7 +29,11 @@ struct Opts {
 
     /// Solver backend to use.
     #[arg(long = "solver", default_value = "cvc5", env = "ISLE_VERI_SOLVER")]
-    solver_backend: SolverBackendOption,
+    solver_backend: SolverBackend,
+
+    /// Solver selection rule of the form `<solver>=<predicate>`. Earlier rules take precedence.
+    #[arg(long = "solver-rule")]
+    solver_rules: Vec<SolverRule>,
 
     /// Per-query timeout, in seconds.
     #[arg(long, default_value = "10", env = "ISLE_VERI_TIMEOUT")]
@@ -73,21 +77,6 @@ impl Opts {
     }
 }
 
-#[derive(ValueEnum, Clone)]
-enum SolverBackendOption {
-    Z3,
-    CVC5,
-}
-
-impl From<SolverBackendOption> for SolverBackend {
-    fn from(opt: SolverBackendOption) -> Self {
-        match opt {
-            SolverBackendOption::Z3 => SolverBackend::Z3,
-            SolverBackendOption::CVC5 => SolverBackend::CVC5,
-        }
-    }
-}
-
 fn main() -> Result<()> {
     env_logger::builder().format_target(false).init();
     let opts = Opts::parse();
@@ -117,7 +106,11 @@ fn main() -> Result<()> {
         runner.skip_tag("TODO");
     }
 
-    runner.set_solver_backend(opts.solver_backend.into());
+    runner.set_default_solver_backend(opts.solver_backend.into());
+    for solver_rule in opts.solver_rules {
+        runner.add_solver_rule(solver_rule);
+    }
+
     runner.set_timeout(Duration::from_secs(opts.timeout));
     if let Some(log_dir) = opts.log_dir {
         runner.set_log_dir(log_dir);
