@@ -508,7 +508,7 @@ impl Runner {
                 }
 
                 // Verify
-                let expansion_log_dir = self.log_dir.join(format!("{:05}", i));
+                let expansion_log_dir = self.log_dir.join("expansions").join(format!("{:05}", i));
                 let report = self.verify_expansion(expansion, i, expansion_log_dir.clone())?;
 
                 Ok(Some(report))
