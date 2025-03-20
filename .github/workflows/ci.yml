@@ -73,12 +73,12 @@ jobs:
           mkdir -p "${{ runner.workspace }}/tools"
           echo "${{ runner.workspace }}/tools/bin" >> $GITHUB_PATH
       - name: Install CVC5
-        working-directory: cranelift/isle/veri/veri
+        working-directory: main/cranelift/isle/veri/veri
         run: ./script/install/cvc5.sh -i "${{ runner.workspace }}/tools" -t "${RUNNER_TEMP}"
       - name: Show CVC5 Version
         run: cvc5 --version
       - name: Install Z3
-        working-directory: cranelift/isle/veri/veri
+        working-directory: main/cranelift/isle/veri/veri
         run: ./script/install/z3.sh -b "${{ runner.workspace }}/tools/bin" -t "${RUNNER_TEMP}"
       - name: Show Z3 Version
         run: z3 --version
