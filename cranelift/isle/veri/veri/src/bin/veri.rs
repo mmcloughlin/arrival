@@ -36,7 +36,7 @@ struct Opts {
     solver_rules: Vec<SolverRule>,
 
     /// Per-query timeout, in seconds.
-    #[arg(long, default_value = "10", env = "ISLE_VERI_TIMEOUT")]
+    #[arg(long, default_value = "30", env = "ISLE_VERI_TIMEOUT")]
     timeout: u64,
 
     /// Number of threads to use.
