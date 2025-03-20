@@ -26,14 +26,20 @@ jobs:
           targets: wasm32-wasip1,wasm32-unknown-unknown
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
+      - name: Setup Tools Directory
+        run: |
+          mkdir -p "${{ runner.workspace }}/tools"
+          echo "${{ runner.workspace }}/tools/bin" >> $GITHUB_PATH
       - name: Install CVC5
         working-directory: cranelift/isle/veri/veri
-        run: |
-          mkdir -p "${{ runner.workspace }}/tools/cvc5"
-          ./script/install/cvc5.sh -i "${{ runner.workspace }}/tools/cvc5" -t "${RUNNER_TEMP}"
-          echo "${{ runner.workspace }}/tools/cvc5/bin" >> $GITHUB_PATH
+        run: ./script/install/cvc5.sh -i "${{ runner.workspace }}/tools" -t "${RUNNER_TEMP}"
       - name: Show CVC5 Version
         run: cvc5 --version
+      - name: Install Z3
+        working-directory: cranelift/isle/veri/veri
+        run: ./script/install/z3.sh -b "${{ runner.workspace }}/tools/bin" -t "${RUNNER_TEMP}"
+      - name: Show Z3 Version
+        run: z3 --version
       - name: Build
         run: cargo build --features cranelift-isle/printer --package 'cranelift-isle*'
       - name: Test
@@ -62,14 +68,20 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: main
-      - name: Install CVC5
-        working-directory: main/cranelift/isle/veri/veri
+      - name: Setup Tools Directory
         run: |
-          mkdir -p "${{ runner.workspace }}/tools/cvc5"
-          ./script/install/cvc5.sh -i "${{ runner.workspace }}/tools/cvc5" -t "${RUNNER_TEMP}"
-          echo "${{ runner.workspace }}/tools/cvc5/bin" >> $GITHUB_PATH
+          mkdir -p "${{ runner.workspace }}/tools"
+          echo "${{ runner.workspace }}/tools/bin" >> $GITHUB_PATH
+      - name: Install CVC5
+        working-directory: cranelift/isle/veri/veri
+        run: ./script/install/cvc5.sh -i "${{ runner.workspace }}/tools" -t "${RUNNER_TEMP}"
       - name: Show CVC5 Version
         run: cvc5 --version
+      - name: Install Z3
+        working-directory: cranelift/isle/veri/veri
+        run: ./script/install/z3.sh -b "${{ runner.workspace }}/tools/bin" -t "${RUNNER_TEMP}"
+      - name: Show Z3 Version
+        run: z3 --version
       - name: Build
         run: cargo build --release -p cranelift-isle-veri
         working-directory: main
