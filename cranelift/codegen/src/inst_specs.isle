@@ -1386,7 +1386,7 @@
 (attr fadd (tag solver_z3))
 (attr fmul (tag solver_z3))
 (attr fdiv (tag solver_z3))
-(attr fsqrt (tag solver_z3))
+(attr sqrt (tag solver_z3))
 
 (attr cls (tag solver_z3))
 (attr clz (tag solver_z3))
