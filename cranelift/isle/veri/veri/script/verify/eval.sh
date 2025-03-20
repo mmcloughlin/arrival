@@ -50,6 +50,12 @@ json_set "${metadata_file}" "timestamp" "${timestamp}"
 json_set "${metadata_file}" "timeout" "${timeout}"
 json_set "${metadata_file}" "hostname" "$(hostname)"
 
+z3_version=$(z3 --version)
+json_set "${metadata_file}" "z3_version" "${z3_version}"
+
+cvc5_version=$(cvc5 --version | head -n 1)
+json_set "${metadata_file}" "cvc5_version" "${cvc5_version}"
+
 # System information.
 system_dir="${output_dir}/sys/"
 mkdir -p "${system_dir}"
