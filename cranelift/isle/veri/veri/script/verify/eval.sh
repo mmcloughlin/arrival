@@ -39,7 +39,7 @@ tmp_dir=$(mktemp -d)
 
 # Setup results directory.
 timestamp=$(date -u '+%Y-%m-%dT%T')
-output_dir="${EVAL_DATA_DIR}/${timestamp}-${name}"
+output_dir="${EVAL_DATA_DIR}/run/${timestamp}-${name}"
 mkdir -p "${output_dir}"
 
 # Save metadata
