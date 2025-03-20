@@ -1381,3 +1381,14 @@
 ;;;; CLIF Instruction Tags ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (attr select_spectre_guard (tag spectre))
+
+; Use Z3 solver for the following instructions.
+(attr fadd (tag solver_z3))
+(attr fmul (tag solver_z3))
+(attr fdiv (tag solver_z3))
+(attr fsqrt (tag solver_z3))
+
+(attr cls (tag solver_z3))
+(attr clz (tag solver_z3))
+(attr ctz (tag solver_z3))
+(attr popcnt (tag solver_z3))
