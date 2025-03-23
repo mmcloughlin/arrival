@@ -1642,14 +1642,14 @@
       ))
 )
 
-(rule (scalar_size $I8) (ScalarSize.Size8))
-(rule (scalar_size $I16) (ScalarSize.Size16))
-(rule (scalar_size $I32) (ScalarSize.Size32))
-(rule (scalar_size $I64) (ScalarSize.Size64))
-(rule (scalar_size $I128) (ScalarSize.Size128))
+(rule scalar_size_i8 (scalar_size $I8) (ScalarSize.Size8))
+(rule scalar_size_i16 (scalar_size $I16) (ScalarSize.Size16))
+(rule scalar_size_i32 (scalar_size $I32) (ScalarSize.Size32))
+(rule scalar_size_i64 (scalar_size $I64) (ScalarSize.Size64))
+(rule scalar_size_i128 (scalar_size $I128) (ScalarSize.Size128))
 
-(rule (scalar_size $F32) (ScalarSize.Size32))
-(rule (scalar_size $F64) (ScalarSize.Size64))
+(rule scalar_size_f32 (scalar_size $F32) (ScalarSize.Size32))
+(rule scalar_size_f64 (scalar_size $F64) (ScalarSize.Size64))
 
 ;; Helper for calculating the `ScalarSize` lane type from vector type
 (attr lane_size (tag vector))
