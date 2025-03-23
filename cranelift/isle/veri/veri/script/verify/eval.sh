@@ -10,10 +10,12 @@ function usage() {
 
 name="adhoc"
 timeout=60
-while getopts "n:t:" opt; do
+mode="full"
+while getopts "n:t:c" opt; do
     case "${opt}" in
         n) name="${OPTARG}" ;;
         t) timeout="${OPTARG}" ;;
+        c) mode="ci" ;;
         *) usage ;;
     esac
 done
@@ -66,6 +68,11 @@ cp /proc/cpuinfo "${system_dir}/cpuinfo"
 cargo clean
 
 # Eval
+extra_args=()
+case "${mode}" in
+    "ci") extra_args+=("--ignore-solver-tags") ;;
+esac
+
 RUST_LOG=info \
 cargo run --bin veri --release -- \
     --codegen-crate-dir ../../../codegen/ \
@@ -76,6 +83,7 @@ cargo run --bin veri --release -- \
     --timeout "${timeout}" \
     --num-threads 0 \
     --no-skip-todo \
+    "${extra_args[@]}" \
     \
     --filter include:tag:wasm_proposal_mvp \
     --filter exclude:tag:wasm_category_stack \
