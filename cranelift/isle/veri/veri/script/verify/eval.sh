@@ -87,4 +87,9 @@ cargo run --bin veri --release -- \
     --filter include:tag:clif_popcnt \
     --filter exclude:tag:amode_const \
     --filter exclude:tag:i128 \
+    \
+    --filter include:root:emit_side_effect \
+    --filter include:root:operand_size \
+    --filter include:root:scalar_size \
+    --filter include:root:size_from_ty \
     ;
