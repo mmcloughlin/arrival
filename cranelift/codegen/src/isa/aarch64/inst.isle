@@ -3803,8 +3803,8 @@
                   (= (:bits ty) 16)
                   (= (:bits ty) 32)
                   (= (:bits ty) 64))))
-(rule 1 (size_from_ty (fits_in_32 _ty)) (OperandSize.Size32))
-(rule (size_from_ty $I64) (OperandSize.Size64))
+(rule size_from_ty_32 1 (size_from_ty (fits_in_32 _ty)) (OperandSize.Size32))
+(rule size_from_ty_64 (size_from_ty $I64) (OperandSize.Size64))
 
 ;; Check for signed overflow. The only case is min_value / -1.
 ;; The following checks must be done in 32-bit or 64-bit, depending
