@@ -1612,8 +1612,9 @@
             (= result (if (<= (:bits ty) 32) (OperandSize.Size32) (OperandSize.Size64))))
       (require
             (or (= (:bits ty) 8) (= (:bits ty) 16) (= (:bits ty) 32) (= (:bits ty) 64))))
-(rule 1 (operand_size (fits_in_32 _ty)) (OperandSize.Size32))
-(rule (operand_size (fits_in_64 _ty)) (OperandSize.Size64))
+(attr rule operand_size_32 (veri priority))
+(rule operand_size_32 1 (operand_size (fits_in_32 _ty)) (OperandSize.Size32))
+(rule operand_size_64 (operand_size (fits_in_64 _ty)) (OperandSize.Size64))
 
 (decl diff_from_32 (Type) u8)
 (attr diff_from_32 (veri chain))
