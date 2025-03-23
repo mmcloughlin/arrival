@@ -404,7 +404,7 @@ impl Runner {
             root_term: root_term.to_string(),
             filters: Vec::new(),
             default_solver_backend: SolverBackend::CVC5,
-            solver_rules: SolverRule::solver_tag_rules(),
+            solver_rules: Vec::new(),
             timeout: Duration::from_secs(5),
             log_dir: PathBuf::from(LOG_DIR),
             results_to_log_dir: false,
@@ -453,6 +453,11 @@ impl Runner {
     // match, the default is used.
     pub fn add_solver_rule(&mut self, solver_rule: SolverRule) {
         self.solver_rules.push(solver_rule);
+    }
+
+    // Configure rules for explicit solver selection based on `solver_<name>` tags.
+    pub fn add_solver_tag_rules(&mut self) {
+        self.solver_rules.extend(SolverRule::solver_tag_rules());
     }
 
     pub fn set_timeout(&mut self, timeout: Duration) {

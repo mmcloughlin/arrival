@@ -5,6 +5,7 @@ set -euo pipefail
 RUST_LOG=info ./script/veri.sh "$@" -- \
     --num-threads 0 \
     --results-to-log-dir \
+    --ignore-solver-tags \
     --filter include:first-rule-named \
     --filter exclude:tag:vector \
     --filter exclude:tag:slow \

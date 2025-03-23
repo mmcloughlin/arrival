@@ -35,6 +35,10 @@ struct Opts {
     #[arg(long = "solver-rule")]
     solver_rules: Vec<SolverRule>,
 
+    /// Ignore explicit solver selection tags `solver_<solver>`.
+    #[arg(long)]
+    ignore_solver_tags: bool,
+
     /// Per-query timeout, in seconds.
     #[arg(long, default_value = "30", env = "ISLE_VERI_TIMEOUT")]
     timeout: u64,
@@ -107,6 +111,9 @@ fn main() -> Result<()> {
     }
 
     runner.set_default_solver_backend(opts.solver_backend.into());
+    if !opts.ignore_solver_tags {
+        runner.add_solver_tag_rules();
+    }
     for solver_rule in opts.solver_rules {
         runner.add_solver_rule(solver_rule);
     }
