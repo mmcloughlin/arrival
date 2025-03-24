@@ -246,6 +246,7 @@ pub struct TypeInstantationReport {
 pub struct ExpansionReport {
     pub id: usize,
     pub description: String,
+    pub root: String,
     pub rules: Vec<String>,
     pub chained: Vec<String>,
     pub terms: Vec<String>,
@@ -262,6 +263,9 @@ impl ExpansionReport {
     fn from_expansion(id: usize, expansion: &Expansion, prog: &Program) -> Result<Self> {
         // Description
         let description = expansion_description(expansion, prog)?;
+
+        // Root term.
+        let root = prog.term_name(expansion.term).to_string();
 
         // Tags
         let mut tags: Vec<_> = expansion.tags(prog).iter().cloned().collect();
@@ -291,6 +295,7 @@ impl ExpansionReport {
 
         Ok(Self {
             id,
+            root,
             description,
             rules,
             chained: chained.iter().map(ToString::to_string).collect(),
