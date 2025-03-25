@@ -3,13 +3,13 @@
 (attr MInst.VecRRR (tag isaspec_generated))
 
 (spec
-    (MInst.VecRRR op rd rn rm size)
+    (MInst.VecRRR alu_op rd rn rm size)
     (provide
         (match
             size
             ((Size8x16)
                 (match
-                    op
+                    alu_op
                     ((Addp)
                         (=
                             rd
@@ -59,7 +59,7 @@
                                                                                                 rn)))))))))))))))))))))
             ((Size8x8)
                 (match
-                    op
+                    alu_op
                     ((Addp)
                         (=
                             rd
@@ -80,4 +80,4 @@
                                                         (concat
                                                             (bvadd (extract 23 16 rn) (extract 31 24 rn))
                                                             (bvadd (extract 7 0 rn) (extract 15 8 rn))))))))))))))))
-    (require (match size ((Size8x16) (match op ((Addp) true))) ((Size8x8) (match op ((Addp) true))))))
+    (require (match size ((Size8x16) (match alu_op ((Addp) true))) ((Size8x8) (match alu_op ((Addp) true))))))

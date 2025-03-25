@@ -23,11 +23,12 @@ use cranelift_isle::{
     printer,
 };
 use cranelift_isle_veri_aslp::client::Client;
-use cranelift_isle_veri_isaspec::aarch64::literal;
+use cranelift_isle_veri_isaspec::configure::{flags_mappings, spec_fp_reg};
 use cranelift_isle_veri_isaspec::memory::SetEffect;
-use cranelift_isle_veri_isaspec::spec::{spec_conv_to, spec_ident};
+use cranelift_isle_veri_isaspec::spec::spec_ident;
+use cranelift_isle_veri_isaspec::spec_config;
 use cranelift_isle_veri_isaspec::{
-    aarch64::{self, pstate_field},
+    aarch64,
     bits::{Bits, Segment},
     builder::{
         Arm, Builder, Case, Cases, InstConfig, Mapping, MappingBuilder, Mappings, Match, Opcodes,
@@ -245,6 +246,7 @@ fn define() -> Result<Vec<FileConfig>> {
 
 // MInst.AluRRR specification configuration.
 fn define_alu_rrr() -> SpecConfig {
+    let sizes = [OperandSize::Size64, OperandSize::Size32];
     let alu_ops = [
         ALUOp::Add,
         ALUOp::Sub,
@@ -271,64 +273,18 @@ fn define_alu_rrr() -> SpecConfig {
         // ALUOp::SbcS,
     ];
 
-    // OperandSize
-    let sizes = [OperandSize::Size32, OperandSize::Size64];
-
-    // AluRRR
-    let mut mappings = flags_mappings();
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(6),
-        Mapping::require(spec_var("rm".to_string())),
-    );
-
-    SpecConfig {
-        // Spec signature.
-        term: "MInst.AluRRR".to_string(),
-        args: ["alu_op", "size", "rd", "rn", "rm"]
-            .map(String::from)
-            .to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("alu_op".to_string()),
-                        arms: alu_ops
-                            .iter()
-                            .filter(|alu_op| is_alu_op_size_supported(**alu_op, *size))
-                            .map(|alu_op| Arm {
-                                variant: format!("{alu_op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::AluRRR {
-                                        alu_op: *alu_op,
-                                        size: *size,
-                                        rd: writable_xreg(4),
-                                        rn: xreg(5),
-                                        rm: xreg(6),
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (AluRRR alu_op size rd rn rm)
+        {
+            enumerate   (size, sizes);
+            enumerate   (alu_op, alu_ops);
+            register    (rd, write, gp, 4);
+            register    (rn, read,  gp, 5);
+            register    (rm, read,  gp, 6);
+            filter      (is_alu_op_size_supported(alu_op, size));
+            flags       ();
+            instruction ();
+        }
     }
 }
 
@@ -341,71 +297,20 @@ fn is_alu_op_size_supported(alu_op: ALUOp, size: OperandSize) -> bool {
 
 // MInst.AluRRRR specification configuration.
 fn define_alu_rrrr() -> SpecConfig {
-    // ALUOp3
+    let sizes = [OperandSize::Size64, OperandSize::Size32];
     let alu3_ops = [ALUOp3::MAdd, ALUOp3::MSub, ALUOp3::UMAddL, ALUOp3::SMAddL];
-
-    // OperandSize
-    let sizes = [OperandSize::Size32, OperandSize::Size64];
-
-    let mut mappings = Mappings::default();
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(6),
-        Mapping::require(spec_var("rm".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(7),
-        Mapping::require(spec_var("ra".to_string())),
-    );
-
-    SpecConfig {
-        // Spec signature.
-        term: "MInst.AluRRRR".to_string(),
-        args: ["alu_op", "size", "rd", "rn", "rm", "ra"]
-            .map(String::from)
-            .to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("alu_op".to_string()),
-                        arms: alu3_ops
-                            .iter()
-                            .filter(|alu3_op| is_alu3_op_size_supported(**alu3_op, *size))
-                            .map(|alu_op| Arm {
-                                variant: format!("{alu_op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::AluRRRR {
-                                        alu_op: *alu_op,
-                                        size: *size,
-                                        rd: writable_xreg(4),
-                                        rn: xreg(5),
-                                        rm: xreg(6),
-                                        ra: xreg(7),
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (AluRRRR alu_op size rd rn rm ra)
+        {
+            enumerate   (size, sizes);
+            enumerate   (alu_op, alu3_ops);
+            register    (rd, write, gp, 4);
+            register    (rn, read,  gp, 5);
+            register    (rm, read,  gp, 6);
+            register    (ra, read,  gp, 7);
+            filter      (is_alu3_op_size_supported(alu_op, size));
+            instruction ();
+        }
     }
 }
 
@@ -755,7 +660,7 @@ fn define_alu_rrr_extend() -> SpecConfig {
     let alu_ops = [ALUOp::Add, ALUOp::Sub, ALUOp::AddS, ALUOp::SubS];
 
     // OperandSize
-    let sizes = [OperandSize::Size32, OperandSize::Size64];
+    let sizes = [OperandSize::Size64, OperandSize::Size32];
 
     // ExtendOp
     let extendops = [
@@ -769,70 +674,18 @@ fn define_alu_rrr_extend() -> SpecConfig {
         ExtendOp::SXTX,
     ];
 
-    // AluRRR
-    let mut mappings = flags_mappings();
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(6),
-        Mapping::require(spec_var("rm".to_string())),
-    );
-
-    SpecConfig {
-        term: "MInst.AluRRRExtend".to_string(),
-        args: ["alu_op", "size", "rd", "rn", "rm", "extendop"]
-            .map(String::from)
-            .to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("alu_op".to_string()),
-                        arms: alu_ops
-                            .iter()
-                            .map(|alu_op| Arm {
-                                variant: format!("{alu_op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Match(Match {
-                                    on: spec_var("extendop".to_string()),
-                                    arms: extendops
-                                        .into_iter()
-                                        .map(|extendop| Arm {
-                                            variant: format!("{extendop:?}"),
-                                            args: Vec::new(),
-                                            body: Cases::Instruction(InstConfig {
-                                                opcodes: Opcodes::Instruction(Inst::AluRRRExtend {
-                                                    alu_op: *alu_op,
-                                                    size: *size,
-                                                    rd: writable_xreg(4),
-                                                    rn: xreg(5),
-                                                    rm: xreg(6),
-                                                    extendop,
-                                                }),
-                                                scope: aarch64::state(),
-                                                mappings: mappings.clone(),
-                                            }),
-                                        })
-                                        .collect(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (AluRRRExtend alu_op size rd rn rm extendop)
+        {
+            enumerate   (size, sizes);
+            enumerate   (alu_op, alu_ops);
+            register    (rd, write, gp, 4);
+            register    (rn, read,  gp, 5);
+            register    (rm, read,  gp, 6);
+            enumerate   (extendop, extendops);
+            flags       ();
+            instruction ();
+        }
     }
 }
 
@@ -850,54 +703,17 @@ fn define_bit_rr() -> SpecConfig {
     ];
 
     // OperandSize
-    let sizes = [OperandSize::Size32, OperandSize::Size64];
+    let sizes = [OperandSize::Size64, OperandSize::Size32];
 
-    let mut mappings = Mappings::default();
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_as_bit_vector_width(spec_var("rn".to_string()), 64)),
-    );
-
-    SpecConfig {
-        // Spec signature.
-        term: "MInst.BitRR".to_string(),
-        args: ["op", "size", "rd", "rn"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("op".to_string()),
-                        arms: bit_ops
-                            .iter()
-                            .map(|op| Arm {
-                                variant: format!("{op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::BitRR {
-                                        op: *op,
-                                        size: *size,
-                                        rd: writable_xreg(4),
-                                        rn: xreg(5),
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (BitRR op size rd rn)
+        {
+            enumerate   (size, sizes);
+            enumerate   (op, bit_ops);
+            register    (rd, write, gp, 4);
+            register    (rn, read,  gp64, 5);
+            instruction ();
+        }
     }
 }
 
@@ -1933,31 +1749,6 @@ fn conds() -> Vec<Cond> {
     ]
 }
 
-fn flags_mappings() -> Mappings {
-    // Instruction model is the MInst value itself, which is considered the result of the variant term.
-    let inst = MappingBuilder::var("result").allow();
-
-    // Input and output flags of the instruction are fields of the MInst model.
-    let flags_in = inst.clone().field("flags_in");
-    let flags_out = inst.clone().field("flags_out");
-
-    // Construct read and write mappings for each NZCV field.
-    let mut mappings = Mappings::default();
-    for field in &["N", "Z", "C", "V"] {
-        // Read
-        mappings
-            .reads
-            .insert(pstate_field(field), flags_in.clone().field(field).build());
-
-        // Write
-        mappings
-            .writes
-            .insert(pstate_field(field), flags_out.clone().field(field).build());
-    }
-
-    mappings
-}
-
 // MInst.FpuRRR specification configuration.
 fn define_fpu_rrr() -> SpecConfig {
     // FPUOp2
@@ -1971,61 +1762,19 @@ fn define_fpu_rrr() -> SpecConfig {
     ];
 
     // ScalarSize
-    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+    let sizes = [ScalarSize::Size64, ScalarSize::Size32];
 
-    // FpuRRR
-    let mut mappings = Mappings::default();
-    mappings
-        .writes
-        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
-    mappings
-        .reads
-        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
-    mappings
-        .reads
-        .insert(aarch64::vreg(6), Mapping::require(spec_fp_reg("rm")));
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
-
-    SpecConfig {
-        term: "MInst.FpuRRR".to_string(),
-        args: ["fpu_op", "size", "rd", "rn", "rm"]
-            .map(String::from)
-            .to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("fpu_op".to_string()),
-                        arms: fpu_op2s
-                            .iter()
-                            .map(|op| Arm {
-                                variant: format!("{op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::FpuRRR {
-                                        fpu_op: *op,
-                                        size: *size,
-                                        rd: writable_vreg(4),
-                                        rn: vreg(5),
-                                        rm: vreg(6),
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (FpuRRR fpu_op size rd rn rm)
+        {
+            enumerate   (size, sizes);
+            enumerate   (fpu_op, fpu_op2s);
+            register    (rd, write, fp, 4);
+            register    (rn, read,  fp, 5);
+            register    (rm, read,  fp, 6);
+            fpcr        ();
+            instruction ();
+        }
     }
 }
 
@@ -2041,56 +1790,19 @@ fn define_fpu_rr() -> SpecConfig {
     ];
 
     // ScalarSize
-    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
+    let sizes = [ScalarSize::Size64, ScalarSize::Size32];
 
-    // FpuRR
-    let mut mappings = Mappings::default();
-    mappings
-        .writes
-        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
-    mappings
-        .reads
-        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").allow().build());
-
-    SpecConfig {
-        term: "MInst.FpuRR".to_string(),
-        args: ["fpu_op", "size", "rd", "rn"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("fpu_op".to_string()),
-                        arms: fpu_op1s
-                            .iter()
-                            .filter(|fpu_op1| is_fpu_op1_size_supported(**fpu_op1, *size))
-                            .map(|op| Arm {
-                                variant: format!("{op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::FpuRR {
-                                        fpu_op: *op,
-                                        size: *size,
-                                        rd: writable_vreg(4),
-                                        rn: vreg(5),
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (FpuRR fpu_op size rd rn)
+        {
+            enumerate   (size, sizes);
+            enumerate   (fpu_op, fpu_op1s);
+            register    (rd, write, fp, 4);
+            register    (rn, read,  fp, 5);
+            filter      (is_fpu_op1_size_supported(fpu_op, size));
+            fpcr        ();
+            instruction ();
+        }
     }
 }
 
@@ -2179,96 +1891,34 @@ fn fpu_move_imm_template(size: ScalarSize, rd: Writable<Reg>) -> Result<Bits> {
 
 fn define_fpu_cmp() -> SpecConfig {
     // ScalarSize
-    let sizes = [ScalarSize::Size32, ScalarSize::Size64];
-    let mut mappings = flags_mappings();
-    mappings
-        .reads
-        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rn")));
-    mappings
-        .reads
-        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rm")));
-    mappings
-        .reads
-        .insert(literal("FALSE"), Mapping::require(spec_false()));
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
+    let sizes = [ScalarSize::Size64, ScalarSize::Size32];
 
-    SpecConfig {
-        term: "MInst.FpuCmp".to_string(),
-        args: ["size", "rn", "rm"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Instruction(InstConfig {
-                        opcodes: Opcodes::Instruction(Inst::FpuCmp {
-                            size: *size,
-                            rn: vreg(4),
-                            rm: vreg(5),
-                        }),
-                        scope: aarch64::state(),
-                        mappings: mappings.clone(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (FpuCmp size rn rm)
+        {
+            enumerate   (size, sizes);
+            register    (rn, read, fp, 4);
+            register    (rm, read,  fp, 5);
+            fpcr        ();
+            flags       ();
+            instruction ();
+        }
     }
-}
-
-// Spec expression for the lower 64 bits of a 128-bit floating-point register.
-fn spec_fp_reg(name: &str) -> SpecExpr {
-    spec_conv_to(
-        128,
-        spec_as_bit_vector_width(spec_var(name.to_string()), 64),
-    )
 }
 
 // MInst.MovToFpu specification configuration.
 fn define_mov_to_fpu() -> SpecConfig {
     // ScalarSize
-    let sizes = [ScalarSize::Size16, ScalarSize::Size32, ScalarSize::Size64];
+    let sizes = [ScalarSize::Size64, ScalarSize::Size32, ScalarSize::Size16];
 
-    // MovToFpu
-    let mut mappings = Mappings::default();
-    mappings.writes.insert(
-        aarch64::vreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_as_bit_vector_width(spec_var("rn".to_string()), 64)),
-    );
-
-    SpecConfig {
-        term: "MInst.MovToFpu".to_string(),
-        args: ["rd", "rn", "size"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Instruction(InstConfig {
-                        opcodes: Opcodes::Instruction(Inst::MovToFpu {
-                            rd: writable_vreg(4),
-                            rn: xreg(5),
-                            size: *size,
-                        }),
-                        scope: aarch64::state(),
-                        mappings: mappings.clone(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (MovToFpu rd rn size)
+        {
+            enumerate   (size, sizes);
+            register    (rd, write, vec, 4);
+            register    (rn, read,  gp64, 5);
+            instruction ();
+        }
     }
 }
 
@@ -2276,60 +1926,26 @@ fn define_mov_to_fpu() -> SpecConfig {
 // MInst.IntToFpu specification configuration.
 fn define_int_to_fpu() -> SpecConfig {
     let ops: [IntToFpuOp; 8] = [
-        IntToFpuOp::U32ToF32,
-        IntToFpuOp::I32ToF32,
-        IntToFpuOp::U32ToF64,
-        IntToFpuOp::I32ToF64,
-        IntToFpuOp::U64ToF32,
-        IntToFpuOp::I64ToF32,
-        IntToFpuOp::U64ToF64,
         IntToFpuOp::I64ToF64,
+        IntToFpuOp::U64ToF64,
+        IntToFpuOp::I64ToF32,
+        IntToFpuOp::U64ToF32,
+        IntToFpuOp::I32ToF64,
+        IntToFpuOp::U32ToF64,
+        IntToFpuOp::I32ToF32,
+        IntToFpuOp::U32ToF32,
     ];
 
-    let mut mappings = flags_mappings();
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
-    mappings
-        .reads
-        .insert(literal("FALSE"), Mapping::allow(spec_false()));
-    mappings
-        .reads
-        .insert(literal("TRUE"), Mapping::allow(spec_true()));
-
-    mappings.writes.insert(
-        aarch64::vreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::gpreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-
-    SpecConfig {
-        term: "MInst.IntToFpu".to_string(),
-        args: ["op", "rd", "rn"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("op".to_string()),
-            arms: ops
-                .iter()
-                .rev()
-                .map(|op| Arm {
-                    variant: format!("{op:?}"),
-                    args: Vec::new(),
-                    body: Cases::Instruction(InstConfig {
-                        opcodes: Opcodes::Instruction(Inst::IntToFpu {
-                            op: *op,
-                            rd: writable_vreg(4),
-                            rn: xreg(5),
-                        }),
-                        scope: aarch64::state(),
-                        mappings: mappings.clone(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (IntToFpu op rd rn)
+        {
+            enumerate   (op, ops);
+            register    (rd, write, vec, 4);
+            register    (rn, read,  gp, 5);
+            fpcr        ();
+            flags       ();
+            instruction ();
+        }
     }
 }
 
@@ -2337,115 +1953,51 @@ fn define_int_to_fpu() -> SpecConfig {
 // MInst.FpuToInt specification configuration.
 fn define_fpu_to_int() -> SpecConfig {
     let ops: [FpuToIntOp; 8] = [
-        FpuToIntOp::F32ToU32,
-        FpuToIntOp::F32ToI32,
-        FpuToIntOp::F32ToU64,
-        FpuToIntOp::F32ToI64,
-        FpuToIntOp::F64ToU32,
-        FpuToIntOp::F64ToI32,
-        FpuToIntOp::F64ToU64,
         FpuToIntOp::F64ToI64,
+        FpuToIntOp::F64ToU64,
+        FpuToIntOp::F64ToI32,
+        FpuToIntOp::F64ToU32,
+        FpuToIntOp::F32ToI64,
+        FpuToIntOp::F32ToU64,
+        FpuToIntOp::F32ToI32,
+        FpuToIntOp::F32ToU32,
     ];
 
-    let mut mappings = flags_mappings();
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").build());
-    mappings
-        .reads
-        .insert(literal("FALSE"), Mapping::allow(spec_false()));
-    mappings
-        .reads
-        .insert(literal("TRUE"), Mapping::allow(spec_true()));
-
-    mappings.writes.insert(
-        aarch64::gpreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::vreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-
-    SpecConfig {
-        term: "MInst.FpuToInt".to_string(),
-        args: ["op", "rd", "rn"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("op".to_string()),
-            arms: ops
-                .iter()
-                .rev()
-                .map(|op| Arm {
-                    variant: format!("{op:?}"),
-                    args: Vec::new(),
-                    body: Cases::Instruction(InstConfig {
-                        opcodes: Opcodes::Instruction(Inst::FpuToInt {
-                            op: *op,
-                            rd: writable_xreg(4),
-                            rn: vreg(5),
-                        }),
-                        scope: aarch64::state(),
-                        mappings: mappings.clone(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (FpuToInt op rd rn)
+        {
+            enumerate   (op, ops);
+            register    (rd, write, gp, 4);
+            register    (rn, read,  vec, 5);
+            fpcr        ();
+            flags       ();
+            instruction ();
+        }
     }
 }
 
 fn define_fpu_round() -> SpecConfig {
     // FpuRoundMode
     let modes = [
-        FpuRoundMode::Minus32,
-        FpuRoundMode::Minus64,
-        FpuRoundMode::Plus32,
-        FpuRoundMode::Plus64,
-        FpuRoundMode::Zero32,
-        FpuRoundMode::Zero64,
-        FpuRoundMode::Nearest32,
         FpuRoundMode::Nearest64,
+        FpuRoundMode::Nearest32,
+        FpuRoundMode::Zero64,
+        FpuRoundMode::Zero32,
+        FpuRoundMode::Plus64,
+        FpuRoundMode::Plus32,
+        FpuRoundMode::Minus64,
+        FpuRoundMode::Minus32,
     ];
 
-    // FpuRound
-    let mut mappings = Mappings::default();
-    mappings
-        .writes
-        .insert(aarch64::vreg(4), Mapping::require(spec_fp_reg("rd")));
-    mappings
-        .reads
-        .insert(aarch64::vreg(5), Mapping::require(spec_fp_reg("rn")));
-    mappings
-        .reads
-        .insert(aarch64::fpcr(), MappingBuilder::var("fpcr").allow().build());
-    mappings
-        .reads
-        .insert(literal("FALSE"), Mapping::require(spec_false()));
-
-    SpecConfig {
-        term: "MInst.FpuRound".to_string(),
-        args: ["mode", "rd", "rn"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("mode".to_string()),
-            arms: modes
-                .iter()
-                .rev()
-                .map(|mode| Arm {
-                    variant: format!("{mode:?}"),
-                    args: Vec::new(),
-                    body: Cases::Instruction(InstConfig {
-                        opcodes: Opcodes::Instruction(Inst::FpuRound {
-                            op: *mode,
-                            rd: writable_vreg(4),
-                            rn: vreg(5),
-                        }),
-                        scope: aarch64::state(),
-                        mappings: mappings.clone(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (FpuRound op rd rn)
+        {
+            enumerate   (op, modes);
+            register    (rd, write, fp, 4);
+            register    (rn, read,  fp, 5);
+            fpcr        ();
+            instruction ();
+        }
     }
 }
 
@@ -2763,59 +2315,18 @@ fn define_vec_rrr() -> SpecConfig {
     let vec_alu_ops = [VecALUOp::Addp];
 
     // VectorSize
-    let sizes = [VectorSize::Size8x8, VectorSize::Size8x16];
+    let sizes = [VectorSize::Size8x16, VectorSize::Size8x8];
 
-    // VecRRR
-    let mut mappings = Mappings::default();
-    mappings.writes.insert(
-        aarch64::vreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::vreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::vreg(6),
-        Mapping::require(spec_var("rm".to_string())),
-    );
-
-    SpecConfig {
-        term: "MInst.VecRRR".to_string(),
-        args: ["op", "rd", "rn", "rm", "size"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("op".to_string()),
-                        arms: vec_alu_ops
-                            .iter()
-                            .map(|op| Arm {
-                                variant: format!("{op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::VecRRR {
-                                        alu_op: *op,
-                                        rd: writable_vreg(4),
-                                        rn: vreg(5),
-                                        rm: vreg(6),
-                                        size: *size,
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (VecRRR alu_op rd rn rm size)
+        {
+            enumerate   (size, sizes);
+            enumerate   (alu_op, vec_alu_ops);
+            register    (rd, write, vec, 4);
+            register    (rn, read,  vec, 5);
+            register    (rm, read,  vec, 6);
+            instruction ();
+        }
     }
 }
 
@@ -2825,54 +2336,17 @@ fn define_vec_misc() -> SpecConfig {
     let ops = [VecMisc2::Cnt];
 
     // VectorSize
-    let sizes = [VectorSize::Size8x8, VectorSize::Size8x16];
+    let sizes = [VectorSize::Size8x16, VectorSize::Size8x8];
 
-    // VecMisc
-    let mut mappings = Mappings::default();
-    mappings.writes.insert(
-        aarch64::vreg(4),
-        Mapping::require(spec_var("rd".to_string())),
-    );
-    mappings.reads.insert(
-        aarch64::vreg(5),
-        Mapping::require(spec_var("rn".to_string())),
-    );
-
-    SpecConfig {
-        term: "MInst.VecMisc".to_string(),
-        args: ["op", "rd", "rn", "size"].map(String::from).to_vec(),
-
-        cases: Cases::Match(Match {
-            on: spec_var("size".to_string()),
-            arms: sizes
-                .iter()
-                .rev()
-                .map(|size| Arm {
-                    variant: format!("{size:?}"),
-                    args: Vec::new(),
-                    body: Cases::Match(Match {
-                        on: spec_var("op".to_string()),
-                        arms: ops
-                            .iter()
-                            .map(|op| Arm {
-                                variant: format!("{op:?}"),
-                                args: Vec::new(),
-                                body: Cases::Instruction(InstConfig {
-                                    opcodes: Opcodes::Instruction(Inst::VecMisc {
-                                        op: *op,
-                                        rd: writable_vreg(4),
-                                        rn: vreg(5),
-                                        size: *size,
-                                    }),
-                                    scope: aarch64::state(),
-                                    mappings: mappings.clone(),
-                                }),
-                            })
-                            .collect(),
-                    }),
-                })
-                .collect(),
-        }),
+    spec_config! {
+        (VecMisc op rd rn size)
+        {
+            enumerate   (size, sizes);
+            enumerate   (op, ops);
+            register    (rd, write, vec, 4);
+            register    (rn, read,  vec, 5);
+            instruction ();
+        }
     }
 }
 

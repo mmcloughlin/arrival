@@ -3,10 +3,10 @@
 (attr MInst.FpuRound (tag isaspec_generated))
 
 (spec
-    (MInst.FpuRound mode rd rn)
+    (MInst.FpuRound op rd rn)
     (provide
         (match
-            mode
+            op
             ((Nearest64)
                 (with
                     (t3)
@@ -57,7 +57,7 @@
                         (= (conv_to 128 (as rd (bv 64))) (zero_ext 128 t3)))))))
     (require
         (match
-            mode
+            op
             ((Nearest64) true)
             ((Nearest32) true)
             ((Zero64) true)
