@@ -38,8 +38,6 @@ pub struct FileConfig {
     pub specs: Vec<SpecConfig>,
 }
 
-// ISA_CONFIG_START
-
 /// Define specifications to generate.
 pub fn define() -> Result<Vec<FileConfig>> {
     Ok(vec![
@@ -2318,5 +2316,3 @@ fn define_vec_lanes() -> SpecConfig {
         }),
     }
 }
-
-// ISA_CONFIG_END
