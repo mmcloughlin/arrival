@@ -1,10 +1,16 @@
-use cranelift_isle::ast::SpecExpr;
+use std::collections::HashMap;
+
+use anyhow::{bail, Result};
+use cranelift_codegen::{isa::aarch64::inst::Inst, Reg, RegClass};
 
 use crate::{
-    aarch64::pstate_field,
+    aarch64::{self, pstate_field},
+    bits::Bits,
     builder::{MappingBuilder, Mappings},
+    constraints::Target,
     spec::{spec_as_bit_vector_width, spec_conv_to, spec_var},
 };
+use cranelift_isle::ast::SpecExpr;
 
 #[macro_export(local_inner_macros)]
 macro_rules! spec_config {
@@ -203,4 +209,38 @@ pub fn spec_fp_reg(name: &str) -> SpecExpr {
         128,
         spec_as_bit_vector_width(spec_var(name.to_string()), 64),
     )
+}
+
+// Compare an opcode template against the instruction we expect it to represent.
+pub fn verify_opcode_template<F>(template: &Bits, expect: F) -> Result<()>
+where
+    F: Fn(&HashMap<String, u32>) -> Result<Inst>,
+{
+    // Iterate over all template values.
+    for concrete in template.into_iter() {
+        let inst = expect(&concrete.assignment)?;
+        let opcode = aarch64::opcode(&inst);
+        let got = concrete.eval()?;
+        if got != opcode {
+            bail!(
+                "template mismatch: opcode {:#x}, template {:#x}",
+                opcode,
+                got,
+            );
+        }
+    }
+    Ok(())
+}
+
+// Convert a Cranelift register to the corresponding element of AArch64 state in
+// ASLp.
+pub fn reg_target(reg: Reg) -> Result<Target> {
+    let Some(preg) = reg.to_real_reg() else {
+        bail!("not physical register")
+    };
+    let index = preg.hw_enc().into();
+    Ok(match preg.class() {
+        RegClass::Int => aarch64::gpreg(index),
+        RegClass::Float | RegClass::Vector => aarch64::vreg(index),
+    })
 }
