@@ -1,8 +1,8 @@
-# VeriISLE
+# Arrival
 
-VeriISLE is an in-development research prototype verifier for the ISLE language.
-It builds upon the Crocus verifier, adding support for automatic rule chaining
-and authoritative ISA semantics.
+Arrival is a verifier for the ISLE language.  It builds upon the existing ISLE
+specification language, adding support for automatic rule chaining and
+authoritative ISA semantics.
 
 ## Dependencies
 
@@ -47,7 +47,7 @@ then the following command can be used to limit to all expansions involving it:
 
 ## ISA Specifications
 
-Where possible we derive ISA specifications in VeriISLE format from
+Where possible we derive ISA specifications in Arrival format from
 authoritative specifications distributed by vendors. Currently this is only
 possible for the AArch64 backend, with specifications derived from ARM's Machine
 Readable Specification in Architecture Specification Language (ASL). We rely on
